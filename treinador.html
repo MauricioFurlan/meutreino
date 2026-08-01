@@ -162,6 +162,32 @@
       border-radius: 50%;
       display: inline-block;
     }
+    .frequency {
+      margin-top: 10px;
+      padding: 8px;
+      background: #1a1a1a;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      color: #bbb;
+      text-align: center;
+    }
+    .frequency strong { color: #f5c518; }
+    .freq-dots {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      justify-content: center;
+      margin-top: 6px;
+    }
+    .freq-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #4caf50;
+    }
+    .freq-dot.missed {
+      background: #f44336;
+    }
   </style>
 </head>
 <body>
@@ -356,6 +382,39 @@ async function toggleChart(chartId, exerciseName) {
         }
       }
     });
+
+    // Indicador de frequência
+    const dates = Object.keys(byDate).sort();
+    const firstDate = new Date(dates[0] + 'T12:00:00');
+    const lastDate = new Date(dates[dates.length - 1] + 'T12:00:00');
+    const totalWeeks = Math.ceil((lastDate - firstDate) / (7 * 24 * 60 * 60 * 1000)) + 1;
+    const trainedWeeks = new Set(dates.map(d => {
+      const dt = new Date(d + 'T12:00:00');
+      const startOfYear = new Date(dt.getFullYear(), 0, 1);
+      return Math.ceil(((dt - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
+    }));
+    const attended = trainedWeeks.size;
+    const percent = Math.round((attended / totalWeeks) * 100);
+
+    // Gerar bolinhas por semana
+    let dotsHtml = '';
+    let currentWeek = new Date(firstDate);
+    for (let i = 0; i < totalWeeks; i++) {
+      const weekStart = new Date(currentWeek);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      const hadTraining = dates.some(d => {
+        const dt = new Date(d + 'T12:00:00');
+        return dt >= weekStart && dt <= weekEnd;
+      });
+      dotsHtml += `<span class="freq-dot${hadTraining ? '' : ' missed'}" title="Semana ${i+1}"></span>`;
+      currentWeek.setDate(currentWeek.getDate() + 7);
+    }
+
+    const freqEl = document.createElement('div');
+    freqEl.className = 'frequency';
+    freqEl.innerHTML = `Frequência: <strong>${attended}/${totalWeeks} semanas (${percent}%)</strong><div class="freq-dots">${dotsHtml}</div><div style="margin-top:4px;font-size:0.65rem;">🟢 treinou &nbsp; 🔴 faltou</div>`;
+    container.appendChild(freqEl);
   } catch (e) {
     container.innerHTML = `<div class="no-data">Erro: ${e.message}</div>`;
   }
