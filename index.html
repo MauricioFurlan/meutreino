@@ -205,6 +205,21 @@
     }
     .note-icon.visible { display: inline-flex; align-items: center; justify-content: center; }
     .exercise-header { display: flex; align-items: center; }
+    .video-btn {
+      background: none;
+      border: 1px solid #555;
+      color: #f5c518;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      font-size: 0.6rem;
+      cursor: pointer;
+      margin-left: 8px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
     .note-bubble {
       display: none;
       background: #2a2a2a;
@@ -533,7 +548,7 @@ function renderDay(day) {
   let html = '';
   exercises.forEach((ex, exIdx) => {
     html += `<div class="exercise-card" id="card-${day}-${exIdx}" data-exercise="${ex.name}" data-day="${day}">`;
-    html += `<div class="exercise-header"><div class="exercise-name" onclick="openVideo('${ex.name.replace(/'/g, "\\'")}')" style="cursor:pointer;text-decoration:underline;">${ex.name}</div><button class="note-icon" id="note-icon-${day}-${exIdx}" onclick="toggleNote('${day}', ${exIdx}, null)">!</button></div>`;
+    html += `<div class="exercise-header"><div class="exercise-name">${ex.name}</div><button class="video-btn" onclick="openVideo('${ex.name.replace(/'/g, "\\'")}')">▶</button><button class="note-icon" id="note-icon-${day}-${exIdx}" onclick="toggleNote('${day}', ${exIdx}, null)">!</button></div>`;
     html += `<div class="note-bubble" id="note-bubble-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span id="note-text-${day}-${exIdx}"></span></div>`;
     html += `<button class="history-btn" onclick="toggleHistory('${day}', ${exIdx}, '${ex.name.replace(/'/g, "\\'")}')">Ver histórico</button>`;
     html += `<div class="history-panel" id="history-${day}-${exIdx}"></div>`;
@@ -586,14 +601,8 @@ function openVideo(exerciseName) {
   const url = videoLinks[exerciseName]
     ? videoLinks[exerciseName]
     : 'https://www.youtube.com/results?search_query=' + encodeURIComponent(exerciseName + ' execução correta');
-  // Usar link temporário pra forçar abertura no navegador externo (evita bug de tela branca em PWA iOS)
-  const a = document.createElement('a');
-  a.href = url;
-  a.target = '_blank';
-  a.rel = 'noopener noreferrer';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
+  // location.href força o iOS a sair da PWA e abrir no Safari
+  window.location.href = url;
 }
 
 function toggleNote(day, exIdx, setIdx) {
