@@ -64,7 +64,7 @@
       border: 1px solid #333;
     }
     .exercise-name {
-      font-size: 1.95rem;
+      font-size: 1.3rem;
       font-weight: 700;
       color: #f5c518;
       margin-bottom: 10px;
@@ -135,17 +135,6 @@
       margin-bottom: 8px;
       text-decoration: underline;
     }
-    .history-panel {
-      display: none;
-      background: #2a2a2a;
-      border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 10px;
-      font-size: 0.75rem;
-      color: #bbb;
-    }
-    .history-panel.show { display: block; }
-    .history-entry { padding: 4px 0; border-bottom: 1px solid #333; }
     .check-icon {
       width: 28px;
       height: 28px;
@@ -231,6 +220,46 @@
     }
     .note-bubble.show { display: block; }
     .note-bubble-label { font-size: 0.65rem; color: #f5c518; margin-bottom: 4px; font-weight: 600; }
+    .history-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .history-modal.show { display: flex; }
+    .history-modal-content {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 16px;
+      width: 100%;
+      max-width: 400px;
+      max-height: 80vh;
+      overflow-y: auto;
+      border: 1px solid #333;
+    }
+    .history-modal-content h3 {
+      color: #f5c518;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+    .history-modal-close {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: #2a2a2a;
+      color: #999;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    .history-date { color: #f5c518; font-size: 0.75rem; font-weight: 600; margin-top: 10px; margin-bottom: 4px; }
+    .history-set { font-size: 0.8rem; color: #ddd; padding: 3px 0; border-bottom: 1px solid #222; }
   </style>
 </head>
 <body>
@@ -242,6 +271,13 @@
   <div class="tabs" id="tabs"></div>
   <div id="content"></div>
   <div class="toast" id="toast"></div>
+  <div class="history-modal" id="historyModal">
+    <div class="history-modal-content">
+      <h3 id="historyModalTitle">Histórico</h3>
+      <div id="historyModalBody"></div>
+      <button class="history-modal-close" onclick="closeHistoryModal()">Fechar</button>
+    </div>
+  </div>
 
 <script>
 const SUPABASE_URL = 'https://qslvwyhpamazoqhcmqan.supabase.co';
@@ -522,21 +558,47 @@ async function saveExercise(day, exerciseName, card) {
 
 async function loadHistory(exerciseName, panel) {
   try {
+    // Últimas 4 semanas
+    const fourWeeksAgo = new Date();
+    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+    const since = fourWeeksAgo.toISOString().split('T')[0];
+
     const data = await supaFetch(
-      `workout_logs?exercise_name=eq.${encodeURIComponent(exerciseName)}&order=created_at.desc&limit=15`
+      `workout_logs?exercise_name=eq.${encodeURIComponent(exerciseName)}&set_type=eq.hard&created_at=gte.${since}T00:00:00&order=created_at.desc,set_number.asc`
     );
-    if (data.length === 0) { panel.innerHTML = '<em>Sem histórico</em>'; return; }
+
+    const body = document.getElementById('historyModalBody');
+    document.getElementById('historyModalTitle').textContent = exerciseName;
+
+    if (!data || data.length === 0) {
+      body.innerHTML = '<div style="color:#888;text-align:center;padding:20px;">Sem histórico nas últimas 4 semanas</div>';
+      return;
+    }
+
     let html = '';
     let lastDate = '';
     data.forEach(r => {
-      const date = new Date(r.created_at).toLocaleDateString('pt-BR');
-      if (date !== lastDate) { html += `<strong>${date}</strong><br>`; lastDate = date; }
-      html += `<div class="history-entry">Set ${r.set_number} (${r.set_type}): ${r.weight || '-'}kg x ${r.reps || '-'} reps</div>`;
+      const date = new Date(r.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', weekday: 'short' });
+      if (date !== lastDate) {
+        html += `<div class="history-date">${date}</div>`;
+        lastDate = date;
+      }
+      html += `<div class="history-set">Set ${r.set_number}: ${r.weight || '-'}kg × ${r.reps || '-'} reps</div>`;
     });
-    panel.innerHTML = html;
+    body.innerHTML = html;
   } catch (e) {
-    panel.innerHTML = '<em>Erro ao carregar histórico</em>';
+    document.getElementById('historyModalBody').innerHTML = '<div style="color:#f44336;">Erro ao carregar</div>';
   }
+}
+
+function toggleHistory(day, exIdx, name) {
+  document.getElementById('historyModal').classList.add('show');
+  document.getElementById('historyModalBody').innerHTML = '<div style="color:#888;text-align:center;padding:20px;">Carregando...</div>';
+  loadHistory(name);
+}
+
+function closeHistoryModal() {
+  document.getElementById('historyModal').classList.remove('show');
 }
 
 function renderDay(day) {
@@ -550,7 +612,6 @@ function renderDay(day) {
     html += `<div class="exercise-header"><div class="exercise-name">${ex.name}</div><button class="video-btn" onclick="openVideo('${ex.name.replace(/'/g, "\\'")}')">▶</button><button class="note-icon" id="note-icon-${day}-${exIdx}" onclick="toggleNote('${day}', ${exIdx}, null)">!</button></div>`;
     html += `<div class="note-bubble" id="note-bubble-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span id="note-text-${day}-${exIdx}"></span></div>`;
     html += `<button class="history-btn" onclick="toggleHistory('${day}', ${exIdx}, '${ex.name.replace(/'/g, "\\'")}')">Ver histórico</button>`;
-    html += `<div class="history-panel" id="history-${day}-${exIdx}"></div>`;
     ex.sets.forEach((set, setIdx) => {
       const typeLabel = set.type === 'aquec' ? 'AQUEC' : set.type === 'feeder' ? 'FEEDER' : 'HARD';
       const notes = set.reps.includes('+') ? set.reps.split('+')[1].trim() : '';
