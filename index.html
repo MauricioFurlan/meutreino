@@ -179,15 +179,16 @@
       display: none;
       background: #f44336;
       color: #fff;
-      width: 22px;
-      height: 22px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
-      font-size: 0.75rem;
+      font-size: 0.65rem;
       font-weight: 700;
       border: none;
       cursor: pointer;
-      margin-left: 8px;
+      margin-left: 4px;
       flex-shrink: 0;
+      vertical-align: middle;
     }
     .note-icon.visible { display: inline-flex; align-items: center; justify-content: center; }
     .exercise-header { display: flex; align-items: center; }
@@ -519,7 +520,7 @@ function renderDay(day) {
   let html = '';
   exercises.forEach((ex, exIdx) => {
     html += `<div class="exercise-card" id="card-${day}-${exIdx}" data-exercise="${ex.name}" data-day="${day}">`;
-    html += `<div class="exercise-header"><div class="exercise-name">${ex.name}</div><button class="note-icon" id="note-icon-${day}-${exIdx}" onclick="toggleNote('${day}', ${exIdx})">!</button></div>`;
+    html += `<div class="exercise-header"><div class="exercise-name">${ex.name}</div><button class="note-icon" id="note-icon-${day}-${exIdx}" onclick="toggleNote('${day}', ${exIdx}, null)">!</button></div>`;
     html += `<div class="note-bubble" id="note-bubble-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span id="note-text-${day}-${exIdx}"></span></div>`;
     html += `<button class="history-btn" onclick="toggleHistory('${day}', ${exIdx}, '${ex.name.replace(/'/g, "\\'")}')">Ver histórico</button>`;
     html += `<div class="history-panel" id="history-${day}-${exIdx}"></div>`;
@@ -527,11 +528,12 @@ function renderDay(day) {
       const typeLabel = set.type === 'aquec' ? 'AQUEC' : set.type === 'feeder' ? 'FEEDER' : 'HARD';
       const notes = set.reps.includes('+') ? set.reps.split('+')[1].trim() : '';
       html += `<div class="set-row" data-set-type="${set.type}" data-notes="${notes}">`;
-      html += `<span class="set-label">${typeLabel} ${setIdx+1}</span>`;
+      html += `<span class="set-label">${typeLabel} ${setIdx+1} <button class="note-icon" id="note-icon-${day}-${exIdx}-${setIdx}" onclick="toggleNote('${day}', ${exIdx}, ${setIdx})">!</button></span>`;
       html += `<input type="number" class="weight-input" placeholder="kg" inputmode="decimal">`;
       html += `<input type="number" class="reps-input" placeholder="${set.reps}" inputmode="numeric">`;
       html += `<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
       html += `</div>`;
+      html += `<div class="note-bubble" id="note-bubble-${day}-${exIdx}-${setIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span id="note-text-${day}-${exIdx}-${setIdx}"></span></div>`;
     });
     html += `<button class="save-btn" onclick="saveExercise('${day}', '${ex.name.replace(/'/g, "\\'")}', document.getElementById('card-${day}-${exIdx}'))">Salvar</button>`;
     html += `</div>`;
@@ -550,9 +552,10 @@ function toggleHistory(day, exIdx, name) {
   }
 }
 
-function toggleNote(day, exIdx) {
-  const bubble = document.getElementById(`note-bubble-${day}-${exIdx}`);
-  bubble.classList.toggle('show');
+function toggleNote(day, exIdx, setIdx) {
+  const id = setIdx !== null ? `note-bubble-${day}-${exIdx}-${setIdx}` : `note-bubble-${day}-${exIdx}`;
+  const bubble = document.getElementById(id);
+  if (bubble) bubble.classList.toggle('show');
 }
 
 async function loadTrainerNotes() {
@@ -560,24 +563,27 @@ async function loadTrainerNotes() {
     const data = await supaFetch('trainer_notes?active=eq.true&order=created_at.desc');
     if (!data || data.length === 0) return;
 
-    const WORKOUT_KEYS = {};
     const days = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
     days.forEach(day => {
-      if (WORKOUT[day]) {
-        WORKOUT[day].forEach((ex, exIdx) => {
-          WORKOUT_KEYS[`${day}-${ex.name}`] = { day, exIdx };
+      if (!WORKOUT[day]) return;
+      WORKOUT[day].forEach((ex, exIdx) => {
+        data.forEach(note => {
+          if (note.exercise_name !== ex.name) return;
+          if (note.set_number) {
+            // Nota específica de um set
+            const setIdx = note.set_number - 1;
+            const icon = document.getElementById(`note-icon-${day}-${exIdx}-${setIdx}`);
+            const text = document.getElementById(`note-text-${day}-${exIdx}-${setIdx}`);
+            if (icon) icon.classList.add('visible');
+            if (text) text.textContent = note.note;
+          } else {
+            // Nota geral do exercício
+            const icon = document.getElementById(`note-icon-${day}-${exIdx}`);
+            const text = document.getElementById(`note-text-${day}-${exIdx}`);
+            if (icon) icon.classList.add('visible');
+            if (text) text.textContent = note.note;
+          }
         });
-      }
-    });
-
-    data.forEach(note => {
-      Object.entries(WORKOUT_KEYS).forEach(([key, { day, exIdx }]) => {
-        if (key === `${day}-${note.exercise_name}`) {
-          const icon = document.getElementById(`note-icon-${day}-${exIdx}`);
-          const text = document.getElementById(`note-text-${day}-${exIdx}`);
-          if (icon) icon.classList.add('visible');
-          if (text) text.textContent = note.note;
-        }
       });
     });
   } catch (e) {

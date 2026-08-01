@@ -533,7 +533,7 @@ async function loadDay(day, date) {
       html += `<div class="exercise-name">${name}</div>`;
       html += `<div style="display:flex;gap:8px;margin-bottom:10px;">`;
       html += `<button class="chart-btn" onclick="toggleChart('${chartId}', '${name.replace(/'/g, "\\'")}')">📈 Evolução</button>`;
-      html += `<button class="chart-btn" onclick="editNote('${name.replace(/'/g, "\\'")}')">📝 Nota</button>`;
+      html += `<button class="chart-btn" onclick="editNote('${name.replace(/'/g, "\\'")}')">📝 Nota geral</button>`;
       html += `</div>`;
       html += `<div class="chart-container" id="${chartId}"><canvas></canvas><div class="chart-legend"><span><span class="dot" style="background:#f5c518"></span> Volume (kg×reps)</span><span><span class="dot" style="background:#4caf50"></span> Carga máx (kg)</span></div></div>`;
       html += `<div class="set-row"><span class="set-label">Set</span><span class="set-label" style="text-align:center">Carga</span><span class="set-label" style="text-align:center">Reps</span></div>`;
@@ -543,7 +543,7 @@ async function loadDay(day, date) {
         const prescribedList = PRESCRIBED_REPS[name] || [];
         const prescribed = prescribedList[s.set_number - 1] || '';
         html += `<div class="set-row">`;
-        html += `<span class="set-label">${s.set_type} ${s.set_number}${prescribed ? ' (' + prescribed + ')' : ''}</span>`;
+        html += `<span class="set-label">${s.set_type} ${s.set_number}${prescribed ? ' (' + prescribed + ')' : ''} <button class="chart-btn" style="padding:2px 5px;font-size:0.6rem;margin-left:4px;" onclick="editNote('${name.replace(/'/g, "\\'")}', ${s.set_number})">📝</button></span>`;
         html += `<span class="set-value${!s.weight ? ' empty' : ''}">${weight}</span>`;
         html += `<span class="set-value${!s.reps ? ' empty' : ''}">${reps}</span>`;
         html += `</div>`;
@@ -711,17 +711,21 @@ async function toggleChart(chartId, exerciseName) {
 
 // === TRAINER NOTES ===
 let currentNoteExercise = '';
+let currentNoteSet = null;
 
-async function editNote(exerciseName) {
+async function editNote(exerciseName, setNumber) {
   currentNoteExercise = exerciseName;
-  document.getElementById('noteModalTitle').textContent = exerciseName;
+  currentNoteSet = setNumber || null;
+  const title = setNumber ? `${exerciseName} - Set ${setNumber}` : exerciseName;
+  document.getElementById('noteModalTitle').textContent = title;
   document.getElementById('noteText').value = '';
 
   // Buscar nota existente
   try {
-    const data = await supaFetch(
-      `trainer_notes?exercise_name=eq.${encodeURIComponent(exerciseName)}&active=eq.true&order=created_at.desc&limit=1`
-    );
+    let query = `trainer_notes?exercise_name=eq.${encodeURIComponent(exerciseName)}&active=eq.true&order=created_at.desc&limit=1`;
+    if (setNumber) query += `&set_number=eq.${setNumber}`;
+    else query += '&set_number=is.null';
+    const data = await supaFetch(query);
     if (data && data.length > 0) {
       document.getElementById('noteText').value = data[0].note;
     }
@@ -741,8 +745,12 @@ async function saveNote() {
   if (!note) return;
 
   try {
-    // Desativar notas anteriores desse exercício
-    await fetch(SUPABASE_URL + '/rest/v1/trainer_notes?exercise_name=eq.' + encodeURIComponent(currentNoteExercise) + '&active=eq.true', {
+    // Desativar notas anteriores
+    let patchUrl = SUPABASE_URL + '/rest/v1/trainer_notes?exercise_name=eq.' + encodeURIComponent(currentNoteExercise) + '&active=eq.true';
+    if (currentNoteSet) patchUrl += '&set_number=eq.' + currentNoteSet;
+    else patchUrl += '&set_number=is.null';
+
+    await fetch(patchUrl, {
       method: 'PATCH',
       headers: {
         'apikey': SUPABASE_KEY,
@@ -753,6 +761,13 @@ async function saveNote() {
     });
 
     // Inserir nova nota
+    const record = {
+      exercise_name: currentNoteExercise,
+      note: note,
+      active: true
+    };
+    if (currentNoteSet) record.set_number = currentNoteSet;
+
     await fetch(SUPABASE_URL + '/rest/v1/trainer_notes', {
       method: 'POST',
       headers: {
@@ -761,11 +776,7 @@ async function saveNote() {
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
-      body: JSON.stringify({
-        exercise_name: currentNoteExercise,
-        note: note,
-        active: true
-      })
+      body: JSON.stringify(record)
     });
 
     closeNoteModal();
@@ -777,7 +788,11 @@ async function saveNote() {
 
 async function deleteNote() {
   try {
-    await fetch(SUPABASE_URL + '/rest/v1/trainer_notes?exercise_name=eq.' + encodeURIComponent(currentNoteExercise) + '&active=eq.true', {
+    let patchUrl = SUPABASE_URL + '/rest/v1/trainer_notes?exercise_name=eq.' + encodeURIComponent(currentNoteExercise) + '&active=eq.true';
+    if (currentNoteSet) patchUrl += '&set_number=eq.' + currentNoteSet;
+    else patchUrl += '&set_number=is.null';
+
+    await fetch(patchUrl, {
       method: 'PATCH',
       headers: {
         'apikey': SUPABASE_KEY,
