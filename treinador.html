@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Treino - Mauricio Furlan</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -124,6 +125,41 @@
       text-align: center;
     }
     .summary strong { color: #f5c518; }
+    .chart-btn {
+      background: #2a2a2a;
+      border: 1px solid #f5c518;
+      color: #f5c518;
+      font-size: 0.75rem;
+      padding: 5px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
+    .chart-btn:active { opacity: 0.7; }
+    .chart-container {
+      display: none;
+      background: #0d0d0d;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .chart-container.show { display: block; }
+    .chart-container canvas { max-height: 200px; }
+    .chart-legend {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      font-size: 0.7rem;
+      color: #999;
+      margin-top: 6px;
+    }
+    .chart-legend span { display: flex; align-items: center; gap: 4px; }
+    .chart-legend .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
   </style>
 </head>
 <body>
@@ -142,7 +178,7 @@
 const SUPABASE_URL = 'https://qslvwyhpamazoqhcmqan.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_lTQKzQJc5uq7LNq-N1UvRg_w3aF_7zH';
 
-const DAYS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+const DAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
 async function supaFetch(endpoint) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/' + endpoint, {
@@ -165,7 +201,7 @@ async function loadDay(day, date) {
     );
 
     if (!data || data.length === 0) {
-      container.innerHTML = '<div class="no-data">Nenhum registro nesta data</div>';
+      container.innerHTML = '<div class="no-data">Sem dados registrados nesta data</div>';
       return;
     }
 
@@ -179,13 +215,16 @@ async function loadDay(day, date) {
     const totalExercises = Object.keys(exercises).length;
     let html = `<div class="summary"><strong>${totalExercises}</strong> exercícios · <strong>${totalSets}</strong> sets registrados</div>`;
 
-    Object.entries(exercises).forEach(([name, sets]) => {
+    Object.entries(exercises).forEach(([name, sets], exIdx) => {
+      const chartId = `chart-${day}-${date}-${exIdx}`;
       html += `<div class="exercise-card">`;
       html += `<div class="exercise-name">${name}</div>`;
+      html += `<button class="chart-btn" onclick="toggleChart('${chartId}', '${name.replace(/'/g, "\\'")}')">📈 Evolução</button>`;
+      html += `<div class="chart-container" id="${chartId}"><canvas></canvas><div class="chart-legend"><span><span class="dot" style="background:#f5c518"></span> Volume (kg×reps)</span><span><span class="dot" style="background:#4caf50"></span> Carga máx (kg)</span></div></div>`;
       html += `<div class="set-row"><span class="set-label">Set</span><span class="set-label" style="text-align:center">Carga</span><span class="set-label" style="text-align:center">Reps</span></div>`;
       sets.forEach(s => {
         const weight = s.weight ? s.weight + ' kg' : '-';
-        const reps = s.reps ? s.reps + ' reps' : '-';
+        const reps = s.notes ? s.notes : (s.reps ? s.reps + ' reps' : '-');
         html += `<div class="set-row">`;
         html += `<span class="set-label">${s.set_type} ${s.set_number}</span>`;
         html += `<span class="set-value${!s.weight ? ' empty' : ''}">${weight}</span>`;
@@ -201,6 +240,125 @@ async function loadDay(day, date) {
   }
 }
 
+const chartInstances = {};
+
+async function toggleChart(chartId, exerciseName) {
+  const container = document.getElementById(chartId);
+  if (container.classList.contains('show')) {
+    container.classList.remove('show');
+    return;
+  }
+  container.classList.add('show');
+
+  if (chartInstances[chartId]) return; // já renderizado
+
+  try {
+    const data = await supaFetch(
+      `workout_logs?exercise_name=eq.${encodeURIComponent(exerciseName)}&set_type=eq.hard&order=created_at.asc`
+    );
+
+    if (!data || data.length === 0) {
+      container.innerHTML = '<div class="no-data">Sem histórico</div>';
+      return;
+    }
+
+    // Agrupar por data
+    const byDate = {};
+    data.forEach(r => {
+      const date = r.created_at.split('T')[0];
+      if (!byDate[date]) byDate[date] = [];
+      byDate[date].push(r);
+    });
+
+    const labels = [];
+    const volumeData = [];
+    const maxWeightData = [];
+
+    Object.entries(byDate).forEach(([date, sets]) => {
+      labels.push(new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+      let volume = 0;
+      let maxWeight = 0;
+      sets.forEach(s => {
+        const w = s.weight || 0;
+        const r = s.reps || 0;
+        volume += w * r;
+        if (w > maxWeight) maxWeight = w;
+      });
+      volumeData.push(volume);
+      maxWeightData.push(maxWeight);
+    });
+
+    const canvas = container.querySelector('canvas');
+    const ctx = canvas.getContext('2d');
+
+    chartInstances[chartId] = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Volume (kg×reps)',
+            data: volumeData,
+            borderColor: '#f5c518',
+            backgroundColor: 'rgba(245, 197, 24, 0.1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true,
+            pointRadius: 2,
+            yAxisID: 'y'
+          },
+          {
+            label: 'Carga máx (kg)',
+            data: maxWeightData,
+            borderColor: '#4caf50',
+            backgroundColor: 'rgba(76, 175, 80, 0.1)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: false,
+            pointRadius: 2,
+            yAxisID: 'y1'
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1a1a1a',
+            titleColor: '#f5c518',
+            bodyColor: '#f0f0f0',
+            borderColor: '#333',
+            borderWidth: 1
+          }
+        },
+        scales: {
+          x: {
+            ticks: { color: '#666', font: { size: 9 }, maxRotation: 45 },
+            grid: { color: '#222' }
+          },
+          y: {
+            position: 'left',
+            ticks: { color: '#f5c518', font: { size: 9 } },
+            grid: { color: '#222' },
+            title: { display: false }
+          },
+          y1: {
+            position: 'right',
+            ticks: { color: '#4caf50', font: { size: 9 } },
+            grid: { display: false },
+            title: { display: false }
+          }
+        }
+      }
+    });
+  } catch (e) {
+    container.innerHTML = `<div class="no-data">Erro: ${e.message}</div>`;
+  }
+}
+
 function init() {
   const dateInput = document.getElementById('dateFilter');
   const today = new Date().toISOString().split('T')[0];
@@ -210,7 +368,7 @@ function init() {
   const contentEl = document.getElementById('content');
   const todayDay = DAYS[new Date().getDay()];
 
-  DAYS.forEach(day => {
+  DAYS.forEach((day, dayIdx) => {
     const tab = document.createElement('button');
     tab.className = 'tab' + (day === todayDay ? ' active' : '');
     tab.textContent = day.substring(0, 3);
@@ -219,6 +377,14 @@ function init() {
       document.querySelectorAll('.day-content').forEach(d => d.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById('day-' + day).classList.add('active');
+      // Ajusta a data para o último dia da semana correspondente
+      const now = new Date();
+      const currentDayIdx = now.getDay();
+      let diff = currentDayIdx - dayIdx;
+      if (diff < 0) diff += 7;
+      const targetDate = new Date(now);
+      targetDate.setDate(now.getDate() - diff);
+      dateInput.value = targetDate.toISOString().split('T')[0];
       loadDay(day, dateInput.value);
     };
     tabsEl.appendChild(tab);
@@ -230,9 +396,17 @@ function init() {
   });
 
   dateInput.addEventListener('change', () => {
-    const activeDay = document.querySelector('.tab.active')?.textContent;
-    const fullDay = DAYS.find(d => d.substring(0, 3) === activeDay);
-    if (fullDay) loadDay(fullDay, dateInput.value);
+    const selectedDate = new Date(dateInput.value + 'T12:00:00');
+    const dayOfWeek = DAYS[selectedDate.getDay()];
+    // Move a tab pro dia correto
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.day-content').forEach(d => d.classList.remove('active'));
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(t => {
+      if (t.textContent === dayOfWeek.substring(0, 3)) t.classList.add('active');
+    });
+    document.getElementById('day-' + dayOfWeek).classList.add('active');
+    loadDay(dayOfWeek, dateInput.value);
   });
 
   loadDay(todayDay, today);
