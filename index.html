@@ -629,17 +629,6 @@ function renderDay(day) {
   return html;
 }
 
-function toggleHistory(day, exIdx, name) {
-  const panel = document.getElementById(`history-${day}-${exIdx}`);
-  if (panel.classList.contains('show')) {
-    panel.classList.remove('show');
-  } else {
-    panel.classList.add('show');
-    panel.innerHTML = '<em>Carregando...</em>';
-    loadHistory(name, panel);
-  }
-}
-
 // === VIDEO LINKS ===
 const videoLinks = {};
 
