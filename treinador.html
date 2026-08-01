@@ -188,6 +188,156 @@
     .freq-dot.missed {
       background: #f44336;
     }
+    .view-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      padding: 12px 16px;
+      background: #1a1a1a;
+      border-bottom: 1px solid #333;
+    }
+    .view-btn {
+      padding: 8px 16px;
+      border: 1px solid #333;
+      background: #2a2a2a;
+      color: #888;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .view-btn:first-child { border-radius: 8px 0 0 8px; }
+    .view-btn:last-child { border-radius: 0 8px 8px 0; }
+    .view-btn.active { background: #f5c518; color: #000; border-color: #f5c518; }
+    .resume-section { display: none; padding: 16px; }
+    .resume-section.active { display: block; }
+    .resume-nav {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .resume-nav button {
+      background: #2a2a2a;
+      border: none;
+      color: #f5c518;
+      font-size: 1.2rem;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+    .resume-nav span {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #f0f0f0;
+    }
+    .presence-calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 4px;
+      margin-bottom: 16px;
+    }
+    .cal-header {
+      font-size: 0.65rem;
+      color: #888;
+      text-align: center;
+      padding: 4px 0;
+    }
+    .cal-day {
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      color: #666;
+    }
+    .cal-day.trained { background: #4caf50; color: #fff; }
+    .cal-day.missed { background: #f44336; color: #fff; }
+    .cal-day.rest { background: #222; color: #555; }
+    .cal-day.future { background: none; color: #333; }
+    .resume-card {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 12px;
+      border: 1px solid #333;
+    }
+    .resume-card h3 {
+      font-size: 0.8rem;
+      color: #f5c518;
+      margin-bottom: 8px;
+    }
+    .volume-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .volume-bar-label {
+      font-size: 0.7rem;
+      color: #999;
+      min-width: 35px;
+    }
+    .volume-bar-track {
+      flex: 1;
+      height: 14px;
+      background: #222;
+      border-radius: 7px;
+      overflow: hidden;
+    }
+    .volume-bar-fill {
+      height: 100%;
+      background: #f5c518;
+      border-radius: 7px;
+      transition: width 0.3s;
+    }
+    .volume-bar-value {
+      font-size: 0.7rem;
+      color: #bbb;
+      min-width: 55px;
+      text-align: right;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #222;
+      font-size: 0.8rem;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { color: #999; }
+    .stat-value { color: #f0f0f0; font-weight: 600; }
+    .stat-value.up { color: #4caf50; }
+    .stat-value.down { color: #f44336; }
+    .weekly-days {
+      display: flex;
+      justify-content: space-around;
+      margin-bottom: 16px;
+    }
+    .weekly-day {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .weekly-day-label { font-size: 0.65rem; color: #888; }
+    .weekly-day-dot {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      color: #fff;
+    }
+    .weekly-day-dot.trained { background: #4caf50; }
+    .weekly-day-dot.missed { background: #f44336; }
+    .weekly-day-dot.rest { background: #333; color: #666; }
+    .weekly-day-dot.future { background: none; border: 1px dashed #444; color: #444; }
   </style>
 </head>
 <body>
@@ -195,12 +345,35 @@
     <h1>Treino - Mauricio Furlan</h1>
     <div class="subtitle">Visualização do treinador</div>
   </div>
-  <div class="date-filter">
-    <label>Data:</label>
-    <input type="date" id="dateFilter">
+  <div class="view-toggle">
+    <button class="view-btn active" onclick="switchView('daily')">Diário</button>
+    <button class="view-btn" onclick="switchView('weekly')">Semanal</button>
+    <button class="view-btn" onclick="switchView('monthly')">Mensal</button>
   </div>
-  <div class="tabs" id="tabs"></div>
-  <div id="content"></div>
+  <div id="dailyView">
+    <div class="date-filter">
+      <label>Data:</label>
+      <input type="date" id="dateFilter">
+    </div>
+    <div class="tabs" id="tabs"></div>
+    <div id="content"></div>
+  </div>
+  <div class="resume-section" id="weeklyView">
+    <div class="resume-nav">
+      <button onclick="navWeek(-1)">←</button>
+      <span id="weekLabel"></span>
+      <button onclick="navWeek(1)">→</button>
+    </div>
+    <div id="weeklyContent"></div>
+  </div>
+  <div class="resume-section" id="monthlyView">
+    <div class="resume-nav">
+      <button onclick="navMonth(-1)">←</button>
+      <span id="monthLabel"></span>
+      <button onclick="navMonth(1)">→</button>
+    </div>
+    <div id="monthlyContent"></div>
+  </div>
 
 <script>
 const SUPABASE_URL = 'https://qslvwyhpamazoqhcmqan.supabase.co';
@@ -457,6 +630,303 @@ async function toggleChart(chartId, exerciseName) {
     freqEl.className = 'frequency';
     freqEl.innerHTML = `Frequência: <strong>${attended}/${totalWeeks} semanas (${percent}%)</strong><div class="freq-dots">${dotsHtml}</div><div style="margin-top:4px;font-size:0.65rem;">🟢 treinou &nbsp; 🔴 faltou</div>`;
     container.appendChild(freqEl);
+  } catch (e) {
+    container.innerHTML = `<div class="no-data">Erro: ${e.message}</div>`;
+  }
+}
+
+// === VIEW SWITCHING ===
+function switchView(view) {
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.view-btn[onclick="switchView('${view}')"]`).classList.add('active');
+  document.getElementById('dailyView').style.display = view === 'daily' ? 'block' : 'none';
+  document.getElementById('weeklyView').className = 'resume-section' + (view === 'weekly' ? ' active' : '');
+  document.getElementById('monthlyView').className = 'resume-section' + (view === 'monthly' ? ' active' : '');
+  if (view === 'weekly') loadWeekly();
+  if (view === 'monthly') loadMonthly();
+}
+
+// === WEEKLY ===
+let currentWeekOffset = 0;
+
+function getWeekRange(offset) {
+  const now = new Date();
+  now.setDate(now.getDate() + (offset * 7));
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  return { start: monday, end: sunday };
+}
+
+function navWeek(dir) {
+  currentWeekOffset += dir;
+  loadWeekly();
+}
+
+async function loadWeekly() {
+  const { start, end } = getWeekRange(currentWeekOffset);
+  const startStr = start.toISOString().split('T')[0];
+  const endStr = end.toISOString().split('T')[0];
+
+  document.getElementById('weekLabel').textContent =
+    start.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' - ' +
+    end.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  const container = document.getElementById('weeklyContent');
+  container.innerHTML = '<div class="loading">Carregando...</div>';
+
+  try {
+    const data = await supaFetch(
+      `workout_logs?created_at=gte.${startStr}T00:00:00&created_at=lte.${endStr}T23:59:59&order=created_at.asc`
+    );
+
+    // Agrupar por dia
+    const byDay = {};
+    const dayNames = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      byDay[d.toISOString().split('T')[0]] = [];
+    }
+    if (data) {
+      data.forEach(r => {
+        const date = r.created_at.split('T')[0];
+        if (byDay[date]) byDay[date].push(r);
+      });
+    }
+
+    // Presença semanal
+    let html = '<div class="weekly-days">';
+    const dates = Object.keys(byDay).sort();
+    const today = new Date().toISOString().split('T')[0];
+    let totalVolume = 0;
+    const volumeByDay = [];
+
+    dates.forEach((date, i) => {
+      const records = byDay[date];
+      const isSunday = new Date(date + 'T12:00:00').getDay() === 0;
+      const isFuture = date > today;
+      const trained = records.length > 0;
+
+      let dayVolume = 0;
+      records.forEach(r => {
+        if (r.set_type === 'hard' && r.weight && r.reps) {
+          dayVolume += r.weight * r.reps;
+        }
+      });
+      totalVolume += dayVolume;
+      volumeByDay.push({ label: dayNames[i], volume: dayVolume, trained, isSunday, isFuture });
+
+      let dotClass = 'rest';
+      if (isFuture) dotClass = 'future';
+      else if (!isSunday && trained) dotClass = 'trained';
+      else if (!isSunday && !trained) dotClass = 'missed';
+
+      html += `<div class="weekly-day"><span class="weekly-day-label">${dayNames[i]}</span>`;
+      html += `<span class="weekly-day-dot ${dotClass}">${trained ? '✓' : isSunday ? '–' : isFuture ? '?' : '✗'}</span></div>`;
+    });
+    html += '</div>';
+
+    // Frequência
+    const trainingDays = volumeByDay.filter(d => !d.isSunday && !d.isFuture);
+    const attended = trainingDays.filter(d => d.trained).length;
+    const totalDays = trainingDays.length;
+    const percent = totalDays > 0 ? Math.round((attended / totalDays) * 100) : 0;
+
+    html += `<div class="resume-card"><h3>Frequência</h3>`;
+    html += `<div class="stat-row"><span class="stat-label">Presença</span><span class="stat-value">${attended}/${totalDays} dias (${percent}%)</span></div></div>`;
+
+    // Volume por dia (barras)
+    const maxVolume = Math.max(...volumeByDay.map(d => d.volume), 1);
+    html += `<div class="resume-card"><h3>Volume por dia (hard sets)</h3>`;
+    volumeByDay.forEach(d => {
+      if (d.isSunday) return;
+      const pct = (d.volume / maxVolume) * 100;
+      const color = d.trained ? '#f5c518' : '#f44336';
+      html += `<div class="volume-bar-row">`;
+      html += `<span class="volume-bar-label">${d.label}</span>`;
+      html += `<div class="volume-bar-track"><div class="volume-bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
+      html += `<span class="volume-bar-value">${d.volume > 0 ? d.volume.toLocaleString('pt-BR') + ' kg' : 'faltou'}</span>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+
+    // Comparativo com semana anterior
+    const prevStart = new Date(start);
+    prevStart.setDate(prevStart.getDate() - 7);
+    const prevEnd = new Date(end);
+    prevEnd.setDate(prevEnd.getDate() - 7);
+    const prevData = await supaFetch(
+      `workout_logs?created_at=gte.${prevStart.toISOString().split('T')[0]}T00:00:00&created_at=lte.${prevEnd.toISOString().split('T')[0]}T23:59:59`
+    );
+    let prevVolume = 0;
+    let prevAttended = 0;
+    const prevDays = new Set();
+    if (prevData) {
+      prevData.forEach(r => {
+        if (r.set_type === 'hard' && r.weight && r.reps) prevVolume += r.weight * r.reps;
+        prevDays.add(r.created_at.split('T')[0]);
+      });
+      prevAttended = prevDays.size;
+    }
+
+    const volumeDiff = prevVolume > 0 ? Math.round(((totalVolume - prevVolume) / prevVolume) * 100) : 0;
+    const volumeClass = volumeDiff > 0 ? 'up' : volumeDiff < 0 ? 'down' : '';
+    const volumeArrow = volumeDiff > 0 ? '↑' : volumeDiff < 0 ? '↓' : '=';
+
+    html += `<div class="resume-card"><h3>vs. Semana anterior</h3>`;
+    html += `<div class="stat-row"><span class="stat-label">Volume total</span><span class="stat-value ${volumeClass}">${totalVolume.toLocaleString('pt-BR')} kg ${volumeArrow} ${Math.abs(volumeDiff)}%</span></div>`;
+    html += `<div class="stat-row"><span class="stat-label">Frequência</span><span class="stat-value">${attended} vs ${prevAttended} dias</span></div>`;
+    html += `</div>`;
+
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div class="no-data">Erro: ${e.message}</div>`;
+  }
+}
+
+// === MONTHLY ===
+let currentMonthOffset = 0;
+
+function navMonth(dir) {
+  currentMonthOffset += dir;
+  loadMonthly();
+}
+
+async function loadMonthly() {
+  const now = new Date();
+  const targetMonth = new Date(now.getFullYear(), now.getMonth() + currentMonthOffset, 1);
+  const year = targetMonth.getFullYear();
+  const month = targetMonth.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  const monthNames = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  document.getElementById('monthLabel').textContent = `${monthNames[month]} ${year}`;
+
+  const container = document.getElementById('monthlyContent');
+  container.innerHTML = '<div class="loading">Carregando...</div>';
+
+  try {
+    const startStr = firstDay.toISOString().split('T')[0];
+    const endStr = lastDay.toISOString().split('T')[0];
+    const data = await supaFetch(
+      `workout_logs?created_at=gte.${startStr}T00:00:00&created_at=lte.${endStr}T23:59:59&order=created_at.asc`
+    );
+
+    // Dias com registro
+    const trainedDates = new Set();
+    const volumeByWeek = {};
+    const today = new Date().toISOString().split('T')[0];
+
+    if (data) {
+      data.forEach(r => {
+        const date = r.created_at.split('T')[0];
+        trainedDates.add(date);
+        // Calcular semana do mês
+        const d = new Date(date + 'T12:00:00');
+        const weekNum = Math.ceil(d.getDate() / 7);
+        if (!volumeByWeek[weekNum]) volumeByWeek[weekNum] = 0;
+        if (r.set_type === 'hard' && r.weight && r.reps) {
+          volumeByWeek[weekNum] += r.weight * r.reps;
+        }
+      });
+    }
+
+    // Calendário
+    let html = '<div class="resume-card"><h3>Calendário de presença</h3>';
+    html += '<div class="presence-calendar">';
+    const dayHeaders = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+    dayHeaders.forEach(d => { html += `<span class="cal-header">${d}</span>`; });
+
+    // Offset para começar na segunda
+    let startOffset = firstDay.getDay() - 1;
+    if (startOffset < 0) startOffset = 6;
+    for (let i = 0; i < startOffset; i++) {
+      html += '<span class="cal-day"></span>';
+    }
+
+    let totalTrainingDays = 0;
+    let totalAttended = 0;
+
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const d = new Date(date + 'T12:00:00');
+      const isSunday = d.getDay() === 0;
+      const isFuture = date > today;
+      const trained = trainedDates.has(date);
+
+      let cls = 'rest';
+      if (isFuture) cls = 'future';
+      else if (isSunday) cls = 'rest';
+      else if (trained) { cls = 'trained'; totalAttended++; totalTrainingDays++; }
+      else { cls = 'missed'; totalTrainingDays++; }
+
+      html += `<span class="cal-day ${cls}">${day}</span>`;
+    }
+    html += '</div>';
+
+    const freqPercent = totalTrainingDays > 0 ? Math.round((totalAttended / totalTrainingDays) * 100) : 0;
+    html += `<div class="stat-row"><span class="stat-label">Frequência</span><span class="stat-value">${totalAttended}/${totalTrainingDays} dias (${freqPercent}%)</span></div>`;
+    html += `<div style="font-size:0.65rem;color:#666;margin-top:6px;text-align:center;">🟢 treinou &nbsp; 🔴 faltou &nbsp; ⚫ descanso</div>`;
+    html += '</div>';
+
+    // Volume por semana
+    const totalWeeks = Math.ceil(lastDay.getDate() / 7);
+    const maxWeekVol = Math.max(...Object.values(volumeByWeek), 1);
+    html += `<div class="resume-card"><h3>Volume por semana</h3>`;
+    for (let w = 1; w <= totalWeeks; w++) {
+      const vol = volumeByWeek[w] || 0;
+      const pct = (vol / maxWeekVol) * 100;
+      html += `<div class="volume-bar-row">`;
+      html += `<span class="volume-bar-label">Sem ${w}</span>`;
+      html += `<div class="volume-bar-track"><div class="volume-bar-fill" style="width:${pct}%"></div></div>`;
+      html += `<span class="volume-bar-value">${vol > 0 ? vol.toLocaleString('pt-BR') + ' kg' : '-'}</span>`;
+      html += `</div>`;
+    }
+    html += '</div>';
+
+    // Destaques
+    let totalVolumeMonth = Object.values(volumeByWeek).reduce((a, b) => a + b, 0);
+    const missedDays = totalTrainingDays - totalAttended;
+    const bestWeek = Object.entries(volumeByWeek).sort((a, b) => b[1] - a[1])[0];
+
+    html += `<div class="resume-card"><h3>Destaques do mês</h3>`;
+    html += `<div class="stat-row"><span class="stat-label">Volume total</span><span class="stat-value">${totalVolumeMonth.toLocaleString('pt-BR')} kg</span></div>`;
+    html += `<div class="stat-row"><span class="stat-label">Faltas</span><span class="stat-value${missedDays > 0 ? ' down' : ''}">${missedDays} dia${missedDays !== 1 ? 's' : ''}</span></div>`;
+    if (bestWeek) {
+      html += `<div class="stat-row"><span class="stat-label">Melhor semana</span><span class="stat-value">Semana ${bestWeek[0]} (${parseInt(bestWeek[1]).toLocaleString('pt-BR')} kg)</span></div>`;
+    }
+    html += '</div>';
+
+    // Comparativo com mês anterior
+    const prevMonth = new Date(year, month - 1, 1);
+    const prevLastDay = new Date(year, month, 0);
+    const prevStartStr = prevMonth.toISOString().split('T')[0];
+    const prevEndStr = prevLastDay.toISOString().split('T')[0];
+    const prevData = await supaFetch(
+      `workout_logs?created_at=gte.${prevStartStr}T00:00:00&created_at=lte.${prevEndStr}T23:59:59`
+    );
+    let prevVolume = 0;
+    const prevTrainedDates = new Set();
+    if (prevData) {
+      prevData.forEach(r => {
+        if (r.set_type === 'hard' && r.weight && r.reps) prevVolume += r.weight * r.reps;
+        prevTrainedDates.add(r.created_at.split('T')[0]);
+      });
+    }
+    const volDiff = prevVolume > 0 ? Math.round(((totalVolumeMonth - prevVolume) / prevVolume) * 100) : 0;
+    const volClass = volDiff > 0 ? 'up' : volDiff < 0 ? 'down' : '';
+    const volArrow = volDiff > 0 ? '↑' : volDiff < 0 ? '↓' : '=';
+
+    html += `<div class="resume-card"><h3>vs. Mês anterior</h3>`;
+    html += `<div class="stat-row"><span class="stat-label">Volume</span><span class="stat-value ${volClass}">${volArrow} ${Math.abs(volDiff)}%</span></div>`;
+    html += `<div class="stat-row"><span class="stat-label">Frequência</span><span class="stat-value">${totalAttended} vs ${prevTrainedDates.size} dias</span></div>`;
+    html += '</div>';
+
+    container.innerHTML = html;
   } catch (e) {
     container.innerHTML = `<div class="no-data">Erro: ${e.message}</div>`;
   }
