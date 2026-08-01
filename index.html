@@ -533,7 +533,7 @@ function renderDay(day) {
   let html = '';
   exercises.forEach((ex, exIdx) => {
     html += `<div class="exercise-card" id="card-${day}-${exIdx}" data-exercise="${ex.name}" data-day="${day}">`;
-    html += `<div class="exercise-header"><div class="exercise-name" onclick="openVideo('${ex.name.replace(/'/g, "\\'")}')'" style="cursor:pointer;text-decoration:underline;">${ex.name}</div><button class="note-icon" id="note-icon-${day}-${exIdx}" onclick="toggleNote('${day}', ${exIdx}, null)">!</button></div>`;
+    html += `<div class="exercise-header"><div class="exercise-name" onclick="openVideo('${ex.name.replace(/'/g, "\\'")}')" style="cursor:pointer;text-decoration:underline;">${ex.name}</div><button class="note-icon" id="note-icon-${day}-${exIdx}" onclick="toggleNote('${day}', ${exIdx}, null)">!</button></div>`;
     html += `<div class="note-bubble" id="note-bubble-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span id="note-text-${day}-${exIdx}"></span></div>`;
     html += `<button class="history-btn" onclick="toggleHistory('${day}', ${exIdx}, '${ex.name.replace(/'/g, "\\'")}')">Ver histórico</button>`;
     html += `<div class="history-panel" id="history-${day}-${exIdx}"></div>`;
