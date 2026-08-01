@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Meu Treino</title>
+  <title>Treino - Mauricio Furlan</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -23,6 +23,7 @@
       border-bottom: 1px solid #333;
     }
     .header h1 { font-size: 1.2rem; color: #f5c518; letter-spacing: 1px; }
+    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
     .tabs {
       display: flex;
       overflow-x: auto;
@@ -127,8 +128,22 @@
     }
     .history-panel.show { display: block; }
     .history-entry { padding: 4px 0; border-bottom: 1px solid #333; }
-    .check-icon { font-size: 1.2rem; cursor: pointer; }
-    .check-icon.done { color: #f5c518; }
+    .check-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid #555;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .check-icon svg { display: none; }
+    .check-icon.done {
+      border-color: #4caf50;
+      background: #4caf50;
+    }
+    .check-icon.done svg { display: block; }
     .loading { text-align: center; padding: 40px; color: #888; }
     .toast {
       position: fixed;
@@ -157,7 +172,8 @@
 </head>
 <body>
   <div class="header">
-    <h1>Meu Treino</h1>
+    <h1>Treino - Mauricio Furlan</h1>
+    <div class="subtitle">MuscleFit</div>
   </div>
   <div class="date-display" id="dateDisplay"></div>
   <div class="tabs" id="tabs"></div>
@@ -392,6 +408,13 @@ async function saveExercise(day, exerciseName, card) {
     const btn = card.querySelector('.save-btn');
     btn.textContent = '✓ Salvo!';
     btn.classList.add('saved');
+    rows.forEach(row => {
+      const weight = row.querySelector('.weight-input')?.value;
+      const reps = row.querySelector('.reps-input')?.value;
+      const check = row.querySelector('.check-icon');
+      if ((weight || reps) && check) check.classList.add('done');
+      else if (check) check.classList.remove('done');
+    });
     setTimeout(() => { btn.textContent = 'Salvar'; btn.classList.remove('saved'); }, 2000);
     showToast('Salvo com sucesso!');
   } catch (e) {
@@ -436,7 +459,7 @@ function renderDay(day) {
       html += `<span class="set-label">${typeLabel} ${setIdx+1}</span>`;
       html += `<input type="number" class="weight-input" placeholder="kg" inputmode="decimal">`;
       html += `<input type="number" class="reps-input" placeholder="${set.reps}" inputmode="numeric">`;
-      html += `<span class="check-icon" onclick="this.classList.toggle('done')">☐</span>`;
+      html += `<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
       html += `</div>`;
     });
     html += `<button class="save-btn" onclick="saveExercise('${day}', '${ex.name.replace(/'/g, "\\'")}', document.getElementById('card-${day}-${exIdx}'))">Salvar</button>`;
