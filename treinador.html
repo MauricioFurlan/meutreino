@@ -208,6 +208,46 @@ const SUPABASE_KEY = 'sb_publishable_lTQKzQJc5uq7LNq-N1UvRg_w3aF_7zH';
 
 const DAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
+const PRESCRIBED_REPS = {
+  'Barra fixa (ativação)': ['falha'],
+  'Remada baixa triângulo cimerian': ['12-15','2-4','2-4','8-12','7-9'],
+  'Remada curvada pronada irontech': ['2-4','2-4','8-12','8-12','7-9'],
+  'Puxador alto aberto cimerian': ['2-4','8-12','7-9'],
+  'Pulldown corda': ['2-4','8-12','8-12','8-12'],
+  'Crucifixo inverso + Face pull (biset)': ['8-12','8-12','8-12'],
+  'Rosca alta máquina unilateral': ['12-15','2-4','8-12','8-12','7-9'],
+  'Peck Deck (ativação)': ['15'],
+  'Supino reto sentado cimerian': ['12-15','2-4','8-12','8-12','7-9'],
+  'Desenvolvimento irontech': ['12-15','2-4','2-4','8-12','8-12','7-9'],
+  'Supino inclinado irontech guiado': ['2-4','8-12','8-12','7-9'],
+  'Crossover cima pra baixo': ['8-12','7-9 + drop'],
+  'Tríceps polia barra W': ['12-15','2-4','8-12','7-9'],
+  'Banco romano (ativação)': ['15'],
+  'Cadeira flexora': ['12-15','2-4','2-4','8-12','8-12','7-9'],
+  'Elevação pélvica': ['12-15','2-4','2-4','7-9','8-12','8-12'],
+  'Mesa flexora': ['2-4','8-12','8-12','7-9'],
+  'Leg press 90° irontech': ['12-15','8-12','7-9'],
+  'Cadeira abdutora + adutora': ['12-15','2-4','8-12','8-12','10-15'],
+  'Panturrilha sentado': ['12-15','2-4','8-12','8-12','10-15'],
+  'Panturrilha em pé': ['12-15','2-4','8-12','8-12','10-15'],
+  'Abdômen máquina': ['12-15','2-4','8-12','8-12','10-15'],
+  'Abdômen paralela': ['10-15','10-15','10-15'],
+  'Cardio': ['40 min'],
+  'Puxador frente aberto barra anatômica': ['12-15','2-4','8-12','7-9'],
+  'Puxada unilateral Cimerian': ['8-12','7-9'],
+  'Supino inclinado máquina Cimerian': ['12-15','2-4','8-12','8-12','7-9'],
+  'Crossover baixo pra cima': ['8-12 + drop','8-12 + drop','8-12 + drop'],
+  'Elevação frontal halter simultâneo': ['8-12 + parciais','8-12 + parciais','8-12 + parciais'],
+  'Elevação lateral unilateral Crossover': ['8-12 + parciais','8-12 + parciais','8-12 + parciais'],
+  'Tríceps corda + Bíceps corda': ['8-12','8-12','8-12'],
+  'Extensora unilateral (ativação)': ['12-15'],
+  'Leg press 45° articulado cimerian': ['12-15','2-4','8-12','8-12','7-9'],
+  'Hack glutebuilder': ['2-4','2-4','8-12','8-12','7-9'],
+  'Cadeira extensora (pico de contração)': ['8-12','7-9','8-12 + drop'],
+  'Stiff glutebuilder': ['12-15','2-4','8-12','8-12','8-12'],
+  'Cadeira abdutora pra frente': ['8-12','8-12','8-12']
+};
+
 async function supaFetch(endpoint) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/' + endpoint, {
     headers: {
@@ -253,8 +293,10 @@ async function loadDay(day, date) {
       sets.forEach(s => {
         const weight = s.weight ? s.weight + ' kg' : '-';
         const reps = s.notes ? s.notes : (s.reps ? s.reps + ' reps' : '-');
+        const prescribedList = PRESCRIBED_REPS[name] || [];
+        const prescribed = prescribedList[s.set_number - 1] || '';
         html += `<div class="set-row">`;
-        html += `<span class="set-label">${s.set_type} ${s.set_number}</span>`;
+        html += `<span class="set-label">${s.set_type} ${s.set_number}${prescribed ? ' (' + prescribed + ')' : ''}</span>`;
         html += `<span class="set-value${!s.weight ? ' empty' : ''}">${weight}</span>`;
         html += `<span class="set-value${!s.reps ? ' empty' : ''}">${reps}</span>`;
         html += `</div>`;
