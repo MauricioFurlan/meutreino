@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Treino</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0d0d0d;
+      color: #f0f0f0;
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+    .header {
+      background: #1a1a1a;
+      padding: 16px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid #333;
+    }
+    .header h1 { font-size: 1.2rem; color: #f5c518; letter-spacing: 1px; }
+    .tabs {
+      display: flex;
+      overflow-x: auto;
+      background: #1a1a1a;
+      padding: 8px;
+      gap: 6px;
+      position: sticky;
+      top: 52px;
+      z-index: 99;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab {
+      flex-shrink: 0;
+      padding: 8px 14px;
+      border-radius: 20px;
+      background: #2a2a2a;
+      color: #888;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .tab.active {
+      background: #f5c518;
+      color: #000;
+    }
+    .day-content { display: none; padding: 16px; }
+    .day-content.active { display: block; }
+    .exercise-card {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      border: 1px solid #333;
+    }
+    .exercise-name {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #f5c518;
+      margin-bottom: 10px;
+    }
+    .set-row {
+      display: grid;
+      grid-template-columns: auto 1fr 1fr 40px;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .set-label {
+      font-size: 0.7rem;
+      color: #999;
+      text-transform: uppercase;
+      min-width: 60px;
+    }
+    .set-row input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #0d0d0d;
+      color: #f0f0f0;
+      font-size: 0.9rem;
+      text-align: center;
+    }
+    .set-row input::placeholder { color: #555; }
+    .set-row input:focus { outline: none; border-color: #f5c518; }
+    .save-btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #f5c518;
+      color: #000;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: opacity 0.2s;
+    }
+    .save-btn:active { opacity: 0.7; }
+    .save-btn.saved { background: #4caf50; color: #fff; }
+    .history-btn {
+      background: none;
+      border: none;
+      color: #f5c518;
+      font-size: 0.75rem;
+      cursor: pointer;
+      padding: 4px 0;
+      margin-bottom: 8px;
+      text-decoration: underline;
+    }
+    .history-panel {
+      display: none;
+      background: #2a2a2a;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 0.75rem;
+      color: #bbb;
+    }
+    .history-panel.show { display: block; }
+    .history-entry { padding: 4px 0; border-bottom: 1px solid #333; }
+    .check-icon { font-size: 1.2rem; cursor: pointer; }
+    .check-icon.done { color: #f5c518; }
+    .loading { text-align: center; padding: 40px; color: #888; }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #f5c518;
+      color: #000;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      display: none;
+      z-index: 1000;
+    }
+    .toast.error { background: #f44336; color: #fff; }
+    .toast.show { display: block; animation: fadeOut 2s forwards; }
+    @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
+    .date-display {
+      text-align: center;
+      padding: 8px;
+      font-size: 0.8rem;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Meu Treino</h1>
+  </div>
+  <div class="date-display" id="dateDisplay"></div>
+  <div class="tabs" id="tabs"></div>
+  <div id="content"></div>
+  <div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://qslvwyhpamazoqhcmqan.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_lTQKzQJc5uq7LNq-N1UvRg_w3aF_7zH';
+
+const WORKOUT = {
+  'Segunda': [
+    { name: 'Barra fixa (ativação)', sets: [{type:'hard', reps:'até falha'}] },
+    { name: 'Remada baixa triângulo cimerian', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Remada curvada pronada irontech', sets: [
+      {type:'feeder', reps:'2-4'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Puxador alto aberto cimerian', sets: [
+      {type:'feeder', reps:'2-4'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Pulldown corda', sets: [
+      {type:'feeder', reps:'2-4'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}
+    ]},
+    { name: 'Crucifixo inverso + Face pull (biset)', sets: [
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}
+    ]},
+    { name: 'Rosca alta máquina unilateral', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]}
+  ],
+  'Terça': [
+    { name: 'Peck Deck (ativação)', sets: [{type:'aquec', reps:'15'}] },
+    { name: 'Supino reto sentado cimerian', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Desenvolvimento irontech', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Supino inclinado irontech guiado', sets: [
+      {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Crossover cima pra baixo', sets: [
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9 + drop'}
+    ]},
+    { name: 'Tríceps polia barra W', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]}
+  ],
+  'Quarta': [
+    { name: 'Banco romano (ativação)', sets: [{type:'aquec', reps:'15'}] },
+    { name: 'Cadeira flexora', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Elevação pélvica', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'7-9'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}
+    ]},
+    { name: 'Mesa flexora', sets: [
+      {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Leg press 90° irontech', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Cadeira abdutora + adutora', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'10-15'}
+    ]}
+  ],
+  'Quinta': [
+    { name: 'Panturrilha sentado', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'10-15'}
+    ]},
+    { name: 'Panturrilha em pé', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'10-15'}
+    ]},
+    { name: 'Abdômen máquina', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'10-15'}
+    ]},
+    { name: 'Abdômen paralela', sets: [
+      {type:'hard', reps:'10-15'}, {type:'hard', reps:'10-15'}, {type:'hard', reps:'10-15'}
+    ]},
+    { name: 'Cardio', sets: [{type:'hard', reps:'40 min'}] }
+  ],
+  'Sexta': [
+    { name: 'Peck Deck (ativação)', sets: [{type:'aquec', reps:'15'}] },
+    { name: 'Puxador frente aberto barra anatômica', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Puxada unilateral Cimerian', sets: [
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Supino inclinado máquina Cimerian', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Crossover baixo pra cima', sets: [
+      {type:'hard', reps:'8-12 + drop'}, {type:'hard', reps:'8-12 + drop'}, {type:'hard', reps:'8-12 + drop'}
+    ]},
+    { name: 'Elevação frontal halter simultâneo', sets: [
+      {type:'hard', reps:'8-12 + parciais'}, {type:'hard', reps:'8-12 + parciais'}, {type:'hard', reps:'8-12 + parciais'}
+    ]},
+    { name: 'Elevação lateral unilateral Crossover', sets: [
+      {type:'hard', reps:'8-12 + parciais'}, {type:'hard', reps:'8-12 + parciais'}, {type:'hard', reps:'8-12 + parciais'}
+    ]},
+    { name: 'Tríceps corda + Bíceps corda', sets: [
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}
+    ]}
+  ],
+  'Sábado': [
+    { name: 'Extensora unilateral (ativação)', sets: [{type:'aquec', reps:'12-15'}] },
+    { name: 'Leg press 45° articulado cimerian', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Hack glutebuilder', sets: [
+      {type:'feeder', reps:'2-4'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
+    ]},
+    { name: 'Cadeira extensora (pico de contração)', sets: [
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}, {type:'hard', reps:'8-12 + drop'}
+    ]},
+    { name: 'Stiff glutebuilder', sets: [
+      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}
+    ]},
+    { name: 'Cadeira abdutora pra frente', sets: [
+      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}
+    ]}
+  ],
+  'Domingo': []
+};
+
+function getToday() {
+  const days = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+  return days[new Date().getDay()];
+}
+
+function getTodayDate() {
+  const now = new Date();
+  return now.toISOString().split('T')[0];
+}
+
+async function loadTodayData(day) {
+  try {
+    const today = getTodayDate();
+    const data = await supaFetch(
+      `workout_logs?day=eq.${encodeURIComponent(day)}&created_at=gte.${today}T00:00:00&created_at=lt.${today}T23:59:59&order=set_number.asc`
+    );
+    if (!data || data.length === 0) return;
+    data.forEach(record => {
+      const card = document.querySelector(`[data-exercise="${CSS.escape(record.exercise_name)}"][data-day="${day}"]`);
+      if (!card) return;
+      const rows = card.querySelectorAll('.set-row');
+      const row = rows[record.set_number - 1];
+      if (!row) return;
+      const weightInput = row.querySelector('.weight-input');
+      const repsInput = row.querySelector('.reps-input');
+      const check = row.querySelector('.check-icon');
+      if (weightInput && record.weight) weightInput.value = record.weight;
+      if (repsInput && record.reps) repsInput.value = record.reps;
+      if (check && (record.weight || record.reps)) check.classList.add('done');
+    });
+  } catch (e) {
+    console.log('Erro ao carregar dados do dia:', e);
+  }
+}
+
+function showToast(msg, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+async function supaFetch(endpoint, options = {}) {
+  const headers = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json'
+  };
+  if (options.method === 'POST') headers['Prefer'] = 'return=minimal';
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + endpoint, {
+    ...options,
+    headers: { ...headers, ...options.headers }
+  });
+  if (!res.ok) throw new Error('Erro: ' + res.status);
+  if (options.method === 'POST' || options.method === 'DELETE') return null;
+  return res.json();
+}
+
+async function saveExercise(day, exerciseName, card) {
+  const rows = card.querySelectorAll('.set-row');
+  const records = [];
+  rows.forEach((row, i) => {
+    const weight = row.querySelector('.weight-input')?.value;
+    const reps = row.querySelector('.reps-input')?.value;
+    if (weight || reps) {
+      records.push({
+        day: day,
+        exercise_name: exerciseName,
+        set_type: row.dataset.setType,
+        set_number: i + 1,
+        weight: weight ? parseFloat(weight) : null,
+        reps: reps ? parseInt(reps) : null,
+        notes: row.dataset.notes || null
+      });
+    }
+  });
+  if (records.length === 0) { showToast('Preencha ao menos um set', true); return; }
+  try {
+    const today = getTodayDate();
+    await supaFetch(
+      `workout_logs?day=eq.${encodeURIComponent(day)}&exercise_name=eq.${encodeURIComponent(exerciseName)}&created_at=gte.${today}T00:00:00&created_at=lt.${today}T23:59:59`,
+      { method: 'DELETE' }
+    );
+    await supaFetch('workout_logs', { method: 'POST', body: JSON.stringify(records) });
+    const btn = card.querySelector('.save-btn');
+    btn.textContent = '✓ Salvo!';
+    btn.classList.add('saved');
+    setTimeout(() => { btn.textContent = 'Salvar'; btn.classList.remove('saved'); }, 2000);
+    showToast('Salvo com sucesso!');
+  } catch (e) {
+    showToast('Erro ao salvar: ' + e.message, true);
+  }
+}
+
+async function loadHistory(exerciseName, panel) {
+  try {
+    const data = await supaFetch(
+      `workout_logs?exercise_name=eq.${encodeURIComponent(exerciseName)}&order=created_at.desc&limit=15`
+    );
+    if (data.length === 0) { panel.innerHTML = '<em>Sem histórico</em>'; return; }
+    let html = '';
+    let lastDate = '';
+    data.forEach(r => {
+      const date = new Date(r.created_at).toLocaleDateString('pt-BR');
+      if (date !== lastDate) { html += `<strong>${date}</strong><br>`; lastDate = date; }
+      html += `<div class="history-entry">Set ${r.set_number} (${r.set_type}): ${r.weight || '-'}kg x ${r.reps || '-'} reps</div>`;
+    });
+    panel.innerHTML = html;
+  } catch (e) {
+    panel.innerHTML = '<em>Erro ao carregar histórico</em>';
+  }
+}
+
+function renderDay(day) {
+  const exercises = WORKOUT[day];
+  if (!exercises || exercises.length === 0) {
+    return '<div class="loading">Dia de descanso 🎉</div>';
+  }
+  let html = '';
+  exercises.forEach((ex, exIdx) => {
+    html += `<div class="exercise-card" id="card-${day}-${exIdx}" data-exercise="${ex.name}" data-day="${day}">`;
+    html += `<div class="exercise-name">${ex.name}</div>`;
+    html += `<button class="history-btn" onclick="toggleHistory('${day}', ${exIdx}, '${ex.name.replace(/'/g, "\\'")}')">Ver histórico</button>`;
+    html += `<div class="history-panel" id="history-${day}-${exIdx}"></div>`;
+    ex.sets.forEach((set, setIdx) => {
+      const typeLabel = set.type === 'aquec' ? 'AQUEC' : set.type === 'feeder' ? 'FEEDER' : 'HARD';
+      const notes = set.reps.includes('+') ? set.reps.split('+')[1].trim() : '';
+      html += `<div class="set-row" data-set-type="${set.type}" data-notes="${notes}">`;
+      html += `<span class="set-label">${typeLabel} ${setIdx+1}</span>`;
+      html += `<input type="number" class="weight-input" placeholder="kg" inputmode="decimal">`;
+      html += `<input type="number" class="reps-input" placeholder="${set.reps}" inputmode="numeric">`;
+      html += `<span class="check-icon" onclick="this.classList.toggle('done')">☐</span>`;
+      html += `</div>`;
+    });
+    html += `<button class="save-btn" onclick="saveExercise('${day}', '${ex.name.replace(/'/g, "\\'")}', document.getElementById('card-${day}-${exIdx}'))">Salvar</button>`;
+    html += `</div>`;
+  });
+  return html;
+}
+
+function toggleHistory(day, exIdx, name) {
+  const panel = document.getElementById(`history-${day}-${exIdx}`);
+  if (panel.classList.contains('show')) {
+    panel.classList.remove('show');
+  } else {
+    panel.classList.add('show');
+    panel.innerHTML = '<em>Carregando...</em>';
+    loadHistory(name, panel);
+  }
+}
+
+function init() {
+  const today = getToday();
+  const days = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+
+  document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('pt-BR', {
+    weekday: 'long', day: 'numeric', month: 'long'
+  });
+
+  const tabsEl = document.getElementById('tabs');
+  const contentEl = document.getElementById('content');
+
+  days.forEach(day => {
+    const tab = document.createElement('button');
+    tab.className = 'tab' + (day === today ? ' active' : '');
+    tab.textContent = day.substring(0, 3);
+    tab.onclick = () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.day-content').forEach(d => d.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('day-' + day).classList.add('active');
+      loadTodayData(day);
+    };
+    tabsEl.appendChild(tab);
+
+    const div = document.createElement('div');
+    div.className = 'day-content' + (day === today ? ' active' : '');
+    div.id = 'day-' + day;
+    div.innerHTML = renderDay(day);
+    contentEl.appendChild(div);
+  });
+
+  loadTodayData(today);
+}
+
+init();
+</script>
+</body>
+</html>
