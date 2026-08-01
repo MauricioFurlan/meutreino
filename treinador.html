@@ -235,14 +235,17 @@
     .presence-calendar {
       display: grid;
       grid-template-columns: repeat(7, 1fr);
-      gap: 4px;
-      margin-bottom: 16px;
+      gap: 3px;
+      margin-bottom: 12px;
+      max-width: 280px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .cal-header {
-      font-size: 0.65rem;
+      font-size: 0.6rem;
       color: #888;
       text-align: center;
-      padding: 4px 0;
+      padding: 2px 0;
     }
     .cal-day {
       width: 100%;
@@ -251,8 +254,11 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.65rem;
+      font-size: 0.55rem;
       color: #666;
+      max-width: 28px;
+      max-height: 28px;
+      margin: 0 auto;
     }
     .cal-day.trained { background: #4caf50; color: #fff; }
     .cal-day.missed { background: #f44336; color: #fff; }
