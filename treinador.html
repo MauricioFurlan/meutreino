@@ -492,6 +492,15 @@ const PRESCRIBED_REPS = {
   'Cadeira abdutora pra frente': ['8-12','8-12','8-12']
 };
 
+const PRESCRIBED_ORDER = {
+  'Segunda': ['Barra fixa (ativação)','Remada baixa triângulo cimerian','Remada curvada pronada irontech','Puxador alto aberto cimerian','Pulldown corda','Crucifixo inverso + Face pull (biset)','Rosca alta máquina unilateral'],
+  'Terça': ['Peck Deck (ativação)','Supino reto sentado cimerian','Desenvolvimento irontech','Supino inclinado irontech guiado','Crossover cima pra baixo','Tríceps polia barra W'],
+  'Quarta': ['Banco romano (ativação)','Cadeira flexora','Elevação pélvica','Mesa flexora','Leg press 90° irontech','Cadeira abdutora + adutora'],
+  'Quinta': ['Panturrilha sentado','Panturrilha em pé','Abdômen máquina','Abdômen paralela','Cardio'],
+  'Sexta': ['Peck Deck (ativação)','Puxador frente aberto barra anatômica','Puxada unilateral Cimerian','Supino inclinado máquina Cimerian','Crossover baixo pra cima','Elevação frontal halter simultâneo','Elevação lateral unilateral Crossover','Tríceps corda + Bíceps corda'],
+  'Sábado': ['Extensora unilateral (ativação)','Leg press 45° articulado cimerian','Hack glutebuilder','Cadeira extensora (pico de contração)','Stiff glutebuilder','Cadeira abdutora pra frente']
+};
+
 async function supaFetch(endpoint) {
   const res = await fetch(SUPABASE_URL + '/rest/v1/' + endpoint, {
     headers: {
@@ -509,7 +518,7 @@ async function loadDay(day, date) {
 
   try {
     const data = await supaFetch(
-      `workout_logs?day=eq.${encodeURIComponent(day)}&created_at=gte.${date}T00:00:00&created_at=lt.${date}T23:59:59&order=exercise_name.asc,set_number.asc`
+      `workout_logs?day=eq.${encodeURIComponent(day)}&created_at=gte.${date}T00:00:00&created_at=lt.${date}T23:59:59&order=set_number.asc`
     );
 
     if (!data || data.length === 0) {
@@ -523,11 +532,23 @@ async function loadDay(day, date) {
       exercises[r.exercise_name].push(r);
     });
 
+    // Ordenar pela ordem do treino prescrito
+    const dayOrder = PRESCRIBED_ORDER[day] || [];
+    const orderedNames = [];
+    dayOrder.forEach(name => {
+      if (exercises[name]) orderedNames.push(name);
+    });
+    // Adicionar exercícios que não estão no mapa (caso extra)
+    Object.keys(exercises).forEach(name => {
+      if (!orderedNames.includes(name)) orderedNames.push(name);
+    });
+
     const totalSets = data.length;
-    const totalExercises = Object.keys(exercises).length;
+    const totalExercises = orderedNames.length;
     let html = `<div class="summary"><strong>${totalExercises}</strong> exercícios · <strong>${totalSets}</strong> sets registrados</div>`;
 
-    Object.entries(exercises).forEach(([name, sets], exIdx) => {
+    orderedNames.forEach((name, exIdx) => {
+      const sets = exercises[name];
       const chartId = `chart-${day}-${date}-${exIdx}`;
       html += `<div class="exercise-card">`;
       html += `<div class="exercise-name">${name}</div>`;
