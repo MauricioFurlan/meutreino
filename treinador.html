@@ -445,6 +445,17 @@
       </div>
     </div>
   </div>
+  <div class="note-modal" id="videoModal">
+    <div class="note-modal-content">
+      <h3 id="videoModalTitle">Link do vídeo</h3>
+      <input type="url" id="videoUrl" placeholder="https://youtube.com/watch?v=..." style="width:100%;padding:10px;background:#0d0d0d;border:1px solid #333;border-radius:8px;color:#fff;font-size:14px;">
+      <div class="note-modal-btns">
+        <button class="note-cancel-btn" onclick="closeVideoModal()">Cancelar</button>
+        <button class="note-delete-btn" onclick="deleteVideo()">Apagar</button>
+        <button class="note-save-btn" onclick="saveVideo()">Salvar</button>
+      </div>
+    </div>
+  </div>
 
 <script>
 const SUPABASE_URL = 'https://qslvwyhpamazoqhcmqan.supabase.co';
@@ -555,6 +566,7 @@ async function loadDay(day, date) {
       html += `<div style="display:flex;gap:8px;margin-bottom:10px;">`;
       html += `<button class="chart-btn" onclick="toggleChart('${chartId}', '${name.replace(/'/g, "\\'")}')">📈 Evolução</button>`;
       html += `<button class="chart-btn" onclick="editNote('${name.replace(/'/g, "\\'")}')">📝 Nota geral</button>`;
+      html += `<button class="chart-btn" onclick="editVideo('${name.replace(/'/g, "\\'")}')">🎬 Vídeo</button>`;
       html += `</div>`;
       html += `<div class="chart-container" id="${chartId}"><canvas></canvas><div class="chart-legend"><span><span class="dot" style="background:#f5c518"></span> Volume (kg×reps)</span><span><span class="dot" style="background:#4caf50"></span> Carga máx (kg)</span></div></div>`;
       html += `<div class="set-row"><span class="set-label">Set</span><span class="set-label" style="text-align:center">Carga</span><span class="set-label" style="text-align:center">Reps</span></div>`;
@@ -824,6 +836,84 @@ async function deleteNote() {
     });
     closeNoteModal();
     alert('Nota removida!');
+  } catch (e) {
+    alert('Erro: ' + e.message);
+  }
+}
+
+// === VIDEO LINKS ===
+let currentVideoExercise = '';
+
+async function editVideo(exerciseName) {
+  currentVideoExercise = exerciseName;
+  document.getElementById('videoModalTitle').textContent = exerciseName;
+  document.getElementById('videoUrl').value = '';
+
+  try {
+    const data = await supaFetch(
+      `exercise_videos?exercise_name=eq.${encodeURIComponent(exerciseName)}&order=created_at.desc&limit=1`
+    );
+    if (data && data.length > 0) {
+      document.getElementById('videoUrl').value = data[0].video_url;
+    }
+  } catch (e) {
+    console.log('Erro ao buscar vídeo:', e);
+  }
+
+  document.getElementById('videoModal').classList.add('show');
+}
+
+function closeVideoModal() {
+  document.getElementById('videoModal').classList.remove('show');
+}
+
+async function saveVideo() {
+  const url = document.getElementById('videoUrl').value.trim();
+  if (!url) return;
+
+  try {
+    // Deletar links anteriores desse exercício
+    await fetch(SUPABASE_URL + '/rest/v1/exercise_videos?exercise_name=eq.' + encodeURIComponent(currentVideoExercise), {
+      method: 'DELETE',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY
+      }
+    });
+
+    // Inserir novo link
+    await fetch(SUPABASE_URL + '/rest/v1/exercise_videos', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        exercise_name: currentVideoExercise,
+        video_url: url
+      })
+    });
+
+    closeVideoModal();
+    alert('Vídeo salvo!');
+  } catch (e) {
+    alert('Erro: ' + e.message);
+  }
+}
+
+async function deleteVideo() {
+  try {
+    await fetch(SUPABASE_URL + '/rest/v1/exercise_videos?exercise_name=eq.' + encodeURIComponent(currentVideoExercise), {
+      method: 'DELETE',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY
+      }
+    });
+    closeVideoModal();
+    alert('Vídeo removido!');
   } catch (e) {
     alert('Erro: ' + e.message);
   }

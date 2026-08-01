@@ -192,6 +192,16 @@
     }
     .note-icon.visible { display: inline-flex; align-items: center; justify-content: center; }
     .exercise-header { display: flex; align-items: center; }
+    .video-icon {
+      background: none;
+      border: none;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-left: 6px;
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+    .video-icon:active { opacity: 1; }
     .note-bubble {
       display: none;
       background: #2a2a2a;
@@ -520,7 +530,7 @@ function renderDay(day) {
   let html = '';
   exercises.forEach((ex, exIdx) => {
     html += `<div class="exercise-card" id="card-${day}-${exIdx}" data-exercise="${ex.name}" data-day="${day}">`;
-    html += `<div class="exercise-header"><div class="exercise-name">${ex.name}</div><button class="note-icon" id="note-icon-${day}-${exIdx}" onclick="toggleNote('${day}', ${exIdx}, null)">!</button></div>`;
+    html += `<div class="exercise-header"><div class="exercise-name">${ex.name}</div><button class="video-icon" id="video-${day}-${exIdx}" onclick="openVideo('${ex.name.replace(/'/g, "\\'")}')">🎬</button><button class="note-icon" id="note-icon-${day}-${exIdx}" onclick="toggleNote('${day}', ${exIdx}, null)">!</button></div>`;
     html += `<div class="note-bubble" id="note-bubble-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span id="note-text-${day}-${exIdx}"></span></div>`;
     html += `<button class="history-btn" onclick="toggleHistory('${day}', ${exIdx}, '${ex.name.replace(/'/g, "\\'")}')">Ver histórico</button>`;
     html += `<div class="history-panel" id="history-${day}-${exIdx}"></div>`;
@@ -549,6 +559,32 @@ function toggleHistory(day, exIdx, name) {
     panel.classList.add('show');
     panel.innerHTML = '<em>Carregando...</em>';
     loadHistory(name, panel);
+  }
+}
+
+// === VIDEO LINKS ===
+const videoLinks = {};
+
+async function loadVideoLinks() {
+  try {
+    const data = await supaFetch('exercise_videos?order=created_at.desc');
+    if (!data || data.length === 0) return;
+    data.forEach(r => {
+      if (!videoLinks[r.exercise_name]) {
+        videoLinks[r.exercise_name] = r.video_url;
+      }
+    });
+  } catch (e) {
+    console.log('Erro ao carregar vídeos:', e);
+  }
+}
+
+function openVideo(exerciseName) {
+  if (videoLinks[exerciseName]) {
+    window.open(videoLinks[exerciseName], '_blank');
+  } else {
+    const query = encodeURIComponent(exerciseName + ' execução correta');
+    window.open('https://www.youtube.com/results?search_query=' + query, '_blank');
   }
 }
 
@@ -624,6 +660,7 @@ function init() {
 
   loadTodayData(today);
   loadTrainerNotes();
+  loadVideoLinks();
 }
 
 init();
