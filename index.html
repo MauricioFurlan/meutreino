@@ -450,9 +450,9 @@ async function loadTodayData(day) {
       const weightInput = row.querySelector('.weight-input');
       const repsInput = row.querySelector('.reps-input');
       const check = row.querySelector('.check-icon');
-      if (weightInput && record.weight) weightInput.value = record.weight;
-      if (repsInput && record.reps) repsInput.value = record.reps;
-      if (check && (record.weight || record.reps)) check.classList.add('done');
+      if (weightInput && record.weight !== null) weightInput.value = record.weight;
+      if (repsInput && record.reps !== null) repsInput.value = record.reps;
+      if (check && (record.weight !== null || record.reps !== null)) check.classList.add('done');
     });
   } catch (e) {
     console.log('Erro ao carregar dados do dia:', e);
@@ -477,10 +477,10 @@ async function loadLastWorkout(day) {
       if (!row) return;
       const weightInput = row.querySelector('.weight-input');
       const repsInput = row.querySelector('.reps-input');
-      if (weightInput && record.weight) {
+      if (weightInput && record.weight !== null) {
         weightInput.placeholder = record.weight + ' kg';
       }
-      if (repsInput && record.reps) {
+      if (repsInput && record.reps !== null) {
         const prescribed = repsInput.placeholder;
         repsInput.placeholder = record.reps + ' · ' + prescribed;
       }
@@ -519,7 +519,7 @@ async function saveExercise(day, exerciseName, card) {
   rows.forEach((row, i) => {
     const weight = row.querySelector('.weight-input')?.value;
     const reps = row.querySelector('.reps-input')?.value;
-    if (weight || reps) {
+    if (weight !== '' || reps !== '') {
       records.push({
         day: day,
         exercise_name: exerciseName,
