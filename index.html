@@ -583,12 +583,17 @@ async function loadVideoLinks() {
 }
 
 function openVideo(exerciseName) {
-  if (videoLinks[exerciseName]) {
-    window.open(videoLinks[exerciseName], '_blank');
-  } else {
-    const query = encodeURIComponent(exerciseName + ' execução correta');
-    window.open('https://www.youtube.com/results?search_query=' + query, '_blank');
-  }
+  const url = videoLinks[exerciseName]
+    ? videoLinks[exerciseName]
+    : 'https://www.youtube.com/results?search_query=' + encodeURIComponent(exerciseName + ' execução correta');
+  // Usar link temporário pra forçar abertura no navegador externo (evita bug de tela branca em PWA iOS)
+  const a = document.createElement('a');
+  a.href = url;
+  a.target = '_blank';
+  a.rel = 'noopener noreferrer';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 }
 
 function toggleNote(day, exIdx, setIdx) {
