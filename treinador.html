@@ -345,6 +345,59 @@
     .weekly-day-dot.missed { background: #f44336; }
     .weekly-day-dot.rest { background: #333; color: #666; }
     .weekly-day-dot.future { background: none; border: 1px dashed #444; color: #444; }
+    .note-modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .note-modal.show { display: flex; }
+    .note-modal-content {
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 20px;
+      width: 100%;
+      max-width: 400px;
+      border: 1px solid #333;
+    }
+    .note-modal-content h3 {
+      color: #f5c518;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+    .note-modal-content textarea {
+      width: 100%;
+      height: 100px;
+      background: #0d0d0d;
+      border: 1px solid #333;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      padding: 10px;
+      resize: none;
+    }
+    .note-modal-content textarea:focus { outline: none; border-color: #f5c518; }
+    .note-modal-btns {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .note-modal-btns button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+    }
+    .note-save-btn { background: #f5c518; color: #000; }
+    .note-cancel-btn { background: #2a2a2a; color: #999; }
+    .note-delete-btn { background: #f44336; color: #fff; }
   </style>
 </head>
 <body>
@@ -380,6 +433,17 @@
       <button onclick="navMonth(1)">→</button>
     </div>
     <div id="monthlyContent"></div>
+  </div>
+  <div class="note-modal" id="noteModal">
+    <div class="note-modal-content">
+      <h3 id="noteModalTitle">Nota</h3>
+      <textarea id="noteText" placeholder="Ex: Segura 2s na contração..."></textarea>
+      <div class="note-modal-btns">
+        <button class="note-cancel-btn" onclick="closeNoteModal()">Cancelar</button>
+        <button class="note-delete-btn" onclick="deleteNote()">Apagar</button>
+        <button class="note-save-btn" onclick="saveNote()">Salvar</button>
+      </div>
+    </div>
   </div>
 
 <script>
@@ -467,7 +531,10 @@ async function loadDay(day, date) {
       const chartId = `chart-${day}-${date}-${exIdx}`;
       html += `<div class="exercise-card">`;
       html += `<div class="exercise-name">${name}</div>`;
+      html += `<div style="display:flex;gap:8px;margin-bottom:10px;">`;
       html += `<button class="chart-btn" onclick="toggleChart('${chartId}', '${name.replace(/'/g, "\\'")}')">📈 Evolução</button>`;
+      html += `<button class="chart-btn" onclick="editNote('${name.replace(/'/g, "\\'")}')">📝 Nota</button>`;
+      html += `</div>`;
       html += `<div class="chart-container" id="${chartId}"><canvas></canvas><div class="chart-legend"><span><span class="dot" style="background:#f5c518"></span> Volume (kg×reps)</span><span><span class="dot" style="background:#4caf50"></span> Carga máx (kg)</span></div></div>`;
       html += `<div class="set-row"><span class="set-label">Set</span><span class="set-label" style="text-align:center">Carga</span><span class="set-label" style="text-align:center">Reps</span></div>`;
       sets.forEach(s => {
@@ -639,6 +706,90 @@ async function toggleChart(chartId, exerciseName) {
     container.appendChild(freqEl);
   } catch (e) {
     container.innerHTML = `<div class="no-data">Erro: ${e.message}</div>`;
+  }
+}
+
+// === TRAINER NOTES ===
+let currentNoteExercise = '';
+
+async function editNote(exerciseName) {
+  currentNoteExercise = exerciseName;
+  document.getElementById('noteModalTitle').textContent = exerciseName;
+  document.getElementById('noteText').value = '';
+
+  // Buscar nota existente
+  try {
+    const data = await supaFetch(
+      `trainer_notes?exercise_name=eq.${encodeURIComponent(exerciseName)}&active=eq.true&order=created_at.desc&limit=1`
+    );
+    if (data && data.length > 0) {
+      document.getElementById('noteText').value = data[0].note;
+    }
+  } catch (e) {
+    console.log('Erro ao buscar nota:', e);
+  }
+
+  document.getElementById('noteModal').classList.add('show');
+}
+
+function closeNoteModal() {
+  document.getElementById('noteModal').classList.remove('show');
+}
+
+async function saveNote() {
+  const note = document.getElementById('noteText').value.trim();
+  if (!note) return;
+
+  try {
+    // Desativar notas anteriores desse exercício
+    await fetch(SUPABASE_URL + '/rest/v1/trainer_notes?exercise_name=eq.' + encodeURIComponent(currentNoteExercise) + '&active=eq.true', {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ active: false })
+    });
+
+    // Inserir nova nota
+    await fetch(SUPABASE_URL + '/rest/v1/trainer_notes', {
+      method: 'POST',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        exercise_name: currentNoteExercise,
+        note: note,
+        active: true
+      })
+    });
+
+    closeNoteModal();
+    alert('Nota salva!');
+  } catch (e) {
+    alert('Erro ao salvar: ' + e.message);
+  }
+}
+
+async function deleteNote() {
+  try {
+    await fetch(SUPABASE_URL + '/rest/v1/trainer_notes?exercise_name=eq.' + encodeURIComponent(currentNoteExercise) + '&active=eq.true', {
+      method: 'PATCH',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': 'Bearer ' + SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ active: false })
+    });
+    closeNoteModal();
+    alert('Nota removida!');
+  } catch (e) {
+    alert('Erro: ' + e.message);
   }
 }
 

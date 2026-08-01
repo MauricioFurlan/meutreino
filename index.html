@@ -175,6 +175,34 @@
       font-size: 0.8rem;
       color: #999;
     }
+    .note-icon {
+      display: none;
+      background: #f44336;
+      color: #fff;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border: none;
+      cursor: pointer;
+      margin-left: 8px;
+      flex-shrink: 0;
+    }
+    .note-icon.visible { display: inline-flex; align-items: center; justify-content: center; }
+    .exercise-header { display: flex; align-items: center; }
+    .note-bubble {
+      display: none;
+      background: #2a2a2a;
+      border: 1px solid #f5c518;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 0.8rem;
+      color: #f0f0f0;
+    }
+    .note-bubble.show { display: block; }
+    .note-bubble-label { font-size: 0.65rem; color: #f5c518; margin-bottom: 4px; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -491,7 +519,8 @@ function renderDay(day) {
   let html = '';
   exercises.forEach((ex, exIdx) => {
     html += `<div class="exercise-card" id="card-${day}-${exIdx}" data-exercise="${ex.name}" data-day="${day}">`;
-    html += `<div class="exercise-name">${ex.name}</div>`;
+    html += `<div class="exercise-header"><div class="exercise-name">${ex.name}</div><button class="note-icon" id="note-icon-${day}-${exIdx}" onclick="toggleNote('${day}', ${exIdx})">!</button></div>`;
+    html += `<div class="note-bubble" id="note-bubble-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span id="note-text-${day}-${exIdx}"></span></div>`;
     html += `<button class="history-btn" onclick="toggleHistory('${day}', ${exIdx}, '${ex.name.replace(/'/g, "\\'")}')">Ver histórico</button>`;
     html += `<div class="history-panel" id="history-${day}-${exIdx}"></div>`;
     ex.sets.forEach((set, setIdx) => {
@@ -518,6 +547,41 @@ function toggleHistory(day, exIdx, name) {
     panel.classList.add('show');
     panel.innerHTML = '<em>Carregando...</em>';
     loadHistory(name, panel);
+  }
+}
+
+function toggleNote(day, exIdx) {
+  const bubble = document.getElementById(`note-bubble-${day}-${exIdx}`);
+  bubble.classList.toggle('show');
+}
+
+async function loadTrainerNotes() {
+  try {
+    const data = await supaFetch('trainer_notes?active=eq.true&order=created_at.desc');
+    if (!data || data.length === 0) return;
+
+    const WORKOUT_KEYS = {};
+    const days = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+    days.forEach(day => {
+      if (WORKOUT[day]) {
+        WORKOUT[day].forEach((ex, exIdx) => {
+          WORKOUT_KEYS[`${day}-${ex.name}`] = { day, exIdx };
+        });
+      }
+    });
+
+    data.forEach(note => {
+      Object.entries(WORKOUT_KEYS).forEach(([key, { day, exIdx }]) => {
+        if (key === `${day}-${note.exercise_name}`) {
+          const icon = document.getElementById(`note-icon-${day}-${exIdx}`);
+          const text = document.getElementById(`note-text-${day}-${exIdx}`);
+          if (icon) icon.classList.add('visible');
+          if (text) text.textContent = note.note;
+        }
+      });
+    });
+  } catch (e) {
+    console.log('Erro ao carregar notas:', e);
   }
 }
 
@@ -553,6 +617,7 @@ function init() {
   });
 
   loadTodayData(today);
+  loadTrainerNotes();
 }
 
 init();
