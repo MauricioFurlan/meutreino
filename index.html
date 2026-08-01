@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Treino - Mauricio Furlan</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f5c518">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon-192.svg">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -89,7 +94,7 @@
       font-size: 16px;
       text-align: center;
     }
-    .set-row input::placeholder { color: #555; }
+    .set-row input::placeholder { color: #666; font-size: 0.75rem; }
     .set-row input:focus { outline: none; border-color: #f5c518; }
     .save-btn {
       width: 100%;
@@ -336,7 +341,11 @@ async function loadTodayData(day) {
     const data = await supaFetch(
       `workout_logs?day=eq.${encodeURIComponent(day)}&created_at=gte.${today}T00:00:00&created_at=lt.${today}T23:59:59&order=set_number.asc`
     );
-    if (!data || data.length === 0) return;
+    if (!data || data.length === 0) {
+      // Sem dados de hoje — carregar fantasma do último treino
+      await loadLastWorkout(day);
+      return;
+    }
     data.forEach(record => {
       const card = document.querySelector(`[data-exercise="${CSS.escape(record.exercise_name)}"][data-day="${day}"]`);
       if (!card) return;
@@ -352,6 +361,37 @@ async function loadTodayData(day) {
     });
   } catch (e) {
     console.log('Erro ao carregar dados do dia:', e);
+  }
+}
+
+async function loadLastWorkout(day) {
+  try {
+    const data = await supaFetch(
+      `workout_logs?day=eq.${encodeURIComponent(day)}&order=created_at.desc&limit=100`
+    );
+    if (!data || data.length === 0) return;
+    // Pega só os registros do dia mais recente
+    const lastDate = data[0].created_at.split('T')[0];
+    const lastData = data.filter(r => r.created_at.startsWith(lastDate));
+
+    lastData.forEach(record => {
+      const card = document.querySelector(`[data-exercise="${CSS.escape(record.exercise_name)}"][data-day="${day}"]`);
+      if (!card) return;
+      const rows = card.querySelectorAll('.set-row');
+      const row = rows[record.set_number - 1];
+      if (!row) return;
+      const weightInput = row.querySelector('.weight-input');
+      const repsInput = row.querySelector('.reps-input');
+      if (weightInput && record.weight) {
+        weightInput.placeholder = record.weight + ' kg';
+      }
+      if (repsInput && record.reps) {
+        const prescribed = repsInput.placeholder;
+        repsInput.placeholder = record.reps + ' · ' + prescribed;
+      }
+    });
+  } catch (e) {
+    console.log('Erro ao carregar último treino:', e);
   }
 }
 
@@ -513,6 +553,10 @@ function init() {
 }
 
 init();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
+}
 </script>
 </body>
 </html>
