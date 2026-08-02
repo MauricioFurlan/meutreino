@@ -86,7 +86,7 @@
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // Destinos por papel
-    const ROUTES = { student: 'index.html', trainer: 'treinador.html', owner: 'owner.html' };
+    const ROUTES = { student: 'index.html', trainer: 'professor.html', owner: 'owner.html' };
 
     const el = (id) => document.getElementById(id);
     const emailStep = el('emailStep'), codeStep = el('codeStep'), blockStep = el('blockStep');

@@ -14,7 +14,7 @@ const SUPABASE_KEY = 'sb_publishable_lTQKzQJc5uq7LNq-N1UvRg_w3aF_7zH';
 
 const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const _ROUTES = { student: 'index.html', trainer: 'treinador.html', owner: 'owner.html' };
+const _ROUTES = { student: 'index.html', trainer: 'professor.html', owner: 'owner.html' };
 
 /**
  * @param {string} requiredRole - 'student' | 'trainer' | 'owner'

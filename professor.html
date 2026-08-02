@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Painel do Professor</title>
+  <meta name="theme-color" content="#f5c518">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0d0d0d; color: #f0f0f0; min-height: 100vh; padding-bottom: 40px;
+    }
+    .header {
+      background: #1a1a1a; padding: 16px; text-align: center;
+      border-bottom: 1px solid #333; position: relative;
+    }
+    .header h1 { font-size: 1.1rem; color: #f5c518; letter-spacing: 1px; }
+    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .logout-btn {
+      position: absolute; top: 14px; right: 14px; background: none; border: 1px solid #555;
+      color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+    }
+    .logout-btn:active { opacity: 0.6; }
+    .section { padding: 16px; }
+    .section-title { font-size: 0.85rem; color: #f5c518; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* Alertas */
+    .alert-card { background: #2a1a00; border: 1px solid #f5c518; border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+    .alert-card.expired { background: #2a0000; border-color: #f44336; }
+    .alert-card .name { font-weight: 600; font-size: 0.9rem; }
+    .alert-card .info { font-size: 0.75rem; color: #ccc; margin-top: 2px; }
+
+    /* Lista de alunos */
+    .student-card {
+      background: #1a1a1a; border: 1px solid #333; border-radius: 12px;
+      padding: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
+    }
+    .student-card.suspended { opacity: 0.5; }
+    .student-avatar {
+      width: 38px; height: 38px; border-radius: 50%; background: #333;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem; font-weight: 700; color: #f5c518; flex-shrink: 0;
+    }
+    .student-info { flex: 1; min-width: 0; }
+    .student-name { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .student-meta { font-size: 0.7rem; color: #999; margin-top: 2px; }
+    .student-meta .gym { color: #888; }
+    .student-status { font-size: 0.6rem; padding: 3px 8px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
+    .student-status.active { background: #1b3a1b; color: #4caf50; }
+    .student-status.expired { background: #3a1b1b; color: #f44336; }
+    .student-status.suspended { background: #2a2a2a; color: #888; }
+
+    /* Botões de ação */
+    .actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    .action-btn {
+      padding: 6px 12px; border: 1px solid #555; border-radius: 8px; background: none;
+      color: #ccc; font-size: 0.7rem; cursor: pointer; font-weight: 500;
+    }
+    .action-btn:active { opacity: 0.6; }
+    .action-btn.danger { border-color: #f44336; color: #f44336; }
+    .action-btn.success { border-color: #4caf50; color: #4caf50; }
+
+    /* Formulário */
+    .form-section { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .form-section h3 { font-size: 0.9rem; color: #f5c518; margin-bottom: 12px; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.7rem; color: #999; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
+    .form-group input, .form-group select {
+      width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333;
+      background: #0d0d0d; color: #fff; font-size: 16px;
+    }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: #f5c518; }
+    .submit-btn {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      background: #f5c518; color: #000; font-weight: 700; font-size: 0.9rem; cursor: pointer;
+    }
+    .submit-btn:disabled { opacity: 0.5; }
+    .submit-btn:active { opacity: 0.7; }
+
+    /* Modal de renovação */
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+    .modal.show { display: flex; }
+    .modal-content { background: #1a1a1a; border-radius: 12px; padding: 20px; width: 100%; max-width: 360px; border: 1px solid #333; }
+    .modal-content h3 { color: #f5c518; font-size: 0.9rem; margin-bottom: 14px; }
+    .modal-close { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #2a2a2a; color: #999; font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 12px; }
+
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #f5c518; color: #000; padding: 10px 20px; border-radius: 20px;
+      font-size: 0.85rem; font-weight: 600; display: none; z-index: 1001;
+    }
+    .toast.error { background: #f44336; color: #fff; }
+    .toast.show { display: block; animation: fadeOut 2.5s forwards; }
+    @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
+
+    .empty-state { text-align: center; padding: 30px; color: #666; font-size: 0.85rem; }
+    .nav-link { display: block; text-align: center; margin-top: 12px; color: #f5c518; font-size: 0.8rem; text-decoration: underline; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <button class="logout-btn" onclick="location.href='login.html?logout'">Sair</button>
+    <h1 id="greeting">Painel do Professor</h1>
+    <div class="subtitle" id="subtitle"></div>
+  </div>
+
+  <!-- Alertas -->
+  <div class="section" id="alertsSection" style="display:none;">
+    <div class="section-title">⚠️ Atenção</div>
+    <div id="alertsList"></div>
+  </div>
+
+  <!-- Criar aluno -->
+  <div class="section">
+    <div class="form-section" id="createForm">
+      <h3>+ Novo Aluno</h3>
+      <div class="form-group">
+        <label>Nome completo</label>
+        <input type="text" id="newName" placeholder="Nome do aluno">
+      </div>
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="newEmail" inputmode="email" placeholder="email@exemplo.com">
+      </div>
+      <div class="form-group">
+        <label>Academia</label>
+        <input type="text" id="newGym" placeholder="Nome da academia (opcional)">
+      </div>
+      <div class="form-group">
+        <label>Duração (meses)</label>
+        <input type="number" id="newMonths" inputmode="numeric" value="3" min="1" max="24">
+      </div>
+      <button class="submit-btn" id="createBtn" onclick="createStudent()">Cadastrar Aluno</button>
+    </div>
+  </div>
+
+  <!-- Lista de alunos -->
+  <div class="section">
+    <div class="section-title">Meus Alunos</div>
+    <div id="studentsList"></div>
+  </div>
+
+  <!-- Link para acompanhamento -->
+  <a class="nav-link" href="treinador.html">📊 Ver acompanhamento</a>
+
+  <!-- Modal de renovação -->
+  <div class="modal" id="renewModal">
+    <div class="modal-content">
+      <h3>Renovar Prazo</h3>
+      <div class="form-group">
+        <label>Aluno</label>
+        <input type="text" id="renewName" disabled>
+      </div>
+      <div class="form-group">
+        <label>Acrescentar meses</label>
+        <input type="number" id="renewMonths" inputmode="numeric" value="3" min="1" max="24">
+      </div>
+      <button class="submit-btn" onclick="confirmRenew()">Renovar</button>
+      <button class="modal-close" onclick="closeRenewModal()">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-guard.js"></script>
+<script>
+let myId = null;
+let students = [];
+
+const esc = (s) => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
+
+function showToast(text, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+// === Carregar alunos ===
+async function loadStudents() {
+  const { data, error } = await _sb.from('profiles')
+    .select('id, full_name, email, gym_name, status, access_starts_at, access_expires_at')
+    .eq('coach_id', myId)
+    .eq('role', 'student')
+    .order('full_name', { ascending: true });
+  if (error) { console.log('Erro ao carregar alunos:', error); return; }
+  students = data || [];
+  renderStudents();
+  renderAlerts();
+}
+
+// === Renderizar lista ===
+function renderStudents() {
+  const container = document.getElementById('studentsList');
+  if (students.length === 0) {
+    container.innerHTML = '<div class="empty-state">Nenhum aluno cadastrado ainda.</div>';
+    return;
+  }
+  container.innerHTML = students.map(s => {
+    const initials = (s.full_name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    const status = getStatus(s);
+    const statusLabel = status === 'active' ? 'Ativo' : status === 'expired' ? 'Vencido' : 'Inativo';
+    const expiresText = s.access_expires_at
+      ? new Date(s.access_expires_at + 'T00:00:00').toLocaleDateString('pt-BR')
+      : 'Sem prazo';
+    return `
+      <div class="student-card ${s.status === 'suspended' ? 'suspended' : ''}">
+        <div class="student-avatar">${esc(initials)}</div>
+        <div class="student-info">
+          <div class="student-name">${esc(s.full_name)}</div>
+          <div class="student-meta">
+            ${s.gym_name ? `<span class="gym">${esc(s.gym_name)} · </span>` : ''}
+            até ${expiresText}
+          </div>
+          <div class="actions">
+            ${s.status === 'active'
+              ? `<button class="action-btn danger" onclick="toggleStatus('${s.id}','suspended')">Desativar</button>`
+              : `<button class="action-btn success" onclick="toggleStatus('${s.id}','active')">Reativar</button>`
+            }
+            <button class="action-btn" onclick="openRenewModal('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')">Renovar</button>
+          </div>
+        </div>
+        <span class="student-status ${status}">${statusLabel}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function getStatus(s) {
+  if (s.status === 'suspended') return 'suspended';
+  if (s.access_expires_at && new Date(s.access_expires_at + 'T23:59:59') < new Date()) return 'expired';
+  return 'active';
+}
+
+// === Alertas ===
+function renderAlerts() {
+  const now = new Date();
+  const in7days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const alerts = students.filter(s => {
+    if (s.status === 'suspended') return false;
+    if (!s.access_expires_at) return false;
+    const exp = new Date(s.access_expires_at + 'T23:59:59');
+    return exp <= in7days;
+  }).sort((a, b) => a.access_expires_at.localeCompare(b.access_expires_at));
+
+  const section = document.getElementById('alertsSection');
+  const container = document.getElementById('alertsList');
+  if (alerts.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  container.innerHTML = alerts.map(s => {
+    const exp = new Date(s.access_expires_at + 'T23:59:59');
+    const isExpired = exp < now;
+    const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+    const label = isExpired ? 'Vencido' : `Vence em ${daysLeft} dia${daysLeft !== 1 ? 's' : ''}`;
+    return `
+      <div class="alert-card ${isExpired ? 'expired' : ''}">
+        <div class="name">${esc(s.full_name)}</div>
+        <div class="info">${label} · ${new Date(s.access_expires_at + 'T00:00:00').toLocaleDateString('pt-BR')}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// === Criar aluno ===
+async function createStudent() {
+  const name = document.getElementById('newName').value.trim();
+  const email = document.getElementById('newEmail').value.trim().toLowerCase();
+  const gym = document.getElementById('newGym').value.trim();
+  const months = parseInt(document.getElementById('newMonths').value) || 3;
+
+  if (!name || !email) { showToast('Preencha nome e e-mail.', true); return; }
+
+  const btn = document.getElementById('createBtn');
+  btn.disabled = true;
+
+  const { error } = await _sb.from('invites').insert({
+    email,
+    role: 'student',
+    coach_id: myId,
+    full_name: name,
+    gym_name: gym || null,
+    months,
+    created_by: myId
+  });
+
+  btn.disabled = false;
+
+  if (error) {
+    if (error.code === '23505') { showToast('Esse e-mail já tem um convite pendente.', true); }
+    else { showToast('Erro: ' + error.message, true); }
+    return;
+  }
+
+  showToast('Aluno cadastrado! Peça pra acessar com esse e-mail.');
+  document.getElementById('newName').value = '';
+  document.getElementById('newEmail').value = '';
+  document.getElementById('newGym').value = '';
+  document.getElementById('newMonths').value = '3';
+
+  // Recarrega (o aluno aparece na lista quando logar, mas mostramos o convite como pendente)
+  await loadStudents();
+}
+
+// === Desativar / Reativar ===
+async function toggleStatus(studentId, newStatus) {
+  const { error } = await _sb.from('profiles')
+    .update({ status: newStatus })
+    .eq('id', studentId);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  showToast(newStatus === 'active' ? 'Aluno reativado!' : 'Aluno desativado.');
+  await loadStudents();
+}
+
+// === Renovar prazo ===
+let renewStudentId = null;
+
+function openRenewModal(studentId, name) {
+  renewStudentId = studentId;
+  document.getElementById('renewName').value = name;
+  document.getElementById('renewMonths').value = '3';
+  document.getElementById('renewModal').classList.add('show');
+}
+
+function closeRenewModal() {
+  document.getElementById('renewModal').classList.remove('show');
+  renewStudentId = null;
+}
+
+async function confirmRenew() {
+  if (!renewStudentId) return;
+  const months = parseInt(document.getElementById('renewMonths').value) || 3;
+
+  // Busca a data atual de expiração
+  const student = students.find(s => s.id === renewStudentId);
+  if (!student) { closeRenewModal(); return; }
+
+  // Nova data: a partir de hoje ou da expiração atual (o que for mais tarde) + meses
+  const now = new Date();
+  const currentExp = student.access_expires_at ? new Date(student.access_expires_at + 'T00:00:00') : now;
+  const base = currentExp > now ? currentExp : now;
+  const newExp = new Date(base);
+  newExp.setMonth(newExp.getMonth() + months);
+  const newExpStr = newExp.toISOString().split('T')[0];
+
+  const { error } = await _sb.from('profiles')
+    .update({ access_expires_at: newExpStr, status: 'active' })
+    .eq('id', renewStudentId);
+
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  showToast(`Prazo renovado até ${newExp.toLocaleDateString('pt-BR')}!`);
+  closeRenewModal();
+  await loadStudents();
+}
+
+// === Inicialização ===
+guard('trainer', {
+  onReady: async (session, profile) => {
+    myId = profile.id;
+    document.getElementById('greeting').textContent = 'Olá ' + (profile.full_name || 'Professor');
+    document.getElementById('subtitle').textContent = 'Gestão de Alunos';
+    await loadStudents();
+  },
+  onBlocked: (state) => {
+    document.body.innerHTML = `
+      <div style="text-align:center;padding:60px 24px;">
+        <div style="font-size:2.4rem;margin-bottom:12px;">🔒</div>
+        <h2 style="color:#f5c518;margin-bottom:8px;">Acesso suspenso</h2>
+        <p style="color:#ccc;">Seu acesso está suspenso. Entre em contato para regularizar.</p>
+        <button onclick="location.href='login.html?logout'" style="margin-top:20px;padding:10px 20px;border:1px solid #555;border-radius:8px;background:none;color:#999;cursor:pointer;">Sair</button>
+      </div>
+    `;
+  }
+});
+</script>
+</body>
+</html>
