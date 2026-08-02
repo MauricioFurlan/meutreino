@@ -1,8 +1,8 @@
 {
   "name": "Treino",
-  "short_name": "Meu Treino",
+  "short_name": "Treino",
   "description": "App de acompanhamento de treino",
-  "start_url": "/meutreino/",
+  "start_url": "/meutreino/login.html",
   "display": "standalone",
   "background_color": "#0d0d0d",
   "theme_color": "#f5c518",

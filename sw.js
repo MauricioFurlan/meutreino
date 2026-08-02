@@ -1,8 +1,16 @@
-const CACHE_NAME = 'meutreino-v1';
+const CACHE_NAME = 'treino-v2';
 const urlsToCache = [
-  '/meutreino/',
+  '/meutreino/login.html',
   '/meutreino/index.html',
-  '/meutreino/manifest.json'
+  '/meutreino/professor.html',
+  '/meutreino/editor.html',
+  '/meutreino/anamnese.html',
+  '/meutreino/treinador.html',
+  '/meutreino/owner.html',
+  '/meutreino/auth-guard.js',
+  '/meutreino/manifest.json',
+  '/meutreino/icon-192.svg',
+  '/meutreino/icon-512.svg'
 ];
 
 self.addEventListener('install', event => {
@@ -22,12 +30,34 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Network first, fallback to cache (para sempre ter dados frescos do Supabase)
+  const url = event.request.url;
+
+  // NUNCA cachear requisições ao Supabase (dados autenticados, tempo real)
+  if (url.includes('supabase.co')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // CDN (chart.js, supabase-js) — cache first (muda pouco)
+  if (url.includes('cdn.jsdelivr.net')) {
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        if (cached) return cached;
+        return fetch(event.request).then(res => {
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          return res;
+        });
+      })
+    );
+    return;
+  }
+
+  // Páginas do app — network first, fallback cache (para funcionar offline)
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // Cacheia uma cópia das respostas de arquivos estáticos
-        if (event.request.url.includes('/meutreino/') && !event.request.url.includes('supabase')) {
+        if (response.ok && event.request.method === 'GET') {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
         }

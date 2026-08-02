@@ -12,6 +12,10 @@
                  connect-src 'self' https://qslvwyhpamazoqhcmqan.supabase.co;
                  img-src 'self' data:;">
   <title>Entrar</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="icon-192.svg">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -148,6 +152,8 @@
       await sb.auth.signOut();
       location.reload();
     });
+
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 
     // Decide destino conforme papel e estado de acesso
     async function route() {
