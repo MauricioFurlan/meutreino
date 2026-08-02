@@ -233,9 +233,24 @@ function showToast(text, isError) {
   setTimeout(() => t.className = 'toast', 2500);
 }
 
+// === Reset dos inputs de um dia (evita acúmulo de placeholder ao trocar tabs) ===
+function resetDayInputs(day) {
+  const dayEl = document.getElementById('day-' + day);
+  if (!dayEl) return;
+  dayEl.querySelectorAll('.set-row').forEach(row => {
+    const wi = row.querySelector('.weight-input');
+    const ri = row.querySelector('.reps-input');
+    const check = row.querySelector('.check-icon');
+    if (wi) { wi.value = ''; wi.placeholder = 'kg'; }
+    if (ri) { ri.value = ''; ri.placeholder = ri.dataset.prescribed || ''; }
+    if (check) check.classList.remove('done');
+  });
+}
+
 // === Carregamento de dados do dia ===
 async function loadTodayData(day) {
   try {
+    resetDayInputs(day);
     const today = getTodayDate();
     const { data, error } = await _sb.from('workout_logs')
       .select('*')
@@ -422,7 +437,7 @@ function renderDay(day) {
       html += `<div class="set-row" data-set-type="${set.type}" data-notes="${esc(notes)}">`;
       html += `<span class="set-label">${typeLabel} ${setIdx+1} <button class="note-icon ${setNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}-${setIdx}')">!</button></span>`;
       html += `<div class="input-wrap"><input type="number" class="weight-input" placeholder="kg" inputmode="decimal"><span class="input-suffix">kg</span></div>`;
-      html += `<div class="input-wrap"><input type="number" class="reps-input" placeholder="${esc(repsText)}" inputmode="numeric"><span class="input-suffix">reps</span></div>`;
+      html += `<div class="input-wrap"><input type="number" class="reps-input" placeholder="${esc(repsText)}" data-prescribed="${esc(repsText)}" inputmode="numeric"><span class="input-suffix">reps</span></div>`;
       html += `<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
       html += `</div>`;
       // Nota do set
