@@ -469,9 +469,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth-guard.js"></script>
 <script>
-const SUPABASE_URL = 'https://qslvwyhpamazoqhcmqan.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_lTQKzQJc5uq7LNq-N1UvRg_w3aF_7zH';
-
 const DAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
 // Carregados dinamicamente do plano do aluno
@@ -488,7 +485,11 @@ async function supaFetch(endpoint) {
       'Authorization': 'Bearer ' + session.access_token
     }
   });
-  if (!res.ok) throw new Error('Erro: ' + res.status);
+  if (!res.ok) {
+    const body = await res.text();
+    console.error('supaFetch erro:', res.status, body);
+    throw new Error('Erro ' + res.status + ': ' + body);
+  }
   return res.json();
 }
 
