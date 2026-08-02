@@ -23,10 +23,16 @@
       padding: 16px;
       text-align: center;
       border-bottom: 1px solid #333;
+      position: relative;
     }
     .header h1 { font-size: 1.2rem; color: #f5c518; letter-spacing: 1px; }
     .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
     .header .plan-title { font-size: 0.75rem; color: #666; margin-top: 2px; }
+    .logout-btn {
+      position: absolute; top: 14px; right: 14px; background: none; border: 1px solid #555;
+      color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+    }
+    .logout-btn:active { opacity: 0.6; }
     .tabs {
       display: flex;
       background: #1a1a1a;
@@ -176,6 +182,7 @@
 </head>
 <body>
   <div class="header">
+    <button class="logout-btn" onclick="location.href='login.html?logout'">Sair</button>
     <h1 id="greeting">Carregando...</h1>
     <div class="subtitle" id="gymName"></div>
     <div class="plan-title" id="planTitle"></div>
