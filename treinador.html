@@ -4,6 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Treino</title>
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://qslvwyhpamazoqhcmqan.supabase.co; img-src 'self' data:;">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -471,6 +473,8 @@
 <script>
 const DAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
+const esc = (s) => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
+
 // Carregados dinamicamente do plano do aluno
 let PRESCRIBED_REPS = {};
 let PRESCRIBED_ORDER = {};
@@ -532,9 +536,9 @@ async function loadDay(day, date) {
       const sets = exercises[name];
       const chartId = `chart-${day}-${date}-${exIdx}`;
       html += `<div class="exercise-card">`;
-      html += `<div class="exercise-name">${name}</div>`;
+      html += `<div class="exercise-name">${esc(name)}</div>`;
       html += `<div style="display:flex;gap:8px;margin-bottom:10px;">`;
-      html += `<button class="chart-btn" onclick="toggleChart('${chartId}', '${name.replace(/'/g, "\\'")}')">📈 Evolução</button>`;
+      html += `<button class="chart-btn" onclick="toggleChart('${chartId}', '${esc(name).replace(/'/g, "\\'")}')">📈 Evolução</button>`;
       html += `</div>`;
       html += `<div class="chart-container" id="${chartId}"><canvas></canvas><div class="chart-legend"><span><span class="dot" style="background:#f5c518"></span> Volume (kg×reps)</span><span><span class="dot" style="background:#4caf50"></span> Carga máx (kg)</span></div></div>`;
       html += `<div class="set-row"><span class="set-label">Set</span><span class="set-label" style="text-align:center">Carga</span><span class="set-label" style="text-align:center">Reps</span></div>`;
