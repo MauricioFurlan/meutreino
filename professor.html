@@ -229,6 +229,7 @@ function renderStudents() {
             }
             <button class="action-btn" onclick="openRenewModal('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')">Renovar</button>
             <button class="action-btn" onclick="location.href='treinador.html?aluno=${s.id}'">📊 Ver</button>
+            <button class="action-btn" onclick="location.href='editor.html?aluno=${s.id}'">✏️ Treino</button>
           </div>
         </div>
         <span class="student-status ${status}">${statusLabel}</span>

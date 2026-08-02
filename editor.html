@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Editor de Treino</title>
+  <meta name="theme-color" content="#f5c518">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0d0d0d; color: #f0f0f0; min-height: 100vh; padding-bottom: 100px;
+    }
+    .header {
+      background: #1a1a1a; padding: 16px; text-align: center;
+      border-bottom: 1px solid #333; position: relative;
+    }
+    .header h1 { font-size: 1.1rem; color: #f5c518; letter-spacing: 1px; }
+    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .nav-btn {
+      position: absolute; top: 14px; background: none; border: 1px solid #555;
+      color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+    }
+    .nav-btn:active { opacity: 0.6; }
+    .nav-btn.left { left: 14px; }
+    .nav-btn.right { right: 14px; }
+
+    .title-section { padding: 16px; }
+    .title-input {
+      width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333;
+      background: #1a1a1a; color: #f5c518; font-size: 1rem; font-weight: 700; text-align: center;
+    }
+    .title-input:focus { outline: none; border-color: #f5c518; }
+
+    /* Accordion dias */
+    .day-accordion { margin: 0 12px 8px; border: 1px solid #333; border-radius: 12px; overflow: hidden; background: #1a1a1a; }
+    .day-header {
+      padding: 14px 16px; cursor: pointer; display: flex; align-items: center;
+      justify-content: space-between; user-select: none;
+    }
+    .day-header .day-name { font-weight: 700; font-size: 0.9rem; color: #f5c518; }
+    .day-header .day-count { font-size: 0.7rem; color: #888; }
+    .day-header .arrow { color: #888; font-size: 0.6rem; transition: transform 0.2s; }
+    .day-accordion.open .day-header .arrow { transform: rotate(180deg); }
+    .day-body { display: none; padding: 0 12px 12px; }
+    .day-accordion.open .day-body { display: block; }
+
+    /* Exercício */
+    .exercise-item {
+      background: #0d0d0d; border: 1px solid #333; border-radius: 10px;
+      padding: 12px; margin-bottom: 10px;
+    }
+    .exercise-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .exercise-top input {
+      flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #333;
+      background: #1a1a1a; color: #fff; font-size: 14px;
+    }
+    .exercise-top input:focus { outline: none; border-color: #f5c518; }
+    .exercise-extras { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .exercise-extras input {
+      flex: 1; min-width: 0; padding: 6px 8px; border-radius: 6px; border: 1px solid #333;
+      background: #1a1a1a; color: #ccc; font-size: 12px;
+    }
+    .exercise-extras input:focus { outline: none; border-color: #f5c518; }
+
+    /* Sets */
+    .set-item {
+      display: grid; grid-template-columns: 70px 1fr 1fr 30px; gap: 6px;
+      align-items: center; margin-bottom: 6px;
+    }
+    .set-item select {
+      padding: 6px 4px; border-radius: 6px; border: 1px solid #333;
+      background: #1a1a1a; color: #ccc; font-size: 12px; appearance: none; text-align: center;
+    }
+    .set-item input {
+      padding: 6px; border-radius: 6px; border: 1px solid #333;
+      background: #1a1a1a; color: #fff; font-size: 13px; text-align: center;
+    }
+    .set-item select:focus, .set-item input:focus { outline: none; border-color: #f5c518; }
+    .remove-btn {
+      background: none; border: none; color: #f44336; font-size: 1.1rem; cursor: pointer;
+      padding: 0; line-height: 1;
+    }
+    .remove-btn:active { opacity: 0.5; }
+
+    /* Botões de adicionar */
+    .add-btn {
+      display: block; width: 100%; padding: 8px; border: 1px dashed #555;
+      border-radius: 8px; background: none; color: #888; font-size: 0.75rem;
+      cursor: pointer; margin-top: 6px; text-align: center;
+    }
+    .add-btn:active { border-color: #f5c518; color: #f5c518; }
+    .add-exercise-btn { margin: 8px 0; }
+
+    /* Botões de ação do exercício */
+    .ex-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .ex-action-btn {
+      padding: 4px 10px; border: 1px solid #555; border-radius: 6px; background: none;
+      color: #999; font-size: 0.65rem; cursor: pointer;
+    }
+    .ex-action-btn.danger { border-color: #f44336; color: #f44336; }
+    .ex-action-btn:active { opacity: 0.5; }
+
+    /* Salvar fixo */
+    .save-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; background: #1a1a1a;
+      border-top: 1px solid #333; padding: 12px 16px; z-index: 100;
+    }
+    .save-bar button {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      background: #f5c518; color: #000; font-weight: 700; font-size: 0.95rem; cursor: pointer;
+    }
+    .save-bar button:disabled { opacity: 0.5; }
+    .save-bar button:active { opacity: 0.7; }
+
+    .toast {
+      position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%);
+      background: #f5c518; color: #000; padding: 10px 20px; border-radius: 20px;
+      font-size: 0.85rem; font-weight: 600; display: none; z-index: 1001;
+    }
+    .toast.error { background: #f44336; color: #fff; }
+    .toast.show { display: block; animation: fadeOut 2.5s forwards; }
+    @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
+
+    .loading { text-align: center; padding: 40px; color: #888; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <button class="nav-btn left" onclick="location.href='professor.html'">← Voltar</button>
+    <h1 id="heading">Editor de Treino</h1>
+    <div class="subtitle" id="studentName"></div>
+  </div>
+
+  <div class="title-section">
+    <input type="text" class="title-input" id="planTitle" placeholder="Título do treino (ex: Hipertrofia)">
+  </div>
+
+  <div id="daysContainer"></div>
+
+  <div class="save-bar">
+    <button id="saveBtn" onclick="savePlan()">Salvar Treino</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-guard.js"></script>
+<script>
+const DAYS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+let studentId = null;
+let coachId = null;
+
+const esc = (s) => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
+
+function showToast(text, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+// === Obter aluno da URL ===
+function getStudentIdFromUrl() {
+  return new URLSearchParams(location.search).get('aluno');
+}
+
+// === Estrutura padrão vazia ===
+function emptyStructure() {
+  const s = {};
+  DAYS.forEach(d => s[d] = []);
+  return s;
+}
+
+// === Renderizar editor ===
+function renderEditor(structure) {
+  const container = document.getElementById('daysContainer');
+  container.innerHTML = '';
+  DAYS.forEach(day => {
+    const exercises = structure[day] || [];
+    const acc = document.createElement('div');
+    acc.className = 'day-accordion';
+    acc.innerHTML = `
+      <div class="day-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="day-name">${day}</span>
+        <span class="day-count">${exercises.length} exercício${exercises.length !== 1 ? 's' : ''}</span>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="day-body" id="body-${day}"></div>
+    `;
+    container.appendChild(acc);
+    const body = acc.querySelector('.day-body');
+    exercises.forEach((ex, i) => body.appendChild(renderExercise(day, i, ex)));
+    // Botão adicionar exercício
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-btn add-exercise-btn';
+    addBtn.textContent = '+ Adicionar exercício';
+    addBtn.onclick = () => addExercise(day);
+    body.appendChild(addBtn);
+  });
+}
+
+function renderExercise(day, idx, ex) {
+  const div = document.createElement('div');
+  div.className = 'exercise-item';
+  div.dataset.day = day;
+  div.dataset.idx = idx;
+
+  let setsHtml = '';
+  (ex.sets || []).forEach((set, si) => {
+    setsHtml += renderSetHtml(si, set);
+  });
+
+  div.innerHTML = `
+    <div class="exercise-top">
+      <input type="text" class="ex-name" value="${esc(ex.name || '')}" placeholder="Nome do exercício">
+    </div>
+    <div class="exercise-extras">
+      <input type="url" class="ex-video" value="${esc(ex.video_url || '')}" placeholder="Link do vídeo (opcional)">
+      <input type="text" class="ex-note" value="${esc(ex.note || '')}" placeholder="Nota (opcional)">
+    </div>
+    <div class="sets-container">${setsHtml}</div>
+    <button class="add-btn" onclick="addSet(this)">+ Adicionar set</button>
+    <div class="ex-actions">
+      <button class="ex-action-btn" onclick="moveExercise(this, -1)">↑</button>
+      <button class="ex-action-btn" onclick="moveExercise(this, 1)">↓</button>
+      <button class="ex-action-btn danger" onclick="removeExercise(this)">Remover</button>
+    </div>
+  `;
+  return div;
+}
+
+function renderSetHtml(idx, set) {
+  return `
+    <div class="set-item">
+      <select class="set-type">
+        <option value="aquec" ${set.type === 'aquec' ? 'selected' : ''}>AQUEC</option>
+        <option value="feeder" ${set.type === 'feeder' ? 'selected' : ''}>FEEDER</option>
+        <option value="hard" ${set.type === 'hard' ? 'selected' : ''}>HARD</option>
+      </select>
+      <input type="text" class="set-reps" value="${esc(set.reps || '')}" placeholder="Reps (ex: 8-12)">
+      <input type="text" class="set-note" value="${esc(set.note || '')}" placeholder="Nota">
+      <button class="remove-btn" onclick="this.parentElement.remove()">×</button>
+    </div>
+  `;
+}
+
+// === Adicionar exercício ===
+function addExercise(day) {
+  const body = document.getElementById('body-' + day);
+  const items = body.querySelectorAll('.exercise-item');
+  const idx = items.length;
+  const addBtn = body.querySelector('.add-exercise-btn');
+  const newEx = renderExercise(day, idx, { name: '', video_url: null, note: null, sets: [{ type: 'hard', reps: '8-12', note: null }] });
+  body.insertBefore(newEx, addBtn);
+  updateDayCount(day);
+  newEx.querySelector('.ex-name').focus();
+}
+
+// === Adicionar set ===
+function addSet(btn) {
+  const container = btn.previousElementSibling;
+  const temp = document.createElement('div');
+  temp.innerHTML = renderSetHtml(container.children.length, { type: 'hard', reps: '', note: null });
+  container.appendChild(temp.firstElementChild);
+}
+
+// === Remover exercício ===
+function removeExercise(btn) {
+  const item = btn.closest('.exercise-item');
+  const day = item.dataset.day;
+  item.remove();
+  updateDayCount(day);
+}
+
+// === Mover exercício ===
+function moveExercise(btn, dir) {
+  const item = btn.closest('.exercise-item');
+  const body = item.parentElement;
+  const items = [...body.querySelectorAll('.exercise-item')];
+  const idx = items.indexOf(item);
+  const target = idx + dir;
+  if (target < 0 || target >= items.length) return;
+  if (dir === -1) body.insertBefore(item, items[target]);
+  else body.insertBefore(items[target], item);
+}
+
+// === Atualizar contagem ===
+function updateDayCount(day) {
+  const acc = document.getElementById('body-' + day).parentElement;
+  const count = acc.querySelectorAll('.exercise-item').length;
+  acc.querySelector('.day-count').textContent = `${count} exercício${count !== 1 ? 's' : ''}`;
+}
+
+// === Coletar structure do DOM ===
+function collectStructure() {
+  const structure = {};
+  DAYS.forEach(day => {
+    const body = document.getElementById('body-' + day);
+    const items = body.querySelectorAll('.exercise-item');
+    structure[day] = [...items].map(item => {
+      const name = item.querySelector('.ex-name').value.trim();
+      const video_url = item.querySelector('.ex-video').value.trim() || null;
+      const note = item.querySelector('.ex-note').value.trim() || null;
+      const sets = [...item.querySelectorAll('.set-item')].map(si => ({
+        type: si.querySelector('.set-type').value,
+        reps: si.querySelector('.set-reps').value.trim(),
+        note: si.querySelector('.set-note').value.trim() || null
+      }));
+      return { name, video_url, note, sets };
+    }).filter(ex => ex.name); // ignora exercícios sem nome
+  });
+  return structure;
+}
+
+// === Salvar ===
+async function savePlan() {
+  const title = document.getElementById('planTitle').value.trim() || 'Treino';
+  const structure = collectStructure();
+
+  // Validação básica
+  const totalEx = Object.values(structure).reduce((sum, d) => sum + d.length, 0);
+  if (totalEx === 0) { showToast('Adicione pelo menos um exercício.', true); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  try {
+    // Desativa plano anterior
+    await _sb.from('workout_plans')
+      .update({ is_active: false })
+      .eq('student_id', studentId)
+      .eq('is_active', true);
+
+    // Cria novo plano ativo
+    const { error } = await _sb.from('workout_plans').insert({
+      student_id: studentId,
+      coach_id: coachId,
+      title,
+      structure,
+      is_active: true
+    });
+
+    if (error) throw error;
+    showToast('Treino salvo com sucesso!');
+    btn.textContent = '✓ Salvo!';
+    setTimeout(() => { btn.textContent = 'Salvar Treino'; btn.disabled = false; }, 2000);
+  } catch (e) {
+    showToast('Erro: ' + e.message, true);
+    btn.textContent = 'Salvar Treino';
+    btn.disabled = false;
+  }
+}
+
+// === Inicialização ===
+guard('trainer', {
+  onReady: async (session, profile) => {
+    coachId = profile.id;
+    studentId = getStudentIdFromUrl();
+
+    if (!studentId) {
+      document.getElementById('daysContainer').innerHTML = '<div class="loading">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#f5c518;">Voltar</a></div>';
+      return;
+    }
+
+    // Busca nome do aluno
+    const { data: student } = await _sb.from('profiles')
+      .select('full_name')
+      .eq('id', studentId)
+      .maybeSingle();
+    document.getElementById('studentName').textContent = student?.full_name || '';
+
+    // Carrega plano ativo (se existir)
+    const { data: plan } = await _sb.from('workout_plans')
+      .select('title, structure')
+      .eq('student_id', studentId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    if (plan) {
+      document.getElementById('planTitle').value = plan.title || '';
+      renderEditor(plan.structure || emptyStructure());
+    } else {
+      document.getElementById('planTitle').value = '';
+      renderEditor(emptyStructure());
+    }
+  },
+  onBlocked: () => { location.replace('login.html'); }
+});
+</script>
+</body>
+</html>
