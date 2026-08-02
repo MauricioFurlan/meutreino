@@ -66,6 +66,17 @@
     .toast.error { background: #f44336; color: #fff; }
     .toast.show { display: block; animation: fadeOut 2.5s forwards; }
     @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
+
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+    .modal.show { display: flex; }
+    .modal-content { background: #1a1a1a; border-radius: 12px; padding: 20px; width: 100%; max-width: 400px; border: 1px solid #333; }
+    .modal-content h3 { color: #f5c518; font-size: 0.9rem; margin-bottom: 14px; }
+    .modal-close { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #2a2a2a; color: #999; font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 12px; }
+    .detail-section { margin-bottom: 12px; }
+    .detail-section h4 { font-size: 0.75rem; color: #f5c518; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .detail-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #222; }
+    .detail-row .label { font-size: 0.78rem; color: #999; }
+    .detail-row .value { font-size: 0.78rem; color: #f0f0f0; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -229,6 +240,15 @@
     <div class="chart-container"><canvas id="evolutionChart"></canvas></div>
   </div>
 
+  <!-- Modal detalhe avaliação -->
+  <div class="modal" id="detailModal">
+    <div class="modal-content" style="max-height:85vh; overflow-y:auto;">
+      <h3 id="detailTitle">Avaliação</h3>
+      <div id="detailBody"></div>
+      <button class="modal-close" onclick="document.getElementById('detailModal').classList.remove('show')">Fechar</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -329,8 +349,88 @@ async function loadHistory() {
 }
 
 function viewAssessment(id) {
-  // TODO: modal com detalhes da avaliação (melhoria futura)
-  showToast('Detalhe da avaliação (em breve)');
+  const a = assessments.find(x => x.id === id);
+  if (!a) return;
+  const d = a.data || {};
+  const c = d.circunferencias || {};
+  const db = d.dobras || {};
+  const comp = d.composicao || {};
+  const saude = d.saude || {};
+
+  const dateStr = new Date(a.assessment_date + 'T00:00:00').toLocaleDateString('pt-BR');
+  document.getElementById('detailTitle').textContent = 'Avaliação — ' + dateStr;
+
+  function row(label, value, unit) {
+    if (value == null || value === '') return '';
+    return `<div class="detail-row"><span class="label">${esc(label)}</span><span class="value">${esc(String(value))}${unit ? ' ' + esc(unit) : ''}</span></div>`;
+  }
+
+  function section(title, rows) {
+    const content = rows.join('');
+    if (!content) return '';
+    return `<div class="detail-section"><h4>${esc(title)}</h4>${content}</div>`;
+  }
+
+  let html = '';
+
+  html += section('Dados gerais', [
+    row('Objetivo', d.objetivo),
+    row('Peso', d.peso, 'kg'),
+    row('Altura', d.altura, 'cm'),
+    row('IMC', d.imc)
+  ]);
+
+  html += section('Circunferências (cm)', [
+    row('Cintura', c.cintura),
+    row('Abdômen', c.abdomen),
+    row('Quadril', c.quadril),
+    row('Tórax', c.torax),
+    row('Ombro', c.ombro),
+    row('Braço D relaxado', c.braco_d_relaxado),
+    row('Braço D contraído', c.braco_d_contraido),
+    row('Braço E relaxado', c.braco_e_relaxado),
+    row('Braço E contraído', c.braco_e_contraido),
+    row('Antebraço D', c.antebraco_d),
+    row('Antebraço E', c.antebraco_e),
+    row('Coxa D', c.coxa_d),
+    row('Coxa E', c.coxa_e),
+    row('Panturrilha D', c.panturrilha_d),
+    row('Panturrilha E', c.panturrilha_e)
+  ]);
+
+  html += section('Dobras cutâneas (mm)', [
+    row('Tríceps', db.triceps),
+    row('Subescapular', db.subescapular),
+    row('Supra-ilíaca', db.supra_iliaca),
+    row('Abdominal', db.abdominal),
+    row('Coxa', db.coxa),
+    row('Axilar média', db.axilar_media),
+    row('Torácica', db.toracica)
+  ]);
+
+  html += section('Composição corporal', [
+    row('% Gordura', comp.gordura, '%'),
+    row('Massa magra', comp.massa_magra, 'kg'),
+    row('Massa gorda', comp.massa_gorda, 'kg')
+  ]);
+
+  html += section('Saúde', [
+    row('Lesões / Cirurgias', saude.lesoes),
+    row('Medicamentos', saude.medicamentos),
+    row('Restrições', saude.restricoes),
+    row('Nível de atividade', saude.nivel_atividade)
+  ]);
+
+  if (d.observacoes) {
+    html += section('Observações', [
+      `<div class="detail-row"><span class="value" style="color:#ccc; font-weight:400;">${esc(d.observacoes)}</span></div>`
+    ]);
+  }
+
+  if (!html) html = '<div class="empty-state">Nenhum dado registrado nesta avaliação.</div>';
+
+  document.getElementById('detailBody').innerHTML = html;
+  document.getElementById('detailModal').classList.add('show');
 }
 
 // === Gráficos ===
