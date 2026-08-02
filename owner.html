@@ -127,7 +127,7 @@ function showToast(t, err) { const e = document.getElementById('toast'); e.textC
 // === Carregar professores ===
 async function loadTrainers() {
   const { data, error } = await _sb.from('profiles')
-    .select('id, full_name, email, status, access_starts_at, access_expires_at')
+    .select('id, full_name, email, status, access_starts_at, access_expires_at, max_students')
     .eq('role', 'trainer')
     .order('full_name', { ascending: true });
   if (error) { console.log('Erro:', error); return; }
@@ -167,13 +167,14 @@ function renderTrainers() {
           </div>
           <span class="trainer-status ${status}">${statusLabel}</span>
         </div>
-        <div class="students-count">${t.studentCount} aluno${t.studentCount !== 1 ? 's' : ''}</div>
+        <div class="students-count">${t.studentCount} aluno${t.studentCount !== 1 ? 's' : ''} (limite: ${t.max_students || 20})</div>
         <div class="actions">
           ${t.status === 'active'
             ? `<button class="action-btn danger" onclick="toggleStatus('${t.id}','suspended')">Suspender</button>`
             : `<button class="action-btn success" onclick="toggleStatus('${t.id}','active')">Reativar</button>`
           }
           <button class="action-btn" onclick="openPayModal('${t.id}','${esc(t.full_name).replace(/'/g,"\\'")}')">💰 Pagamento</button>
+          <button class="action-btn" onclick="editLimit('${t.id}', ${t.max_students || 20})">👥 Limite</button>
         </div>
       </div>
     `;
@@ -290,6 +291,16 @@ async function confirmPayment() {
 
   showToast(`Pagamento registrado! Prazo até ${newExp.toLocaleDateString('pt-BR')}.`);
   closePayModal();
+  await loadTrainers();
+}
+
+// === Editar limite de alunos ===
+async function editLimit(trainerId, current) {
+  const newLimit = prompt(`Limite atual: ${current} alunos.\nNovo limite:`, current);
+  if (!newLimit || isNaN(newLimit) || parseInt(newLimit) < 1) return;
+  const { error } = await _sb.from('profiles').update({ max_students: parseInt(newLimit) }).eq('id', trainerId);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  showToast(`Limite alterado para ${newLimit} alunos.`);
   await loadTrainers();
 }
 
