@@ -535,8 +535,6 @@ async function loadDay(day, date) {
       html += `<div class="exercise-name">${name}</div>`;
       html += `<div style="display:flex;gap:8px;margin-bottom:10px;">`;
       html += `<button class="chart-btn" onclick="toggleChart('${chartId}', '${name.replace(/'/g, "\\'")}')">📈 Evolução</button>`;
-      html += `<button class="chart-btn" onclick="editNote('${name.replace(/'/g, "\\'")}')">📝 Nota geral</button>`;
-      html += `<button class="chart-btn" onclick="editVideo('${name.replace(/'/g, "\\'")}')">🎬 Vídeo</button>`;
       html += `</div>`;
       html += `<div class="chart-container" id="${chartId}"><canvas></canvas><div class="chart-legend"><span><span class="dot" style="background:#f5c518"></span> Volume (kg×reps)</span><span><span class="dot" style="background:#4caf50"></span> Carga máx (kg)</span></div></div>`;
       html += `<div class="set-row"><span class="set-label">Set</span><span class="set-label" style="text-align:center">Carga</span><span class="set-label" style="text-align:center">Reps</span></div>`;
@@ -546,7 +544,7 @@ async function loadDay(day, date) {
         const prescribedList = PRESCRIBED_REPS[name] || [];
         const prescribed = prescribedList[s.set_number - 1] || '';
         html += `<div class="set-row">`;
-        html += `<span class="set-label">${s.set_type} ${s.set_number}${prescribed ? ' (' + prescribed + ')' : ''} <button class="chart-btn" style="padding:2px 5px;font-size:0.6rem;margin-left:4px;" onclick="editNote('${name.replace(/'/g, "\\'")}', ${s.set_number})">📝</button></span>`;
+        html += `<span class="set-label">${s.set_type} ${s.set_number}${prescribed ? ' (' + prescribed + ')' : ''}</span>`;
         html += `<span class="set-value${!s.weight ? ' empty' : ''}">${weight}</span>`;
         html += `<span class="set-value${!s.reps ? ' empty' : ''}">${reps}</span>`;
         html += `</div>`;
