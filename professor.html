@@ -49,6 +49,8 @@
     }
     .student-info { min-width: 0; padding-right: 50px; }
     .student-name { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .edit-icon { background: none; border: none; font-size: 0.75rem; cursor: pointer; padding: 2px 4px; vertical-align: middle; opacity: 0.7; }
+    .edit-icon:active { opacity: 1; }
     .student-meta { font-size: 0.7rem; color: #999; margin-top: 2px; }
     .student-meta .gym { color: #888; }
     .student-status { font-size: 0.6rem; padding: 3px 8px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
@@ -291,14 +293,13 @@ function renderStudents() {
           </label>
         </div>
         <div class="student-info">
-          <div class="student-name">${esc(s.full_name)}</div>
+          <div class="student-name">${esc(s.full_name)} <button class="edit-icon" onclick="openEditModal('${s.id}')">✏️</button></div>
           <div class="student-meta">
             ${s.gym_name ? `<span class="gym">${esc(s.gym_name)} · </span>` : ''}
             até ${expiresText}
           </div>
           <div class="actions">
             <button class="action-btn" onclick="openRenewModal('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')">Renovar</button>
-            <button class="action-btn" onclick="openEditModal('${s.id}')">✏️ Editar</button>
             <button class="action-btn" onclick="location.href='treinador.html?aluno=${s.id}'">📊 Ver</button>
             <button class="action-btn" onclick="location.href='editor.html?aluno=${s.id}'">🏋️ Treino</button>
             <button class="action-btn" onclick="location.href='anamnese.html?aluno=${s.id}'">🩺 Anamnese</button>
