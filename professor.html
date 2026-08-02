@@ -439,12 +439,19 @@ async function createStudent() {
   const btn = document.getElementById('createBtn');
   btn.disabled = true;
 
-  // Verifica se já existe um profile com esse email (aluno deletado ou de outro coach)
-  const { data: existing } = await _sb.from('profiles')
-    .select('id, is_deleted, coach_id')
+  // Bloqueia se o email já é de um professor/owner (não pode ser aluno e professor ao mesmo tempo)
+  const { data: existingAny } = await _sb.from('profiles')
+    .select('id, role, is_deleted, coach_id')
     .eq('email', email)
-    .eq('role', 'student')
     .maybeSingle();
+
+  if (existingAny && existingAny.role !== 'student') {
+    btn.disabled = false;
+    showToast('Esse e-mail já pertence a um ' + (existingAny.role === 'trainer' ? 'professor' : 'administrador') + '.', true);
+    return;
+  }
+
+  const existing = existingAny && existingAny.role === 'student' ? existingAny : null;
 
   if (existing && existing.is_deleted && existing.coach_id === myId) {
     // Reativar aluno deletado
