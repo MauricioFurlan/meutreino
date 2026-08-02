@@ -68,15 +68,18 @@
       display: grid; grid-template-columns: 70px 1fr 1fr 30px; gap: 6px;
       align-items: center; margin-bottom: 6px;
     }
-    .set-item select {
-      padding: 6px 4px; border-radius: 6px; border: 1px solid #333;
-      background: #1a1a1a; color: #ccc; font-size: 12px; appearance: none; text-align: center;
-    }
     .set-item input {
       padding: 6px; border-radius: 6px; border: 1px solid #333;
-      background: #1a1a1a; color: #fff; font-size: 13px; text-align: center;
+      background: #1a1a1a; color: #fff; font-size: 12px; text-align: center;
     }
-    .set-item select:focus, .set-item input:focus { outline: none; border-color: #f5c518; }
+    .set-item input:focus { outline: none; border-color: #f5c518; }
+    .set-type-input { text-transform: uppercase; font-weight: 600; color: #f5c518 !important; }
+    .chips { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+    .chip {
+      padding: 4px 10px; border-radius: 12px; border: 1px solid #555; background: none;
+      color: #999; font-size: 0.6rem; cursor: pointer; font-weight: 600; text-transform: uppercase;
+    }
+    .chip:active { border-color: #f5c518; color: #f5c518; }
     .remove-btn {
       background: none; border: none; color: #f44336; font-size: 1.1rem; cursor: pointer;
       padding: 0; line-height: 1;
@@ -220,6 +223,7 @@ function renderExercise(day, idx, ex) {
       <input type="text" class="ex-note" value="${esc(ex.note || '')}" placeholder="Nota (opcional)">
     </div>
     <div class="sets-container">${setsHtml}</div>
+    ${renderChips()}
     <button class="add-btn" onclick="addSet(this)">+ Adicionar set</button>
     <div class="ex-actions">
       <button class="ex-action-btn" onclick="moveExercise(this, -1)">↑</button>
@@ -233,16 +237,27 @@ function renderExercise(day, idx, ex) {
 function renderSetHtml(idx, set) {
   return `
     <div class="set-item">
-      <select class="set-type">
-        <option value="aquec" ${set.type === 'aquec' ? 'selected' : ''}>AQUEC</option>
-        <option value="feeder" ${set.type === 'feeder' ? 'selected' : ''}>FEEDER</option>
-        <option value="hard" ${set.type === 'hard' ? 'selected' : ''}>HARD</option>
-      </select>
+      <input type="text" class="set-type-input" value="${esc(set.type || '')}" placeholder="Tipo">
       <input type="text" class="set-reps" value="${esc(set.reps || '')}" placeholder="Reps (ex: 8-12)">
       <input type="text" class="set-note" value="${esc(set.note || '')}" placeholder="Nota">
       <button class="remove-btn" onclick="this.parentElement.remove()">×</button>
     </div>
   `;
+}
+
+function renderChips() {
+  return `<div class="chips">
+    <button class="chip" type="button" onclick="fillLastType(this, 'aquec')">AQUEC</button>
+    <button class="chip" type="button" onclick="fillLastType(this, 'feeder')">FEEDER</button>
+    <button class="chip" type="button" onclick="fillLastType(this, 'hard')">HARD</button>
+  </div>`;
+}
+
+function fillLastType(btn, type) {
+  const container = btn.closest('.exercise-item').querySelector('.sets-container');
+  const inputs = container.querySelectorAll('.set-type-input');
+  if (inputs.length === 0) return;
+  inputs[inputs.length - 1].value = type;
 }
 
 // === Adicionar exercício ===
@@ -259,10 +274,13 @@ function addExercise(day) {
 
 // === Adicionar set ===
 function addSet(btn) {
-  const container = btn.previousElementSibling;
+  const exItem = btn.closest('.exercise-item');
+  const container = exItem.querySelector('.sets-container');
   const temp = document.createElement('div');
-  temp.innerHTML = renderSetHtml(container.children.length, { type: 'hard', reps: '', note: null });
+  temp.innerHTML = renderSetHtml(container.children.length, { type: '', reps: '', note: null });
   container.appendChild(temp.firstElementChild);
+  // Foca no campo de tipo do novo set
+  container.lastElementChild.querySelector('.set-type-input').focus();
 }
 
 // === Remover exercício ===
@@ -303,7 +321,7 @@ function collectStructure() {
       const video_url = item.querySelector('.ex-video').value.trim() || null;
       const note = item.querySelector('.ex-note').value.trim() || null;
       const sets = [...item.querySelectorAll('.set-item')].map(si => ({
-        type: si.querySelector('.set-type').value,
+        type: si.querySelector('.set-type-input').value.trim().toLowerCase(),
         reps: si.querySelector('.set-reps').value.trim(),
         note: si.querySelector('.set-note').value.trim() || null
       }));
