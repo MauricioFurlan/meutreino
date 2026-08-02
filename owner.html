@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Painel do Dono</title>
+  <meta name="theme-color" content="#f5c518">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d0d0d; color: #f0f0f0; min-height: 100vh; padding-bottom: 40px; }
+    .header { background: #1a1a1a; padding: 16px; text-align: center; border-bottom: 1px solid #333; position: relative; }
+    .header h1 { font-size: 1.1rem; color: #f5c518; letter-spacing: 1px; }
+    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .logout-btn { position: absolute; top: 14px; right: 14px; background: none; border: 1px solid #555; color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer; }
+    .logout-btn:active { opacity: 0.6; }
+    .section { padding: 16px; }
+    .section-title { font-size: 0.85rem; color: #f5c518; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .alert-card { background: #2a1a00; border: 1px solid #f5c518; border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+    .alert-card.expired { background: #2a0000; border-color: #f44336; }
+    .alert-card .name { font-weight: 600; font-size: 0.9rem; }
+    .alert-card .info { font-size: 0.75rem; color: #ccc; margin-top: 2px; }
+
+    .trainer-card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+    .trainer-card.suspended { opacity: 0.5; }
+    .trainer-top { display: flex; align-items: center; gap: 12px; }
+    .trainer-avatar { width: 38px; height: 38px; border-radius: 50%; background: #333; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 700; color: #f5c518; flex-shrink: 0; }
+    .trainer-info { flex: 1; min-width: 0; }
+    .trainer-name { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trainer-meta { font-size: 0.7rem; color: #999; margin-top: 2px; }
+    .trainer-status { font-size: 0.6rem; padding: 3px 8px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
+    .trainer-status.active { background: #1b3a1b; color: #4caf50; }
+    .trainer-status.expired { background: #3a1b1b; color: #f44336; }
+    .trainer-status.suspended { background: #2a2a2a; color: #888; }
+    .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .action-btn { padding: 6px 12px; border: 1px solid #555; border-radius: 8px; background: none; color: #ccc; font-size: 0.7rem; cursor: pointer; font-weight: 500; }
+    .action-btn:active { opacity: 0.6; }
+    .action-btn.danger { border-color: #f44336; color: #f44336; }
+    .action-btn.success { border-color: #4caf50; color: #4caf50; }
+    .students-count { font-size: 0.65rem; color: #666; margin-top: 6px; }
+
+    .form-section { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+    .form-section h3 { font-size: 0.9rem; color: #f5c518; padding: 14px 16px; margin: 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+    .form-section h3::after { content: '▼'; font-size: 0.6rem; color: #888; transition: transform 0.2s; }
+    .form-section.open h3::after { transform: rotate(180deg); }
+    .form-body { display: none; padding: 0 16px 16px; }
+    .form-section.open .form-body { display: block; }
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.7rem; color: #999; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
+    .form-group input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #0d0d0d; color: #fff; font-size: 16px; }
+    .form-group input:focus { outline: none; border-color: #f5c518; }
+    .submit-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #f5c518; color: #000; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
+    .submit-btn:disabled { opacity: 0.5; }
+    .submit-btn:active { opacity: 0.7; }
+
+    .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
+    .modal.show { display: flex; }
+    .modal-content { background: #1a1a1a; border-radius: 12px; padding: 20px; width: 100%; max-width: 360px; border: 1px solid #333; }
+    .modal-content h3 { color: #f5c518; font-size: 0.9rem; margin-bottom: 14px; }
+    .modal-close { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #2a2a2a; color: #999; font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 12px; }
+
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #f5c518; color: #000; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: none; z-index: 1001; }
+    .toast.error { background: #f44336; color: #fff; }
+    .toast.show { display: block; animation: fadeOut 2.5s forwards; }
+    @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
+    .empty-state { text-align: center; padding: 30px; color: #666; font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <button class="logout-btn" onclick="location.href='login.html?logout'">Sair</button>
+    <h1>Painel do Dono</h1>
+    <div class="subtitle">Gestão de Professores</div>
+  </div>
+
+  <!-- Alertas -->
+  <div class="section" id="alertsSection" style="display:none;">
+    <div class="section-title">⚠️ Atenção</div>
+    <div id="alertsList"></div>
+  </div>
+
+  <!-- Novo Professor -->
+  <div class="section">
+    <div class="form-section" id="createForm">
+      <h3 onclick="this.parentElement.classList.toggle('open')">+ Novo Professor</h3>
+      <div class="form-body">
+        <div class="form-group"><label>Nome completo</label><input type="text" id="newName" placeholder="Nome do professor"></div>
+        <div class="form-group"><label>E-mail</label><input type="email" id="newEmail" inputmode="email" placeholder="email@exemplo.com"></div>
+        <div class="form-group"><label>Duração paga (meses)</label><input type="number" id="newMonths" inputmode="numeric" value="1" min="1" max="24"></div>
+        <div class="form-group"><label>Valor (R$)</label><input type="number" id="newAmount" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+        <div class="form-group"><label>Método de pagamento</label><input type="text" id="newMethod" placeholder="PIX, dinheiro..."></div>
+        <button class="submit-btn" id="createBtn" onclick="createTrainer()">Cadastrar Professor</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista -->
+  <div class="section">
+    <div class="section-title">Professores</div>
+    <div id="trainersList"></div>
+  </div>
+
+  <!-- Modal de pagamento/renovação -->
+  <div class="modal" id="payModal">
+    <div class="modal-content">
+      <h3>Registrar Pagamento</h3>
+      <div class="form-group"><label>Professor</label><input type="text" id="payName" disabled></div>
+      <div class="form-group"><label>Meses</label><input type="number" id="payMonths" inputmode="numeric" value="1" min="1" max="24"></div>
+      <div class="form-group"><label>Valor (R$)</label><input type="number" id="payAmount" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+      <div class="form-group"><label>Método</label><input type="text" id="payMethod" placeholder="PIX, dinheiro..."></div>
+      <button class="submit-btn" onclick="confirmPayment()">Registrar</button>
+      <button class="modal-close" onclick="closePayModal()">Cancelar</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-guard.js"></script>
+<script>
+let myId = null;
+let trainers = [];
+
+const esc = (s) => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
+function showToast(t, err) { const e = document.getElementById('toast'); e.textContent = t; e.className = 'toast show' + (err ? ' error' : ''); setTimeout(() => e.className = 'toast', 2500); }
+
+// === Carregar professores ===
+async function loadTrainers() {
+  const { data, error } = await _sb.from('profiles')
+    .select('id, full_name, email, status, access_starts_at, access_expires_at')
+    .eq('role', 'trainer')
+    .order('full_name', { ascending: true });
+  if (error) { console.log('Erro:', error); return; }
+  trainers = data || [];
+
+  // Buscar contagem de alunos por professor
+  for (const t of trainers) {
+    const { count } = await _sb.from('profiles').select('*', { count: 'exact', head: true }).eq('coach_id', t.id).eq('role', 'student');
+    t.studentCount = count || 0;
+  }
+
+  renderTrainers();
+  renderAlerts();
+}
+
+function getStatus(t) {
+  if (t.status === 'suspended') return 'suspended';
+  if (t.access_expires_at && new Date(t.access_expires_at + 'T23:59:59') < new Date()) return 'expired';
+  return 'active';
+}
+
+function renderTrainers() {
+  const container = document.getElementById('trainersList');
+  if (trainers.length === 0) { container.innerHTML = '<div class="empty-state">Nenhum professor cadastrado.</div>'; return; }
+  container.innerHTML = trainers.map(t => {
+    const initials = (t.full_name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    const status = getStatus(t);
+    const statusLabel = status === 'active' ? 'Ativo' : status === 'expired' ? 'Vencido' : 'Suspenso';
+    const expiresText = t.access_expires_at ? new Date(t.access_expires_at + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem prazo';
+    return `
+      <div class="trainer-card ${t.status === 'suspended' ? 'suspended' : ''}">
+        <div class="trainer-top">
+          <div class="trainer-avatar">${esc(initials)}</div>
+          <div class="trainer-info">
+            <div class="trainer-name">${esc(t.full_name)}</div>
+            <div class="trainer-meta">${esc(t.email)} · até ${expiresText}</div>
+          </div>
+          <span class="trainer-status ${status}">${statusLabel}</span>
+        </div>
+        <div class="students-count">${t.studentCount} aluno${t.studentCount !== 1 ? 's' : ''}</div>
+        <div class="actions">
+          ${t.status === 'active'
+            ? `<button class="action-btn danger" onclick="toggleStatus('${t.id}','suspended')">Suspender</button>`
+            : `<button class="action-btn success" onclick="toggleStatus('${t.id}','active')">Reativar</button>`
+          }
+          <button class="action-btn" onclick="openPayModal('${t.id}','${esc(t.full_name).replace(/'/g,"\\'")}')">💰 Pagamento</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// === Alertas ===
+function renderAlerts() {
+  const now = new Date();
+  const in7days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const alerts = trainers.filter(t => {
+    if (t.status === 'suspended') return false;
+    if (!t.access_expires_at) return false;
+    return new Date(t.access_expires_at + 'T23:59:59') <= in7days;
+  }).sort((a, b) => a.access_expires_at.localeCompare(b.access_expires_at));
+
+  const section = document.getElementById('alertsSection');
+  const container = document.getElementById('alertsList');
+  if (alerts.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  container.innerHTML = alerts.map(t => {
+    const exp = new Date(t.access_expires_at + 'T23:59:59');
+    const isExpired = exp < now;
+    const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+    const label = isExpired ? 'Vencido' : `Vence em ${daysLeft} dia${daysLeft !== 1 ? 's' : ''}`;
+    return `<div class="alert-card ${isExpired ? 'expired' : ''}"><div class="name">${esc(t.full_name)}</div><div class="info">${label} · ${new Date(t.access_expires_at + 'T00:00:00').toLocaleDateString('pt-BR')}</div></div>`;
+  }).join('');
+}
+
+// === Criar professor ===
+async function createTrainer() {
+  const name = document.getElementById('newName').value.trim();
+  const email = document.getElementById('newEmail').value.trim().toLowerCase();
+  const months = parseInt(document.getElementById('newMonths').value) || 1;
+  const amount = parseFloat(document.getElementById('newAmount').value) || null;
+  const method = document.getElementById('newMethod').value.trim() || null;
+
+  if (!name || !email) { showToast('Preencha nome e e-mail.', true); return; }
+
+  const btn = document.getElementById('createBtn');
+  btn.disabled = true;
+
+  // Cria convite
+  const { error } = await _sb.from('invites').insert({
+    email, role: 'trainer', full_name: name, months, created_by: myId
+  });
+  btn.disabled = false;
+  if (error) {
+    if (error.code === '23505') showToast('E-mail já tem convite pendente.', true);
+    else showToast('Erro: ' + error.message, true);
+    return;
+  }
+
+  showToast('Professor cadastrado! Peça pra acessar com esse e-mail.');
+  document.getElementById('newName').value = '';
+  document.getElementById('newEmail').value = '';
+  document.getElementById('newMonths').value = '1';
+  document.getElementById('newAmount').value = '';
+  document.getElementById('newMethod').value = '';
+  await loadTrainers();
+}
+
+// === Suspender / Reativar ===
+async function toggleStatus(trainerId, newStatus) {
+  const { error } = await _sb.from('profiles').update({ status: newStatus }).eq('id', trainerId);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  showToast(newStatus === 'active' ? 'Professor reativado!' : 'Professor suspenso (alunos bloqueados em cascata).');
+  await loadTrainers();
+}
+
+// === Pagamento ===
+let payTrainerId = null;
+
+function openPayModal(trainerId, name) {
+  payTrainerId = trainerId;
+  document.getElementById('payName').value = name;
+  document.getElementById('payMonths').value = '1';
+  document.getElementById('payAmount').value = '';
+  document.getElementById('payMethod').value = '';
+  document.getElementById('payModal').classList.add('show');
+}
+
+function closePayModal() { document.getElementById('payModal').classList.remove('show'); payTrainerId = null; }
+
+async function confirmPayment() {
+  if (!payTrainerId) return;
+  const months = parseInt(document.getElementById('payMonths').value) || 1;
+  const amount = parseFloat(document.getElementById('payAmount').value) || null;
+  const method = document.getElementById('payMethod').value.trim() || null;
+
+  const trainer = trainers.find(t => t.id === payTrainerId);
+  if (!trainer) { closePayModal(); return; }
+
+  const now = new Date();
+  const currentExp = trainer.access_expires_at ? new Date(trainer.access_expires_at + 'T00:00:00') : now;
+  const base = currentExp > now ? currentExp : now;
+  const newExp = new Date(base);
+  newExp.setMonth(newExp.getMonth() + months);
+  const periodStart = base.toISOString().split('T')[0];
+  const periodEnd = newExp.toISOString().split('T')[0];
+
+  // Registrar pagamento
+  const { error: payErr } = await _sb.from('trainer_payments').insert({
+    trainer_id: payTrainerId, amount, paid_at: now.toISOString().split('T')[0],
+    period_start: periodStart, period_end: periodEnd, method, created_by: myId
+  });
+  if (payErr) { showToast('Erro ao registrar: ' + payErr.message, true); return; }
+
+  // Estender prazo e reativar
+  const { error: upErr } = await _sb.from('profiles')
+    .update({ access_expires_at: periodEnd, status: 'active' })
+    .eq('id', payTrainerId);
+  if (upErr) { showToast('Pagamento registrado mas erro ao estender prazo.', true); closePayModal(); return; }
+
+  showToast(`Pagamento registrado! Prazo até ${newExp.toLocaleDateString('pt-BR')}.`);
+  closePayModal();
+  await loadTrainers();
+}
+
+// === Init ===
+guard('owner', {
+  onReady: async (session, profile) => {
+    myId = profile.id;
+    await loadTrainers();
+  },
+  onBlocked: () => { location.replace('login.html'); }
+});
+</script>
+</body>
+</html>
