@@ -61,7 +61,25 @@
 
     /* Gráficos */
     .chart-selector { margin-bottom: 12px; }
-    .chart-selector select { padding: 10px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; font-size: 16px; width: 100%; box-sizing: border-box; }
+    .chart-selector label { font-size: 0.7rem; color: #888; text-transform: uppercase; font-weight: 600; margin-bottom: 6px; display: block; letter-spacing: 0.5px; }
+    .chart-selector .select-wrap { position: relative; }
+    .chart-selector .select-wrap::before {
+      content: '📊';
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      font-size: 1rem; pointer-events: none; z-index: 1;
+    }
+    .chart-selector .select-wrap::after {
+      content: '▼';
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      font-size: 0.65rem; color: #f5c518; pointer-events: none; z-index: 1;
+    }
+    .chart-selector select {
+      padding: 14px 36px 14px 40px; border-radius: 10px; border: 1px solid #f5c518;
+      background: #1a1a1a; color: #fff; font-size: 0.9rem; font-weight: 600;
+      width: 100%; box-sizing: border-box; cursor: pointer;
+      -webkit-appearance: none; -moz-appearance: none; appearance: none;
+    }
+    .chart-selector select:focus { outline: none; border-color: #f5c518; box-shadow: 0 0 0 2px rgba(245,197,24,0.2); }
     .chart-container { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px; }
     canvas { max-height: 280px; }
 
@@ -227,30 +245,32 @@
   <!-- Gráficos -->
   <div class="panel" id="panel-charts">
     <div class="chart-selector">
-      <select id="chartMetric" onchange="renderChart()">
-        <option value="peso">Peso (kg)</option>
-        <option value="gordura">% Gordura</option>
-        <option value="massa_magra">Massa magra (kg)</option>
-        <option value="massa_magra_perc">% Massa magra</option>
-        <option value="massa_gorda">Massa gorda (kg)</option>
-        <option value="imc">IMC</option>
-        <option value="cintura">Cintura (cm)</option>
-        <option value="abdomen">Abdômen (cm)</option>
-        <option value="quadril">Quadril (cm)</option>
-        <option value="ombro">Ombro (cm)</option>
-        <option value="torax">Tórax (cm)</option>
-        <option value="braco_d_relaxado">Braço D relaxado (cm)</option>
-        <option value="braco_d_contraido">Braço D contraído (cm)</option>
-        <option value="braco_e_relaxado">Braço E relaxado (cm)</option>
-        <option value="braco_e_contraido">Braço E contraído (cm)</option>
-        <option value="antebraco_d">Antebraço D (cm)</option>
-        <option value="antebraco_e">Antebraço E (cm)</option>
-        <option value="coxa_d">Coxa D (cm)</option>
-        <option value="coxa_e">Coxa E (cm)</option>
-        <option value="panturrilha_d">Panturrilha D (cm)</option>
-        <option value="panturrilha_e">Panturrilha E (cm)</option>
-      </select>
-    </div>
+      <label>Selecione a métrica</label>
+      <div class="select-wrap">
+        <select id="chartMetric" onchange="renderChart()">
+          <option value="peso">Peso (kg)</option>
+          <option value="gordura">% Gordura</option>
+          <option value="massa_magra">Massa magra (kg)</option>
+          <option value="massa_magra_perc">% Massa magra</option>
+          <option value="massa_gorda">Massa gorda (kg)</option>
+          <option value="imc">IMC</option>
+          <option value="cintura">Cintura (cm)</option>
+          <option value="abdomen">Abdômen (cm)</option>
+          <option value="quadril">Quadril (cm)</option>
+          <option value="ombro">Ombro (cm)</option>
+          <option value="torax">Tórax (cm)</option>
+          <option value="braco_d_relaxado">Braço D relaxado (cm)</option>
+          <option value="braco_d_contraido">Braço D contraído (cm)</option>
+          <option value="braco_e_relaxado">Braço E relaxado (cm)</option>
+          <option value="braco_e_contraido">Braço E contraído (cm)</option>
+          <option value="antebraco_d">Antebraço D (cm)</option>
+          <option value="antebraco_e">Antebraço E (cm)</option>
+          <option value="coxa_d">Coxa D (cm)</option>
+          <option value="coxa_e">Coxa E (cm)</option>
+          <option value="panturrilha_d">Panturrilha D (cm)</option>
+          <option value="panturrilha_e">Panturrilha E (cm)</option>
+        </select>
+      </div>
     </div>
     <div class="chart-container"><canvas id="evolutionChart"></canvas></div>
   </div>
