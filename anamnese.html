@@ -209,6 +209,7 @@
       </div>
 
       <button type="submit" class="submit-btn" id="saveBtn">Salvar Avaliação</button>
+      <button type="button" class="modal-close" id="cancelEditBtn" style="display:none; margin-top:8px;" onclick="cancelEdit(); document.getElementById('assessmentForm').reset(); populatePlaceholders();">Cancelar edição</button>
     </form>
   </div>
 
@@ -246,7 +247,11 @@
     <div class="modal-content" style="max-height:85vh; overflow-y:auto;">
       <h3 id="detailTitle">Avaliação</h3>
       <div id="detailBody"></div>
-      <button class="submit-btn" style="margin-top:12px;" onclick="generatePDF()">📄 Gerar PDF</button>
+      <div style="display:flex; gap:8px; margin-top:12px;">
+        <button class="submit-btn" style="flex:1;" onclick="generatePDF()">📄 PDF</button>
+        <button class="submit-btn" style="flex:1; background:#2196F3;" onclick="editAssessment()">✏️ Editar</button>
+        <button class="submit-btn" style="flex:1; background:#f44336;" onclick="deleteAssessment()">🗑️ Excluir</button>
+      </div>
       <button class="modal-close" onclick="document.getElementById('detailModal').classList.remove('show')">Fechar</button>
     </div>
   </div>
@@ -260,6 +265,7 @@ let studentId = null, coachId = null, assessments = [];
 let chartInstance = null;
 let studentInfo = null; // dados do aluno para o PDF
 let currentAssessmentId = null; // avaliação aberta no modal
+let editingId = null; // se !== null, estamos editando ao invés de criando
 
 const esc = (s) => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
 function showToast(t, err) { const e = document.getElementById('toast'); e.textContent = t; e.className = 'toast show' + (err ? ' error' : ''); setTimeout(() => e.className = 'toast', 2500); }
@@ -313,7 +319,7 @@ function collectFormData() {
   };
 }
 
-// === Salvar ===
+// === Salvar (insert ou update) ===
 async function saveAssessment(e) {
   e.preventDefault();
   const date = document.getElementById('fDate').value;
@@ -321,12 +327,149 @@ async function saveAssessment(e) {
   const data = collectFormData();
   const btn = document.getElementById('saveBtn');
   btn.disabled = true;
-  const { error } = await _sb.from('assessments').insert({ student_id: studentId, coach_id: coachId, assessment_date: date, data });
+
+  let error;
+  if (editingId) {
+    // Modo edição: update
+    ({ error } = await _sb.from('assessments').update({ assessment_date: date, data }).eq('id', editingId));
+  } else {
+    // Modo criação: insert
+    ({ error } = await _sb.from('assessments').insert({ student_id: studentId, coach_id: coachId, assessment_date: date, data }));
+  }
+
   btn.disabled = false;
   if (error) { showToast('Erro: ' + error.message, true); return; }
-  showToast('Avaliação salva!');
+  showToast(editingId ? 'Avaliação atualizada!' : 'Avaliação salva!');
+  cancelEdit();
   document.getElementById('assessmentForm').reset();
   await loadAssessments();
+  populatePlaceholders();
+}
+
+// === Cancelar edição (volta ao modo criação) ===
+function cancelEdit() {
+  editingId = null;
+  document.getElementById('saveBtn').textContent = 'Salvar Avaliação';
+  const cancelBtn = document.getElementById('cancelEditBtn');
+  if (cancelBtn) cancelBtn.style.display = 'none';
+}
+
+// === Excluir avaliação ===
+async function deleteAssessment() {
+  if (!currentAssessmentId) return;
+  if (!confirm('Tem certeza que deseja excluir esta avaliação? Essa ação não pode ser desfeita.')) return;
+  const { error } = await _sb.from('assessments').delete().eq('id', currentAssessmentId);
+  if (error) { showToast('Erro ao excluir: ' + error.message, true); return; }
+  document.getElementById('detailModal').classList.remove('show');
+  showToast('Avaliação excluída.');
+  await loadAssessments();
+  populatePlaceholders();
+  loadHistory();
+}
+
+// === Editar avaliação (preenche o formulário) ===
+function editAssessment() {
+  const a = assessments.find(x => x.id === currentAssessmentId);
+  if (!a) return;
+  editingId = a.id;
+  const d = a.data || {};
+  const c = d.circunferencias || {};
+  const db = d.dobras || {};
+  const comp = d.composicao || {};
+  const saude = d.saude || {};
+
+  // Preenche os campos
+  document.getElementById('fDate').value = a.assessment_date || '';
+  document.getElementById('fObj').value = d.objetivo || '';
+  document.getElementById('fPeso').value = d.peso ?? '';
+  document.getElementById('fAltura').value = d.altura ?? '';
+  document.getElementById('fCintura').value = c.cintura ?? '';
+  document.getElementById('fAbdomen').value = c.abdomen ?? '';
+  document.getElementById('fQuadril').value = c.quadril ?? '';
+  document.getElementById('fTorax').value = c.torax ?? '';
+  document.getElementById('fOmbro').value = c.ombro ?? '';
+  document.getElementById('fBracoDR').value = c.braco_d_relaxado ?? '';
+  document.getElementById('fBracoDC').value = c.braco_d_contraido ?? '';
+  document.getElementById('fBracoER').value = c.braco_e_relaxado ?? '';
+  document.getElementById('fBracoEC').value = c.braco_e_contraido ?? '';
+  document.getElementById('fAntebD').value = c.antebraco_d ?? '';
+  document.getElementById('fAntebE').value = c.antebraco_e ?? '';
+  document.getElementById('fCoxaD').value = c.coxa_d ?? '';
+  document.getElementById('fCoxaE').value = c.coxa_e ?? '';
+  document.getElementById('fPantD').value = c.panturrilha_d ?? '';
+  document.getElementById('fPantE').value = c.panturrilha_e ?? '';
+  document.getElementById('fDTriceps').value = db.triceps ?? '';
+  document.getElementById('fDSubesc').value = db.subescapular ?? '';
+  document.getElementById('fDSupra').value = db.supra_iliaca ?? '';
+  document.getElementById('fDAbdom').value = db.abdominal ?? '';
+  document.getElementById('fDCoxa').value = db.coxa ?? '';
+  document.getElementById('fDAxilar').value = db.axilar_media ?? '';
+  document.getElementById('fDToracica').value = db.toracica ?? '';
+  document.getElementById('fGord').value = comp.gordura ?? '';
+  document.getElementById('fMagra').value = comp.massa_magra ?? '';
+  document.getElementById('fGorda').value = comp.massa_gorda ?? '';
+  document.getElementById('fLesoes').value = saude.lesoes || '';
+  document.getElementById('fMeds').value = saude.medicamentos || '';
+  document.getElementById('fRestr').value = saude.restricoes || '';
+  document.getElementById('fNivel').value = saude.nivel_atividade || '';
+  document.getElementById('fObs').value = d.observacoes || '';
+
+  // Atualiza UI
+  document.getElementById('saveBtn').textContent = '✏️ Atualizar Avaliação';
+  const cancelBtn = document.getElementById('cancelEditBtn');
+  if (cancelBtn) cancelBtn.style.display = 'block';
+
+  // Fecha modal e vai para aba de formulário
+  document.getElementById('detailModal').classList.remove('show');
+  switchTab('form');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// === Pré-popular placeholders com última avaliação ===
+function populatePlaceholders() {
+  if (assessments.length === 0) return;
+  const last = assessments[assessments.length - 1]; // última por data (assessments já vem ordenado asc)
+  const d = last.data || {};
+  const c = d.circunferencias || {};
+  const db = d.dobras || {};
+  const comp = d.composicao || {};
+  const saude = d.saude || {};
+
+  const set = (id, val) => { const el = document.getElementById(id); if (el && val != null && val !== '') el.placeholder = String(val); };
+
+  set('fObj', d.objetivo);
+  set('fPeso', d.peso);
+  set('fAltura', d.altura);
+  set('fCintura', c.cintura);
+  set('fAbdomen', c.abdomen);
+  set('fQuadril', c.quadril);
+  set('fTorax', c.torax);
+  set('fOmbro', c.ombro);
+  set('fBracoDR', c.braco_d_relaxado);
+  set('fBracoDC', c.braco_d_contraido);
+  set('fBracoER', c.braco_e_relaxado);
+  set('fBracoEC', c.braco_e_contraido);
+  set('fAntebD', c.antebraco_d);
+  set('fAntebE', c.antebraco_e);
+  set('fCoxaD', c.coxa_d);
+  set('fCoxaE', c.coxa_e);
+  set('fPantD', c.panturrilha_d);
+  set('fPantE', c.panturrilha_e);
+  set('fDTriceps', db.triceps);
+  set('fDSubesc', db.subescapular);
+  set('fDSupra', db.supra_iliaca);
+  set('fDAbdom', db.abdominal);
+  set('fDCoxa', db.coxa);
+  set('fDAxilar', db.axilar_media);
+  set('fDToracica', db.toracica);
+  set('fGord', comp.gordura);
+  set('fMagra', comp.massa_magra);
+  set('fGorda', comp.massa_gorda);
+  set('fLesoes', saude.lesoes);
+  set('fMeds', saude.medicamentos);
+  set('fRestr', saude.restricoes);
+  set('fNivel', saude.nivel_atividade);
+  set('fObs', d.observacoes);
 }
 
 // === Carregar avaliações ===
@@ -685,6 +828,7 @@ guard('trainer', {
     document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
 
     await loadAssessments();
+    populatePlaceholders();
   },
   onBlocked: () => { location.replace('login.html'); }
 });
