@@ -114,12 +114,27 @@
           <div class="field"><label>Tórax</label><input type="number" step="0.1" id="fTorax" inputmode="decimal"></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Braço D relaxado</label><input type="number" step="0.1" id="fBracoR" inputmode="decimal"></div>
-          <div class="field"><label>Braço D contraído</label><input type="number" step="0.1" id="fBracoC" inputmode="decimal"></div>
+          <div class="field"><label>Ombro</label><input type="number" step="0.1" id="fOmbro" inputmode="decimal"></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Coxa D</label><input type="number" step="0.1" id="fCoxa" inputmode="decimal"></div>
-          <div class="field"><label>Panturrilha D</label><input type="number" step="0.1" id="fPant" inputmode="decimal"></div>
+          <div class="field"><label>Braço D relaxado</label><input type="number" step="0.1" id="fBracoDR" inputmode="decimal"></div>
+          <div class="field"><label>Braço D contraído</label><input type="number" step="0.1" id="fBracoDC" inputmode="decimal"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Braço E relaxado</label><input type="number" step="0.1" id="fBracoER" inputmode="decimal"></div>
+          <div class="field"><label>Braço E contraído</label><input type="number" step="0.1" id="fBracoEC" inputmode="decimal"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Antebraço D</label><input type="number" step="0.1" id="fAntebD" inputmode="decimal"></div>
+          <div class="field"><label>Antebraço E</label><input type="number" step="0.1" id="fAntebE" inputmode="decimal"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Coxa D</label><input type="number" step="0.1" id="fCoxaD" inputmode="decimal"></div>
+          <div class="field"><label>Coxa E</label><input type="number" step="0.1" id="fCoxaE" inputmode="decimal"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Panturrilha D</label><input type="number" step="0.1" id="fPantD" inputmode="decimal"></div>
+          <div class="field"><label>Panturrilha E</label><input type="number" step="0.1" id="fPantE" inputmode="decimal"></div>
         </div>
       </div>
 
@@ -130,12 +145,15 @@
           <div class="field"><label>Subescapular</label><input type="number" step="0.1" id="fDSubesc" inputmode="decimal"></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Suprailíaca</label><input type="number" step="0.1" id="fDSupra" inputmode="decimal"></div>
+          <div class="field"><label>Supra-ilíaca</label><input type="number" step="0.1" id="fDSupra" inputmode="decimal"></div>
           <div class="field"><label>Abdominal</label><input type="number" step="0.1" id="fDAbdom" inputmode="decimal"></div>
         </div>
         <div class="field-row">
           <div class="field"><label>Coxa</label><input type="number" step="0.1" id="fDCoxa" inputmode="decimal"></div>
-          <div class="field"><label>Peitoral</label><input type="number" step="0.1" id="fDPeitoral" inputmode="decimal"></div>
+          <div class="field"><label>Axilar média</label><input type="number" step="0.1" id="fDAxilar" inputmode="decimal"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Torácica</label><input type="number" step="0.1" id="fDToracica" inputmode="decimal"></div>
         </div>
       </div>
 
@@ -196,8 +214,13 @@
         <option value="cintura">Cintura (cm)</option>
         <option value="abdomen">Abdômen (cm)</option>
         <option value="quadril">Quadril (cm)</option>
-        <option value="braco_contraido">Braço contraído (cm)</option>
-        <option value="coxa">Coxa (cm)</option>
+        <option value="ombro">Ombro (cm)</option>
+        <option value="braco_d_contraido">Braço D contraído (cm)</option>
+        <option value="braco_e_contraido">Braço E contraído (cm)</option>
+        <option value="antebraco_d">Antebraço D (cm)</option>
+        <option value="coxa_d">Coxa D (cm)</option>
+        <option value="coxa_e">Coxa E (cm)</option>
+        <option value="panturrilha_d">Panturrilha D (cm)</option>
         <option value="torax">Tórax (cm)</option>
       </select>
     </div>
@@ -256,8 +279,8 @@ function collectFormData() {
   return {
     objetivo: v('fObj'),
     peso: n('fPeso'), altura: n('fAltura'), imc: n('fIMC'),
-    circunferencias: { cintura: n('fCintura'), abdomen: n('fAbdomen'), quadril: n('fQuadril'), torax: n('fTorax'), braco_relaxado: n('fBracoR'), braco_contraido: n('fBracoC'), coxa: n('fCoxa'), panturrilha: n('fPant') },
-    dobras: { triceps: n('fDTriceps'), subescapular: n('fDSubesc'), suprailiaca: n('fDSupra'), abdominal: n('fDAbdom'), coxa: n('fDCoxa'), peitoral: n('fDPeitoral') },
+    circunferencias: { cintura: n('fCintura'), abdomen: n('fAbdomen'), quadril: n('fQuadril'), torax: n('fTorax'), ombro: n('fOmbro'), braco_d_relaxado: n('fBracoDR'), braco_d_contraido: n('fBracoDC'), braco_e_relaxado: n('fBracoER'), braco_e_contraido: n('fBracoEC'), antebraco_d: n('fAntebD'), antebraco_e: n('fAntebE'), coxa_d: n('fCoxaD'), coxa_e: n('fCoxaE'), panturrilha_d: n('fPantD'), panturrilha_e: n('fPantE') },
+    dobras: { triceps: n('fDTriceps'), subescapular: n('fDSubesc'), suprailiaca: n('fDSupra'), abdominal: n('fDAbdom'), coxa: n('fDCoxa'), axilar_media: n('fDAxilar'), toracica: n('fDToracica') },
     composicao: { gordura: n('fGord'), massa_magra: n('fMagra'), massa_gorda: n('fGorda') },
     saude: { lesoes: v('fLesoes'), medicamentos: v('fMeds'), restricoes: v('fRestr'), nivel_atividade: v('fNivel') },
     observacoes: v('fObs')
@@ -320,8 +343,13 @@ function getMetricValues(metric) {
       case 'cintura': return { date: a.assessment_date, value: d.circunferencias?.cintura };
       case 'abdomen': return { date: a.assessment_date, value: d.circunferencias?.abdomen };
       case 'quadril': return { date: a.assessment_date, value: d.circunferencias?.quadril };
-      case 'braco_contraido': return { date: a.assessment_date, value: d.circunferencias?.braco_contraido };
-      case 'coxa': return { date: a.assessment_date, value: d.circunferencias?.coxa };
+      case 'ombro': return { date: a.assessment_date, value: d.circunferencias?.ombro };
+      case 'braco_d_contraido': return { date: a.assessment_date, value: d.circunferencias?.braco_d_contraido };
+      case 'braco_e_contraido': return { date: a.assessment_date, value: d.circunferencias?.braco_e_contraido };
+      case 'antebraco_d': return { date: a.assessment_date, value: d.circunferencias?.antebraco_d };
+      case 'coxa_d': return { date: a.assessment_date, value: d.circunferencias?.coxa_d };
+      case 'coxa_e': return { date: a.assessment_date, value: d.circunferencias?.coxa_e };
+      case 'panturrilha_d': return { date: a.assessment_date, value: d.circunferencias?.panturrilha_d };
       case 'torax': return { date: a.assessment_date, value: d.circunferencias?.torax };
       default: return { date: a.assessment_date, value: null };
     }
