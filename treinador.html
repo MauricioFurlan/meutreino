@@ -473,60 +473,17 @@ const SUPABASE_KEY = 'sb_publishable_lTQKzQJc5uq7LNq-N1UvRg_w3aF_7zH';
 
 const DAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
-const PRESCRIBED_REPS = {
-  'Barra fixa (ativação)': ['falha'],
-  'Remada baixa triângulo cimerian': ['12-15','2-4','2-4','8-12','7-9'],
-  'Remada curvada pronada irontech': ['2-4','2-4','8-12','8-12','7-9'],
-  'Puxador alto aberto cimerian': ['2-4','8-12','7-9'],
-  'Pulldown corda': ['2-4','8-12','8-12','8-12'],
-  'Crucifixo inverso + Face pull (biset)': ['8-12','8-12','8-12'],
-  'Rosca alta máquina unilateral': ['12-15','2-4','8-12','8-12','7-9'],
-  'Peck Deck (ativação)': ['15'],
-  'Supino reto sentado cimerian': ['12-15','2-4','8-12','8-12','7-9'],
-  'Desenvolvimento irontech': ['12-15','2-4','2-4','8-12','8-12','7-9'],
-  'Supino inclinado irontech guiado': ['2-4','8-12','8-12','7-9'],
-  'Crossover cima pra baixo': ['8-12','7-9 + drop'],
-  'Tríceps polia barra W': ['12-15','2-4','8-12','7-9'],
-  'Banco romano (ativação)': ['15'],
-  'Cadeira flexora': ['12-15','2-4','2-4','8-12','8-12','7-9'],
-  'Elevação pélvica': ['12-15','2-4','2-4','7-9','8-12','8-12'],
-  'Mesa flexora': ['2-4','8-12','8-12','7-9'],
-  'Leg press 90° irontech': ['12-15','8-12','7-9'],
-  'Cadeira abdutora + adutora': ['12-15','2-4','8-12','8-12','10-15'],
-  'Panturrilha sentado': ['12-15','2-4','8-12','8-12','10-15'],
-  'Panturrilha em pé': ['12-15','2-4','8-12','8-12','10-15'],
-  'Abdômen máquina': ['12-15','2-4','8-12','8-12','10-15'],
-  'Abdômen paralela': ['10-15','10-15','10-15'],
-  'Cardio': ['40 min'],
-  'Puxador frente aberto barra anatômica': ['12-15','2-4','8-12','7-9'],
-  'Puxada unilateral Cimerian': ['8-12','7-9'],
-  'Supino inclinado máquina Cimerian': ['12-15','2-4','8-12','8-12','7-9'],
-  'Crossover baixo pra cima': ['8-12 + drop','8-12 + drop','8-12 + drop'],
-  'Elevação frontal halter simultâneo': ['8-12 + parciais','8-12 + parciais','8-12 + parciais'],
-  'Elevação lateral unilateral Crossover': ['8-12 + parciais','8-12 + parciais','8-12 + parciais'],
-  'Tríceps corda + Bíceps corda': ['8-12','8-12','8-12'],
-  'Extensora unilateral (ativação)': ['12-15'],
-  'Leg press 45° articulado cimerian': ['12-15','2-4','8-12','8-12','7-9'],
-  'Hack glutebuilder': ['2-4','2-4','8-12','8-12','7-9'],
-  'Cadeira extensora (pico de contração)': ['8-12','7-9','8-12 + drop'],
-  'Stiff glutebuilder': ['12-15','2-4','8-12','8-12','8-12'],
-  'Cadeira abdutora pra frente': ['8-12','8-12','8-12']
-};
-
-const PRESCRIBED_ORDER = {
-  'Segunda': ['Barra fixa (ativação)','Remada baixa triângulo cimerian','Remada curvada pronada irontech','Puxador alto aberto cimerian','Pulldown corda','Crucifixo inverso + Face pull (biset)','Rosca alta máquina unilateral'],
-  'Terça': ['Peck Deck (ativação)','Supino reto sentado cimerian','Desenvolvimento irontech','Supino inclinado irontech guiado','Crossover cima pra baixo','Tríceps polia barra W'],
-  'Quarta': ['Banco romano (ativação)','Cadeira flexora','Elevação pélvica','Mesa flexora','Leg press 90° irontech','Cadeira abdutora + adutora'],
-  'Quinta': ['Panturrilha sentado','Panturrilha em pé','Abdômen máquina','Abdômen paralela','Cardio'],
-  'Sexta': ['Peck Deck (ativação)','Puxador frente aberto barra anatômica','Puxada unilateral Cimerian','Supino inclinado máquina Cimerian','Crossover baixo pra cima','Elevação frontal halter simultâneo','Elevação lateral unilateral Crossover','Tríceps corda + Bíceps corda'],
-  'Sábado': ['Extensora unilateral (ativação)','Leg press 45° articulado cimerian','Hack glutebuilder','Cadeira extensora (pico de contração)','Stiff glutebuilder','Cadeira abdutora pra frente']
-};
+// Carregados dinamicamente do plano do aluno
+let PRESCRIBED_REPS = {};
+let PRESCRIBED_ORDER = {};
+let studentId = null;
 
 async function supaFetch(endpoint) {
+  const { data, error } = await _sb.rpc('get_my_access'); // keep session alive
   const res = await fetch(SUPABASE_URL + '/rest/v1/' + endpoint, {
     headers: {
       'apikey': SUPABASE_KEY,
-      'Authorization': 'Bearer ' + SUPABASE_KEY
+      'Authorization': 'Bearer ' + (await _sb.auth.getSession()).data.session.access_token
     }
   });
   if (!res.ok) throw new Error('Erro: ' + res.status);
@@ -539,7 +496,7 @@ async function loadDay(day, date) {
 
   try {
     const data = await supaFetch(
-      `workout_logs?day=eq.${encodeURIComponent(day)}&created_at=gte.${date}T00:00:00&created_at=lt.${date}T23:59:59&order=set_number.asc`
+      `workout_logs?student_id=eq.${studentId}&weekday=eq.${encodeURIComponent(day)}&session_date=eq.${date}&order=set_number.asc`
     );
 
     if (!data || data.length === 0) {
@@ -614,7 +571,7 @@ async function toggleChart(chartId, exerciseName) {
 
   try {
     const data = await supaFetch(
-      `workout_logs?exercise_name=eq.${encodeURIComponent(exerciseName)}&set_type=eq.hard&order=created_at.asc`
+      `workout_logs?student_id=eq.${studentId}&exercise_name=eq.${encodeURIComponent(exerciseName)}&set_type=eq.hard&order=created_at.asc`
     );
 
     if (!data || data.length === 0) {
@@ -752,182 +709,34 @@ async function toggleChart(chartId, exerciseName) {
   }
 }
 
-// === TRAINER NOTES ===
+// === TRAINER NOTES (edição movida para editor.html) ===
 let currentNoteExercise = '';
 let currentNoteSet = null;
 
-async function editNote(exerciseName, setNumber) {
-  currentNoteExercise = exerciseName;
-  currentNoteSet = setNumber || null;
-  const title = setNumber ? `${exerciseName} - Set ${setNumber}` : exerciseName;
-  document.getElementById('noteModalTitle').textContent = title;
-  document.getElementById('noteText').value = '';
-
-  // Buscar nota existente
-  try {
-    let query = `trainer_notes?exercise_name=eq.${encodeURIComponent(exerciseName)}&active=eq.true&order=created_at.desc&limit=1`;
-    if (setNumber) query += `&set_number=eq.${setNumber}`;
-    else query += '&set_number=is.null';
-    const data = await supaFetch(query);
-    if (data && data.length > 0) {
-      document.getElementById('noteText').value = data[0].note;
-    }
-  } catch (e) {
-    console.log('Erro ao buscar nota:', e);
-  }
-
-  document.getElementById('noteModal').classList.add('show');
+function editNote(exerciseName, setNumber) {
+  alert('Edite notas no Editor de Treino (✏️ Treino no painel do professor).');
 }
 
 function closeNoteModal() {
   document.getElementById('noteModal').classList.remove('show');
 }
 
-async function saveNote() {
-  const note = document.getElementById('noteText').value.trim();
-  if (!note) return;
+async function saveNote() { closeNoteModal(); }
+async function deleteNote() { closeNoteModal(); }
 
-  try {
-    // Desativar notas anteriores
-    let patchUrl = SUPABASE_URL + '/rest/v1/trainer_notes?exercise_name=eq.' + encodeURIComponent(currentNoteExercise) + '&active=eq.true';
-    if (currentNoteSet) patchUrl += '&set_number=eq.' + currentNoteSet;
-    else patchUrl += '&set_number=is.null';
-
-    await fetch(patchUrl, {
-      method: 'PATCH',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ active: false })
-    });
-
-    // Inserir nova nota
-    const record = {
-      exercise_name: currentNoteExercise,
-      note: note,
-      active: true
-    };
-    if (currentNoteSet) record.set_number = currentNoteSet;
-
-    await fetch(SUPABASE_URL + '/rest/v1/trainer_notes', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify(record)
-    });
-
-    closeNoteModal();
-    alert('Nota salva!');
-  } catch (e) {
-    alert('Erro ao salvar: ' + e.message);
-  }
-}
-
-async function deleteNote() {
-  try {
-    let patchUrl = SUPABASE_URL + '/rest/v1/trainer_notes?exercise_name=eq.' + encodeURIComponent(currentNoteExercise) + '&active=eq.true';
-    if (currentNoteSet) patchUrl += '&set_number=eq.' + currentNoteSet;
-    else patchUrl += '&set_number=is.null';
-
-    await fetch(patchUrl, {
-      method: 'PATCH',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ active: false })
-    });
-    closeNoteModal();
-    alert('Nota removida!');
-  } catch (e) {
-    alert('Erro: ' + e.message);
-  }
-}
-
-// === VIDEO LINKS ===
+// === VIDEO LINKS (edição movida para editor.html) ===
 let currentVideoExercise = '';
 
-async function editVideo(exerciseName) {
-  currentVideoExercise = exerciseName;
-  document.getElementById('videoModalTitle').textContent = exerciseName;
-  document.getElementById('videoUrl').value = '';
-
-  try {
-    const data = await supaFetch(
-      `exercise_videos?exercise_name=eq.${encodeURIComponent(exerciseName)}&order=created_at.desc&limit=1`
-    );
-    if (data && data.length > 0) {
-      document.getElementById('videoUrl').value = data[0].video_url;
-    }
-  } catch (e) {
-    console.log('Erro ao buscar vídeo:', e);
-  }
-
-  document.getElementById('videoModal').classList.add('show');
+function editVideo(exerciseName) {
+  alert('Edite vídeos no Editor de Treino (✏️ Treino no painel do professor).');
 }
 
 function closeVideoModal() {
   document.getElementById('videoModal').classList.remove('show');
 }
 
-async function saveVideo() {
-  const url = document.getElementById('videoUrl').value.trim();
-  if (!url) return;
-
-  try {
-    // Deletar links anteriores desse exercício
-    await fetch(SUPABASE_URL + '/rest/v1/exercise_videos?exercise_name=eq.' + encodeURIComponent(currentVideoExercise), {
-      method: 'DELETE',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY
-      }
-    });
-
-    // Inserir novo link
-    await fetch(SUPABASE_URL + '/rest/v1/exercise_videos', {
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY,
-        'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
-      },
-      body: JSON.stringify({
-        exercise_name: currentVideoExercise,
-        video_url: url
-      })
-    });
-
-    closeVideoModal();
-    alert('Vídeo salvo!');
-  } catch (e) {
-    alert('Erro: ' + e.message);
-  }
-}
-
-async function deleteVideo() {
-  try {
-    await fetch(SUPABASE_URL + '/rest/v1/exercise_videos?exercise_name=eq.' + encodeURIComponent(currentVideoExercise), {
-      method: 'DELETE',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': 'Bearer ' + SUPABASE_KEY
-      }
-    });
-    closeVideoModal();
-    alert('Vídeo removido!');
-  } catch (e) {
-    alert('Erro: ' + e.message);
-  }
-}
+async function saveVideo() { closeVideoModal(); }
+async function deleteVideo() { closeVideoModal(); }
 
 // === VIEW SWITCHING ===
 function switchView(view) {
@@ -973,7 +782,7 @@ async function loadWeekly() {
 
   try {
     const data = await supaFetch(
-      `workout_logs?created_at=gte.${startStr}T00:00:00&created_at=lte.${endStr}T23:59:59&order=created_at.asc`
+      `workout_logs?student_id=eq.${studentId}&created_at=gte.${startStr}T00:00:00&created_at=lte.${endStr}T23:59:59&order=created_at.asc`
     );
 
     // Agrupar por dia
@@ -1053,7 +862,7 @@ async function loadWeekly() {
     const prevEnd = new Date(end);
     prevEnd.setDate(prevEnd.getDate() - 7);
     const prevData = await supaFetch(
-      `workout_logs?created_at=gte.${prevStart.toISOString().split('T')[0]}T00:00:00&created_at=lte.${prevEnd.toISOString().split('T')[0]}T23:59:59`
+      `workout_logs?student_id=eq.${studentId}&created_at=gte.${prevStart.toISOString().split('T')[0]}T00:00:00&created_at=lte.${prevEnd.toISOString().split('T')[0]}T23:59:59`
     );
     let prevVolume = 0;
     let prevAttended = 0;
@@ -1107,7 +916,7 @@ async function loadMonthly() {
     const startStr = firstDay.toISOString().split('T')[0];
     const endStr = lastDay.toISOString().split('T')[0];
     const data = await supaFetch(
-      `workout_logs?created_at=gte.${startStr}T00:00:00&created_at=lte.${endStr}T23:59:59&order=created_at.asc`
+      `workout_logs?student_id=eq.${studentId}&created_at=gte.${startStr}T00:00:00&created_at=lte.${endStr}T23:59:59&order=created_at.asc`
     );
 
     // Dias com registro
@@ -1201,7 +1010,7 @@ async function loadMonthly() {
     const prevStartStr = prevMonth.toISOString().split('T')[0];
     const prevEndStr = prevLastDay.toISOString().split('T')[0];
     const prevData = await supaFetch(
-      `workout_logs?created_at=gte.${prevStartStr}T00:00:00&created_at=lte.${prevEndStr}T23:59:59`
+      `workout_logs?student_id=eq.${studentId}&created_at=gte.${prevStartStr}T00:00:00&created_at=lte.${prevEndStr}T23:59:59`
     );
     let prevVolume = 0;
     const prevTrainedDates = new Set();
@@ -1226,7 +1035,36 @@ async function loadMonthly() {
   }
 }
 
-function init() {
+async function initApp() {
+  studentId = new URLSearchParams(location.search).get('aluno');
+  if (!studentId) {
+    document.getElementById('content').innerHTML = '<div class="no-data">Nenhum aluno selecionado. <a href="professor.html" style="color:#f5c518;">Voltar</a></div>';
+    return;
+  }
+
+  // Carregar plano do aluno → extrair PRESCRIBED_REPS e PRESCRIBED_ORDER
+  const { data: plan } = await _sb.from('workout_plans')
+    .select('structure')
+    .eq('student_id', studentId)
+    .eq('is_active', true)
+    .maybeSingle();
+
+  if (plan && plan.structure) {
+    for (const [day, exercises] of Object.entries(plan.structure)) {
+      PRESCRIBED_ORDER[day] = exercises.map(ex => ex.name);
+      exercises.forEach(ex => {
+        PRESCRIBED_REPS[ex.name] = (ex.sets || []).map(s => s.reps || '');
+      });
+    }
+  }
+
+  // Carregar nome do aluno no header
+  const { data: student } = await _sb.from('profiles')
+    .select('full_name').eq('id', studentId).maybeSingle();
+  if (student) {
+    document.querySelector('.header h1').textContent = student.full_name || 'Acompanhamento';
+  }
+
   const dateInput = document.getElementById('dateFilter');
   const today = new Date().toISOString().split('T')[0];
   dateInput.value = today;
@@ -1244,7 +1082,6 @@ function init() {
       document.querySelectorAll('.day-content').forEach(d => d.classList.remove('active'));
       tab.classList.add('active');
       document.getElementById('day-' + day).classList.add('active');
-      // Ajusta a data para o último dia da semana correspondente
       const now = new Date();
       const currentDayIdx = now.getDay();
       let diff = currentDayIdx - dayIdx;
@@ -1265,7 +1102,6 @@ function init() {
   dateInput.addEventListener('change', () => {
     const selectedDate = new Date(dateInput.value + 'T12:00:00');
     const dayOfWeek = DAYS[selectedDate.getDay()];
-    // Move a tab pro dia correto
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.day-content').forEach(d => d.classList.remove('active'));
     const tabs = document.querySelectorAll('.tab');
@@ -1279,13 +1115,10 @@ function init() {
   loadDay(todayDay, today);
 }
 
-init();
-
-// Proteção: sem sessão → login
-(async () => {
-  const { data: { session } } = await _sb.auth.getSession();
-  if (!session) location.replace('login.html');
-})();
+guard('trainer', {
+  onReady: () => { initApp(); },
+  onBlocked: () => { location.replace('login.html'); }
+});
 </script>
 </body>
 </html>
