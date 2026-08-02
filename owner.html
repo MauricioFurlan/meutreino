@@ -135,7 +135,7 @@ async function loadTrainers() {
 
   // Buscar contagem de alunos por professor
   for (const t of trainers) {
-    const { count } = await _sb.from('profiles').select('*', { count: 'exact', head: true }).eq('coach_id', t.id).eq('role', 'student');
+    const { count } = await _sb.from('profiles').select('*', { count: 'exact', head: true }).eq('coach_id', t.id).eq('role', 'student').eq('status', 'active');
     t.studentCount = count || 0;
   }
 

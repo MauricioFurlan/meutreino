@@ -192,8 +192,9 @@ function showToast(text, isError) {
 }
 
 function updateStudentCount() {
+  const activeCount = students.filter(s => s.status === 'active').length;
   const el = document.getElementById('studentCountInfo');
-  if (el) el.textContent = `${students.length} / ${maxStudents} alunos`;
+  if (el) el.textContent = `${activeCount} / ${maxStudents} alunos`;
 }
 
 // === Carregar alunos ===
@@ -294,7 +295,8 @@ async function createStudent() {
   const birthDate = document.getElementById('newBirth').value || null;
 
   if (!name || !email) { showToast('Preencha nome e e-mail.', true); return; }
-  if (students.length >= maxStudents) { showToast(`Limite de ${maxStudents} alunos atingido. Fale com o administrador.`, true); return; }
+  const activeCount = students.filter(s => s.status === 'active').length;
+  if (activeCount >= maxStudents) { showToast(`Limite de ${maxStudents} alunos ativos atingido. Fale com o administrador.`, true); return; }
 
   const btn = document.getElementById('createBtn');
   btn.disabled = true;
