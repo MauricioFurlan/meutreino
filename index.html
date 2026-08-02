@@ -299,8 +299,8 @@ async function loadLastWorkout(day) {
       const repsInput = row.querySelector('.reps-input');
       if (weightInput && record.weight !== null) weightInput.placeholder = record.weight + ' kg';
       if (repsInput && record.reps !== null) {
-        const prescribed = repsInput.placeholder;
-        repsInput.placeholder = record.reps + ' · ' + prescribed;
+        const prescribed = repsInput.dataset.prescribed || '';
+        repsInput.placeholder = record.reps + (prescribed ? ' · ' + prescribed : '');
       }
     });
   } catch (e) { console.log('Erro ao carregar último treino:', e); }

@@ -505,7 +505,7 @@ async function loadDay(day, date) {
 
   try {
     const data = await supaFetch(
-      `workout_logs?student_id=eq.${studentId}&weekday=eq.${encodeURIComponent(day)}&session_date=eq.${date}&order=set_number.asc`
+      `workout_logs?student_id=eq.${studentId}&session_date=eq.${date}&order=set_number.asc`
     );
 
     if (!data || data.length === 0) {

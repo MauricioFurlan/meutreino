@@ -371,35 +371,58 @@ async function createStudent() {
   const btn = document.getElementById('createBtn');
   btn.disabled = true;
 
-  const { error } = await _sb.from('invites').insert({
-    email,
-    role: 'student',
-    coach_id: myId,
-    full_name: name,
-    gym_name: gym || null,
-    months,
-    birth_date: birthDate,
-    sex,
-    created_by: myId
-  });
+  // Verifica se já existe um profile com esse email (aluno deletado ou de outro coach)
+  const { data: existing } = await _sb.from('profiles')
+    .select('id, is_deleted, coach_id')
+    .eq('email', email)
+    .eq('role', 'student')
+    .maybeSingle();
 
-  btn.disabled = false;
-
-  if (error) {
-    if (error.code === '23505') { showToast('Esse e-mail já tem um convite pendente.', true); }
-    else { showToast('Erro: ' + error.message, true); }
-    return;
+  if (existing && existing.is_deleted && existing.coach_id === myId) {
+    // Reativar aluno deletado
+    const newExp = new Date();
+    newExp.setMonth(newExp.getMonth() + months);
+    const { error } = await _sb.from('profiles').update({
+      is_deleted: false,
+      status: 'active',
+      full_name: name,
+      gym_name: gym || null,
+      birth_date: birthDate,
+      sex,
+      access_starts_at: new Date().toISOString().split('T')[0],
+      access_expires_at: newExp.toISOString().split('T')[0]
+    }).eq('id', existing.id);
+    btn.disabled = false;
+    if (error) { showToast('Erro: ' + error.message, true); return; }
+    showToast('Aluno reativado!');
+  } else {
+    // Criar invite normalmente
+    const { error } = await _sb.from('invites').insert({
+      email,
+      role: 'student',
+      coach_id: myId,
+      full_name: name,
+      gym_name: gym || null,
+      months,
+      birth_date: birthDate,
+      sex,
+      created_by: myId
+    });
+    btn.disabled = false;
+    if (error) {
+      if (error.code === '23505') { showToast('Esse e-mail já tem um convite pendente.', true); }
+      else { showToast('Erro: ' + error.message, true); }
+      return;
+    }
+    showToast('Aluno cadastrado! Peça pra acessar com esse e-mail.');
   }
 
-  showToast('Aluno cadastrado! Peça pra acessar com esse e-mail.');
   document.getElementById('newName').value = '';
   document.getElementById('newEmail').value = '';
   document.getElementById('newGym').value = '';
   document.getElementById('newMonths').value = '3';
   document.getElementById('newBirth').value = '';
   document.getElementById('newSex').value = '';
-
-  // Recarrega (o aluno aparece na lista quando logar, mas mostramos o convite como pendente)
   await loadStudents();
 }
 
