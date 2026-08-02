@@ -12,7 +12,7 @@ begin
   -- >>> AJUSTE AQUI: e-mail do aluno dono deste treino <<<
   select id, coach_id into v_student, v_coach
   from public.profiles
-  where lower(email) = lower('ALUNO@EXEMPLO.COM') and role = 'student';
+  where lower(email) = lower('mauricio.furlan@hotmail.com') and role = 'student';
 
   if v_student is null then
     raise exception 'Aluno não encontrado. O aluno precisa logar (OTP) antes de migrar.';

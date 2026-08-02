@@ -95,8 +95,13 @@
 
     function showMsg(text, kind) { msg.textContent = text || ''; msg.className = 'msg' + (kind ? ' ' + kind : ''); }
 
-    // Se já houver sessão, roteia direto
+    // Se já houver sessão, roteia direto (exceto se ?logout na URL)
     (async function boot() {
+      if (new URLSearchParams(location.search).has('logout')) {
+        await sb.auth.signOut();
+        history.replaceState(null, '', 'login.html');
+        return;
+      }
       const { data: { session } } = await sb.auth.getSession();
       if (session) route();
     })();
