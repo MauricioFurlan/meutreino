@@ -68,9 +68,30 @@
     .toast.show { display: block; animation: fadeOut 2.5s forwards; }
     @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
     .empty-state { text-align: center; padding: 30px; color: #666; font-size: 0.85rem; }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(13,13,13,0.92); z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; transition: opacity 0.3s;
+    }
+    .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .loading-spinner {
+      width: 44px; height: 44px; border: 3px solid #333;
+      border-top-color: #f5c518; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
   </style>
 </head>
 <body>
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Carregando...</div>
+  </div>
+
   <div class="header">
     <button class="logout-btn" onclick="location.href='login.html?logout'">Sair</button>
     <h1>Painel do Dono</h1>
@@ -131,6 +152,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth-guard.js"></script>
 <script>
+function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+
 let myId = null;
 let trainers = [];
 
@@ -350,8 +374,10 @@ async function editLimit(trainerId, current) {
 // === Init ===
 guard('owner', {
   onReady: async (session, profile) => {
+    showLoading();
     myId = profile.id;
     await loadTrainers();
+    hideLoading();
   },
   onBlocked: () => { location.replace('login.html'); }
 });

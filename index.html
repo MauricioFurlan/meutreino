@@ -182,9 +182,28 @@
     .block-screen .icon { font-size: 2.4rem; margin-bottom: 12px; }
     .block-screen h2 { font-size: 1.05rem; color: #f5c518; margin-bottom: 8px; }
     .block-screen p { font-size: 0.9rem; color: #ccc; line-height: 1.5; }
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(13,13,13,0.92); z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; transition: opacity 0.3s;
+    }
+    .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .loading-spinner {
+      width: 44px; height: 44px; border: 3px solid #333;
+      border-top-color: #f5c518; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
   </style>
 </head>
 <body>
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Carregando...</div>
+  </div>
   <div class="header">
     <button class="logout-btn" onclick="location.href='login.html?logout'">Sair</button>
     <h1 id="greeting">Carregando...</h1>
@@ -212,6 +231,8 @@
 <script src="auth-guard.js"></script>
 <script>
 // === Estado global ===
+function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 let WORKOUT = {};  // carregado do banco
 let studentId = null;
 
@@ -469,6 +490,7 @@ function renderDay(day) {
 
 // === Bloqueio ===
 function showBlock(state) {
+  hideLoading();
   document.getElementById('tabs').style.display = 'none';
   document.getElementById('content').style.display = 'none';
   const screen = document.getElementById('blockScreen');
@@ -486,6 +508,7 @@ function showBlock(state) {
 // === Inicialização via auth-guard ===
 guard('student', {
   onReady: async (session, profile) => {
+    showLoading();
     studentId = profile.id;
 
     // Header: saudação + academia + título do treino
@@ -539,6 +562,7 @@ guard('student', {
     });
 
     loadTodayData(today);
+    hideLoading();
   },
   onBlocked: showBlock
 });

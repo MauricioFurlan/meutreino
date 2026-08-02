@@ -132,9 +132,30 @@
     @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
 
     .loading { text-align: center; padding: 40px; color: #888; }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(13,13,13,0.92); z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; transition: opacity 0.3s;
+    }
+    .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .loading-spinner {
+      width: 44px; height: 44px; border: 3px solid #333;
+      border-top-color: #f5c518; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
   </style>
 </head>
 <body>
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Carregando...</div>
+  </div>
+
   <div class="header">
     <button class="nav-btn left" onclick="location.href='professor.html'">← Voltar</button>
     <h1 id="heading">Editor de Treino</h1>
@@ -156,6 +177,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth-guard.js"></script>
 <script>
+function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+
 const DAYS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
 let studentId = null;
 let coachId = null;
@@ -380,10 +404,12 @@ async function savePlan() {
 // === Inicialização ===
 guard('trainer', {
   onReady: async (session, profile) => {
+    showLoading();
     coachId = profile.id;
     studentId = getStudentIdFromUrl();
 
     if (!studentId) {
+      hideLoading();
       document.getElementById('daysContainer').innerHTML = '<div class="loading">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#f5c518;">Voltar</a></div>';
       return;
     }
@@ -409,6 +435,7 @@ guard('trainer', {
       document.getElementById('planTitle').value = '';
       renderEditor(emptyStructure());
     }
+    hideLoading();
   },
   onBlocked: () => { location.replace('login.html'); }
 });
