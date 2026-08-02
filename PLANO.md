@@ -318,6 +318,9 @@ assessments
 - [ ] Testar fluxo completo no iPhone (instalar PWA → digitar código dentro do app).
 
 ### Fase 3 — App do aluno lê do banco
+- [ ] Criar `auth-guard.js` compartilhado (confere sessão + papel + `get_my_access()`; redireciona
+      pra `login.html` se falhar). Cada página chama `guard('student'|'trainer'|'owner')`.
+- [ ] Incluir `auth-guard.js` em `index.html`, `treinador.html` e `owner.html`.
 - [ ] Remover `WORKOUT` hardcoded do `index.html`.
 - [ ] Carregar `structure` do `workout_plans` ativo do aluno e renderizar (mesmo visual).
 - [ ] Adaptar salvamento de logs para incluir `student_id` e `session_date`.
