@@ -62,8 +62,15 @@
     .action-btn.success { border-color: #4caf50; color: #4caf50; }
 
     /* Formulário */
-    .form-section { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-    .form-section h3 { font-size: 0.9rem; color: #f5c518; margin-bottom: 12px; }
+    .form-section { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
+    .form-section h3 {
+      font-size: 0.9rem; color: #f5c518; padding: 14px 16px; margin: 0; cursor: pointer;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .form-section h3::after { content: '▼'; font-size: 0.6rem; color: #888; transition: transform 0.2s; }
+    .form-section.open h3::after { transform: rotate(180deg); }
+    .form-body { display: none; padding: 0 16px 16px; }
+    .form-section.open .form-body { display: block; }
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 0.7rem; color: #999; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
     .form-group input, .form-group select {
@@ -114,24 +121,26 @@
   <!-- Criar aluno -->
   <div class="section">
     <div class="form-section" id="createForm">
-      <h3>+ Novo Aluno</h3>
-      <div class="form-group">
-        <label>Nome completo</label>
-        <input type="text" id="newName" placeholder="Nome do aluno">
+      <h3 onclick="this.parentElement.classList.toggle('open')">+ Novo Aluno</h3>
+      <div class="form-body">
+        <div class="form-group">
+          <label>Nome completo</label>
+          <input type="text" id="newName" placeholder="Nome do aluno">
+        </div>
+        <div class="form-group">
+          <label>E-mail</label>
+          <input type="email" id="newEmail" inputmode="email" placeholder="email@exemplo.com">
+        </div>
+        <div class="form-group">
+          <label>Academia</label>
+          <input type="text" id="newGym" placeholder="Nome da academia (opcional)">
+        </div>
+        <div class="form-group">
+          <label>Duração (meses)</label>
+          <input type="number" id="newMonths" inputmode="numeric" value="3" min="1" max="24">
+        </div>
+        <button class="submit-btn" id="createBtn" onclick="createStudent()">Cadastrar Aluno</button>
       </div>
-      <div class="form-group">
-        <label>E-mail</label>
-        <input type="email" id="newEmail" inputmode="email" placeholder="email@exemplo.com">
-      </div>
-      <div class="form-group">
-        <label>Academia</label>
-        <input type="text" id="newGym" placeholder="Nome da academia (opcional)">
-      </div>
-      <div class="form-group">
-        <label>Duração (meses)</label>
-        <input type="number" id="newMonths" inputmode="numeric" value="3" min="1" max="24">
-      </div>
-      <button class="submit-btn" id="createBtn" onclick="createStudent()">Cadastrar Aluno</button>
     </div>
   </div>
 
