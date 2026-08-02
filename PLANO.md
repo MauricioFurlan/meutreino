@@ -6,48 +6,44 @@
 
 ---
 
-## 0. Progresso (atualizado 2026-08-02)
+## 0. Progresso (atualizado 2026-08-02 01:32)
 
-**Feito e verificado:**
-- Backup das tabelas antigas em `backup/` (22 logs de sábado + 3 notas).
-- Branch git `feat/saas-multipersonal`.
-- **Fase 1 aplicada no Supabase** (via Management API): tabelas legadas removidas; `profiles`,
-  `invites`, `workout_plans`, `workout_logs` (novo), `assessments`, `trainer_payments` criadas
-  com índices; funções/triggers (`get_my_access`, `handle_new_user`, helpers); **RLS ativo nas 6
-  tabelas**. Verificado: colunas ok, funções ok, grant de execução ok.
-- **Owner definido:** `mauriciotfurlan@gmail.com` (id `b9e09bc6-a7d2-4d17-8c7a-8287a2ae5f5a`).
-- **Auth por Email OTP validada ponta a ponta** (envio → código → verificação → sessão).
-- **SMTP próprio configurado** (Brevo) — antecipado, pois o free tier do Supabase trava template
-  e só envia para a equipe. Remetente verificado; template "Magic Link" usa `{{ .Token }}` (código).
-- **Confirmação de e-mail desligada** no Supabase (fluxo OTP puro).
-- **Fase 2 — `login.html`** criado: e-mail + código, sessão persistente, redirecionamento por
-  papel (student→index.html, trainer→professor.html, owner→owner.html), telas de bloqueio
-  (`expired`/`unavailable`/`suspended`) usando `get_my_access()`. Suporte a `?logout`.
-- Convite do professor piloto criado: `sankarinknight@gmail.com` (role trainer, 12 meses).
-  Professor logou e perfil materializado (id `4e69036c-e322-485a-b4ef-b8f0fc6c0dc0`).
-- **Fase 3 — `index.html`** reescrito: auth-guard.js + treino carregado do banco (JSONB) +
-  logs com student_id/session_date + vídeos/notas da structure + título/gym_name + tela de
-  bloqueio + escape XSS. WORKOUT hardcoded removido.
-- **Aluno piloto** `mauricio.furlan@hotmail.com` logado, perfil criado (id `136ff046-...`),
-  convite resgatado (coach = professor piloto, 3 meses até 2026-11-02).
-- **Migração do treino** (script 05) executada: plano JSONB ativo + 22 logs de sábado.
-- **Fase 4 — `professor.html`** criado: guard('trainer'), lista de alunos (nome/gym/status/prazo),
-  criar aluno (dropdown accordion → insert invites), desativar/reativar, renovar prazo (modal),
-  alertas (vencendo 7d / vencidos), botão "📊 Ver" por aluno → treinador.html?aluno=ID.
-- **`treinador.html`** com botão "← Voltar" pro professor.html, guard básico (sem sessão → login).
-- **Botão de logout** em index.html, professor.html e treinador.html.
-- **`FLUXOGRAMA.md`** com 6 diagramas Mermaid (acesso, hierarquia, telas, dados, segurança, stack).
+**✅ TODAS AS FASES (0–9) CONCLUÍDAS.**
 
-**Pendente:**
-- Fase 5 — Editor de treino (professor monta/edita o plano do aluno pelo celular).
-- Fase 6 — Anamnese e evolução (formulário + gráficos).
-- Fase 7 — Acompanhamento por aluno (treinador.html filtrado por student_id via ?aluno=).
-- Fase 8 — Painel do dono (owner.html).
-- Fase 8.5 — Hardening XSS/CSP.
-- Fase 9 — PWA e polimento mobile.
-- Fase 10 — Futuro (fotos, SMTP Resend, notificação por email, cobrança automatizada).
-- `owner.html` ainda não existe.
-- Teste do login no iPhone (PWA instalado).
+| Fase | Descrição | Commit |
+|------|-----------|--------|
+| 0 | Backup + branch `feat/saas-multipersonal` | — |
+| 1 | Schema multi-tenant + RLS + funções/triggers (aplicado no Supabase) | 5444bfc |
+| 2 | `login.html` (Email OTP + redirecionamento por papel + bloqueio) | 5444bfc |
+| 3 | `index.html` reescrito (auth-guard + treino do banco + logs com student_id) | 9254c56 |
+| 4 | `professor.html` (gestão de alunos: criar, desativar, renovar, alertas) | 3659362 |
+| 5 | `editor.html` (montar/editar treino: accordion, exercícios, sets, tipo livre) | e38e75f |
+| 6 | `anamnese.html` (avaliação física + gráficos de evolução Chart.js) | 4b1917c |
+| 7 | `treinador.html` filtrado por aluno (queries dinâmicas, plano do banco) | 51c7f03 |
+| 8 | `owner.html` (gestão de professores + pagamentos + histórico + limite alunos) | d0ace86 |
+| 8.5 | Hardening XSS/CSP em todas as 7 páginas | b060088 |
+| 9 | PWA (manifest, sw.js v2, cache inteligente, instalável) | 92ca2e4 |
+
+**Configurações ativas no Supabase:**
+- Email OTP ligado, confirmação de e-mail **desligada**
+- Template "Magic Link" com `{{ .Token }}` (código 6 dígitos)
+- SMTP Brevo (remetente `mauriciotfurlan@gmail.com` verificado)
+- RLS ativo nas 6 tabelas
+- Site URL: configurar `https://mauriciofurlan.github.io/meutreino/` antes do deploy
+
+**Usuários no banco:**
+- Owner: `mauriciotfurlan@gmail.com` (id `b9e09bc6-...`)
+- Professor piloto: `sankarinknight@gmail.com` (id `4e69036c-...`, 12 meses)
+- Aluno piloto: `mauricio.furlan@hotmail.com` (id `136ff046-...`, 3 meses até 2026-11-02)
+- Treino migrado: plano JSONB ativo + 22 logs de sábado 01/08
+
+**Pendente (Fase 10 — futuro, não bloqueante):**
+- Fotos de progresso (Supabase Storage)
+- SMTP Resend (quando escalar além do free Brevo)
+- Notificação por e-mail de vencimento
+- Cobrança automatizada (gateway)
+- Teste PWA no iPhone real (instalar + sessão persistente)
+- Deploy na `main` (push + merge)
 
 > **Segredos:** o Personal Access Token usado para aplicar o SQL é temporário e **deve ser
 > revogado** em https://supabase.com/dashboard/account/tokens. Não foi salvo em nenhum arquivo.
