@@ -252,7 +252,7 @@ function showToast(text, isError) {
 function resetDayInputs(day) {
   const dayEl = document.getElementById('day-' + day);
   if (!dayEl) return;
-  dayEl.querySelectorAll('.set-row').forEach(row => {
+  dayEl.querySelectorAll('.set-row:not(.set-header)').forEach(row => {
     const wi = row.querySelector('.weight-input');
     const ri = row.querySelector('.reps-input');
     const check = row.querySelector('.check-icon');
@@ -278,7 +278,7 @@ async function loadTodayData(day) {
     data.forEach(record => {
       const card = document.querySelector(`[data-exercise="${CSS.escape(record.exercise_name)}"][data-day="${day}"]`);
       if (!card) return;
-      const rows = card.querySelectorAll('.set-row');
+      const rows = card.querySelectorAll('.set-row:not(.set-header)');
       const row = rows[record.set_number - 1];
       if (!row) return;
       const weightInput = row.querySelector('.weight-input');
@@ -305,7 +305,7 @@ async function loadLastWorkout(day) {
     lastData.forEach(record => {
       const card = document.querySelector(`[data-exercise="${CSS.escape(record.exercise_name)}"][data-day="${day}"]`);
       if (!card) return;
-      const rows = card.querySelectorAll('.set-row');
+      const rows = card.querySelectorAll('.set-row:not(.set-header)');
       const row = rows[record.set_number - 1];
       if (!row) return;
       const weightInput = row.querySelector('.weight-input');
@@ -322,7 +322,7 @@ async function loadLastWorkout(day) {
 // === Salvar ===
 async function saveExercise(day, exerciseName, cardId) {
   const card = document.getElementById(cardId);
-  const rows = card.querySelectorAll('.set-row');
+  const rows = card.querySelectorAll('.set-row:not(.set-header)');
   const records = [];
   const sessionDate = getDateForDay(day);
   rows.forEach((row, i) => {
