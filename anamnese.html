@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Anamnese</title>
+  <meta name="theme-color" content="#f5c518">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0d0d0d; color: #f0f0f0; min-height: 100vh; padding-bottom: 40px;
+    }
+    .header { background: #1a1a1a; padding: 16px; text-align: center; border-bottom: 1px solid #333; position: relative; }
+    .header h1 { font-size: 1.1rem; color: #f5c518; }
+    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .nav-btn { position: absolute; top: 14px; background: none; border: 1px solid #555; color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer; }
+    .nav-btn.left { left: 14px; }
+    .nav-btn.right { right: 14px; }
+    .nav-btn:active { opacity: 0.6; }
+
+    .tabs { display: flex; gap: 4px; padding: 12px; background: #1a1a1a; border-bottom: 1px solid #333; }
+    .tab { flex: 1; padding: 10px 8px; border-radius: 20px; background: #2a2a2a; color: #888; font-size: 0.75rem; font-weight: 600; cursor: pointer; border: none; text-align: center; }
+    .tab.active { background: #f5c518; color: #000; }
+
+    .panel { display: none; padding: 16px; }
+    .panel.active { display: block; }
+
+    .info-bar { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 12px; margin-bottom: 16px; display: flex; gap: 16px; flex-wrap: wrap; }
+    .info-item { font-size: 0.75rem; color: #999; }
+    .info-item strong { color: #f5c518; }
+
+    /* Formulário */
+    .form-card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+    .form-card h3 { font-size: 0.8rem; color: #f5c518; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+    .field { display: flex; flex-direction: column; }
+    .field label { font-size: 0.65rem; color: #888; margin-bottom: 3px; text-transform: uppercase; font-weight: 600; }
+    .field input, .field textarea, .field select {
+      padding: 10px; border-radius: 8px; border: 1px solid #333; background: #0d0d0d; color: #fff; font-size: 14px;
+    }
+    .field input:focus, .field textarea:focus { outline: none; border-color: #f5c518; }
+    .field textarea { resize: vertical; min-height: 60px; }
+    .field-full { grid-column: 1 / -1; }
+    .submit-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #f5c518; color: #000; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 8px; }
+    .submit-btn:disabled { opacity: 0.5; }
+    .submit-btn:active { opacity: 0.7; }
+
+    /* Timeline */
+    .timeline-item { background: #1a1a1a; border: 1px solid #333; border-radius: 10px; padding: 14px; margin-bottom: 10px; cursor: pointer; }
+    .timeline-item:active { border-color: #f5c518; }
+    .timeline-date { font-size: 0.8rem; color: #f5c518; font-weight: 700; }
+    .timeline-summary { font-size: 0.75rem; color: #999; margin-top: 4px; }
+
+    /* Gráficos */
+    .chart-selector { margin-bottom: 12px; }
+    .chart-selector select { padding: 10px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; font-size: 14px; width: 100%; }
+    .chart-container { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px; }
+    canvas { max-height: 250px; }
+
+    .empty-state { text-align: center; padding: 30px; color: #666; font-size: 0.85rem; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #f5c518; color: #000; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: none; z-index: 1000; }
+    .toast.error { background: #f44336; color: #fff; }
+    .toast.show { display: block; animation: fadeOut 2.5s forwards; }
+    @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <button class="nav-btn left" onclick="location.href='professor.html'">← Voltar</button>
+    <h1>Anamnese</h1>
+    <div class="subtitle" id="studentName"></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('form')">Nova Avaliação</button>
+    <button class="tab" onclick="switchTab('history')">Histórico</button>
+    <button class="tab" onclick="switchTab('charts')">Evolução</button>
+  </div>
+
+  <!-- Info do aluno -->
+  <div style="padding:12px 16px 0;">
+    <div class="info-bar" id="infoBar"></div>
+  </div>
+
+  <!-- Nova Avaliação -->
+  <div class="panel active" id="panel-form">
+    <form id="assessmentForm" onsubmit="saveAssessment(event)">
+      <div class="form-card">
+        <h3>📅 Dados gerais</h3>
+        <div class="field-row">
+          <div class="field"><label>Data</label><input type="date" id="fDate" required></div>
+          <div class="field"><label>Objetivo</label><input type="text" id="fObj" placeholder="Ex: Hipertrofia"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>📏 Antropometria</h3>
+        <div class="field-row">
+          <div class="field"><label>Peso (kg)</label><input type="number" step="0.1" id="fPeso" inputmode="decimal"></div>
+          <div class="field"><label>Altura (cm)</label><input type="number" step="0.1" id="fAltura" inputmode="decimal"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>📐 Circunferências (cm)</h3>
+        <div class="field-row">
+          <div class="field"><label>Cintura</label><input type="number" step="0.1" id="fCintura" inputmode="decimal"></div>
+          <div class="field"><label>Abdômen</label><input type="number" step="0.1" id="fAbdomen" inputmode="decimal"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Quadril</label><input type="number" step="0.1" id="fQuadril" inputmode="decimal"></div>
+          <div class="field"><label>Tórax</label><input type="number" step="0.1" id="fTorax" inputmode="decimal"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Braço D relaxado</label><input type="number" step="0.1" id="fBracoR" inputmode="decimal"></div>
+          <div class="field"><label>Braço D contraído</label><input type="number" step="0.1" id="fBracoC" inputmode="decimal"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Coxa D</label><input type="number" step="0.1" id="fCoxa" inputmode="decimal"></div>
+          <div class="field"><label>Panturrilha D</label><input type="number" step="0.1" id="fPant" inputmode="decimal"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>📎 Dobras cutâneas (mm)</h3>
+        <div class="field-row">
+          <div class="field"><label>Tríceps</label><input type="number" step="0.1" id="fDTriceps" inputmode="decimal"></div>
+          <div class="field"><label>Subescapular</label><input type="number" step="0.1" id="fDSubesc" inputmode="decimal"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Suprailíaca</label><input type="number" step="0.1" id="fDSupra" inputmode="decimal"></div>
+          <div class="field"><label>Abdominal</label><input type="number" step="0.1" id="fDAbdom" inputmode="decimal"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Coxa</label><input type="number" step="0.1" id="fDCoxa" inputmode="decimal"></div>
+          <div class="field"><label>Peitoral</label><input type="number" step="0.1" id="fDPeitoral" inputmode="decimal"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>⚖️ Composição corporal</h3>
+        <div class="field-row">
+          <div class="field"><label>% Gordura</label><input type="number" step="0.1" id="fGord" inputmode="decimal"></div>
+          <div class="field"><label>Massa magra (kg)</label><input type="number" step="0.1" id="fMagra" inputmode="decimal"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Massa gorda (kg)</label><input type="number" step="0.1" id="fGorda" inputmode="decimal"></div>
+          <div class="field"><label>IMC (auto)</label><input type="text" id="fIMC" disabled placeholder="calculado"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>🏥 Saúde</h3>
+        <div class="field-row">
+          <div class="field field-full"><label>Lesões / Cirurgias</label><textarea id="fLesoes" placeholder="Descreva se houver"></textarea></div>
+        </div>
+        <div class="field-row">
+          <div class="field field-full"><label>Medicamentos</label><textarea id="fMeds" placeholder="Quais?"></textarea></div>
+        </div>
+        <div class="field-row">
+          <div class="field field-full"><label>Restrições / Limitações</label><textarea id="fRestr" placeholder="Movimentos que não pode fazer, etc."></textarea></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Nível de atividade</label>
+            <select id="fNivel"><option value="">-</option><option>Sedentário</option><option>Leve</option><option>Moderado</option><option>Ativo</option><option>Muito ativo</option></select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>📝 Observações</h3>
+        <div class="field-row">
+          <div class="field field-full"><textarea id="fObs" placeholder="Observações gerais..."></textarea></div>
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" id="saveBtn">Salvar Avaliação</button>
+    </form>
+  </div>
+
+  <!-- Histórico -->
+  <div class="panel" id="panel-history">
+    <div id="historyList"></div>
+  </div>
+
+  <!-- Gráficos -->
+  <div class="panel" id="panel-charts">
+    <div class="chart-selector">
+      <select id="chartMetric" onchange="renderChart()">
+        <option value="peso">Peso (kg)</option>
+        <option value="gordura">% Gordura</option>
+        <option value="massa_magra">Massa magra (kg)</option>
+        <option value="imc">IMC</option>
+        <option value="cintura">Cintura (cm)</option>
+        <option value="abdomen">Abdômen (cm)</option>
+        <option value="quadril">Quadril (cm)</option>
+        <option value="braco_contraido">Braço contraído (cm)</option>
+        <option value="coxa">Coxa (cm)</option>
+        <option value="torax">Tórax (cm)</option>
+      </select>
+    </div>
+    <div class="chart-container"><canvas id="evolutionChart"></canvas></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-guard.js"></script>
+<script>
+let studentId = null, coachId = null, assessments = [];
+let chartInstance = null;
+
+const esc = (s) => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
+function showToast(t, err) { const e = document.getElementById('toast'); e.textContent = t; e.className = 'toast show' + (err ? ' error' : ''); setTimeout(() => e.className = 'toast', 2500); }
+
+// === Tabs ===
+function switchTab(tab) {
+  document.querySelectorAll('.tab').forEach((t, i) => {
+    t.classList.toggle('active', t.textContent.toLowerCase().includes(tab === 'form' ? 'nova' : tab === 'history' ? 'hist' : 'evol'));
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  if (tab === 'history') loadHistory();
+  if (tab === 'charts') renderChart();
+}
+
+// === IMC automático ===
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'fPeso' || e.target.id === 'fAltura') {
+    const peso = parseFloat(document.getElementById('fPeso').value);
+    const alt = parseFloat(document.getElementById('fAltura').value);
+    if (peso > 0 && alt > 0) {
+      const imc = (peso / ((alt / 100) ** 2)).toFixed(1);
+      document.getElementById('fIMC').value = imc;
+    }
+  }
+});
+
+// === Calcular idade ===
+function calcAge(birthDate) {
+  if (!birthDate) return null;
+  const today = new Date();
+  const b = new Date(birthDate + 'T00:00:00');
+  let age = today.getFullYear() - b.getFullYear();
+  const m = today.getMonth() - b.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < b.getDate())) age--;
+  return age;
+}
+
+// === Coletar dados do formulário ===
+function collectFormData() {
+  const v = (id) => { const el = document.getElementById(id); return el.value.trim() || null; };
+  const n = (id) => { const val = parseFloat(document.getElementById(id).value); return isNaN(val) ? null : val; };
+  return {
+    objetivo: v('fObj'),
+    peso: n('fPeso'), altura: n('fAltura'), imc: n('fIMC'),
+    circunferencias: { cintura: n('fCintura'), abdomen: n('fAbdomen'), quadril: n('fQuadril'), torax: n('fTorax'), braco_relaxado: n('fBracoR'), braco_contraido: n('fBracoC'), coxa: n('fCoxa'), panturrilha: n('fPant') },
+    dobras: { triceps: n('fDTriceps'), subescapular: n('fDSubesc'), suprailiaca: n('fDSupra'), abdominal: n('fDAbdom'), coxa: n('fDCoxa'), peitoral: n('fDPeitoral') },
+    composicao: { gordura: n('fGord'), massa_magra: n('fMagra'), massa_gorda: n('fGorda') },
+    saude: { lesoes: v('fLesoes'), medicamentos: v('fMeds'), restricoes: v('fRestr'), nivel_atividade: v('fNivel') },
+    observacoes: v('fObs')
+  };
+}
+
+// === Salvar ===
+async function saveAssessment(e) {
+  e.preventDefault();
+  const date = document.getElementById('fDate').value;
+  if (!date) { showToast('Informe a data.', true); return; }
+  const data = collectFormData();
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  const { error } = await _sb.from('assessments').insert({ student_id: studentId, coach_id: coachId, assessment_date: date, data });
+  btn.disabled = false;
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  showToast('Avaliação salva!');
+  document.getElementById('assessmentForm').reset();
+  await loadAssessments();
+}
+
+// === Carregar avaliações ===
+async function loadAssessments() {
+  const { data, error } = await _sb.from('assessments')
+    .select('*').eq('student_id', studentId)
+    .order('assessment_date', { ascending: true });
+  if (!error) assessments = data || [];
+}
+
+// === Histórico ===
+async function loadHistory() {
+  if (assessments.length === 0) await loadAssessments();
+  const container = document.getElementById('historyList');
+  if (assessments.length === 0) { container.innerHTML = '<div class="empty-state">Nenhuma avaliação registrada.</div>'; return; }
+  container.innerHTML = [...assessments].reverse().map(a => {
+    const d = a.data || {};
+    const summary = [d.peso ? d.peso + 'kg' : null, d.composicao?.gordura ? d.composicao.gordura + '% gord' : null, d.objetivo].filter(Boolean).join(' · ');
+    return `<div class="timeline-item" onclick="viewAssessment('${a.id}')">
+      <div class="timeline-date">${new Date(a.assessment_date + 'T00:00:00').toLocaleDateString('pt-BR')}</div>
+      <div class="timeline-summary">${esc(summary) || 'Avaliação registrada'}</div>
+    </div>`;
+  }).join('');
+}
+
+function viewAssessment(id) {
+  // TODO: modal com detalhes da avaliação (melhoria futura)
+  showToast('Detalhe da avaliação (em breve)');
+}
+
+// === Gráficos ===
+function getMetricValues(metric) {
+  return assessments.map(a => {
+    const d = a.data || {};
+    switch (metric) {
+      case 'peso': return { date: a.assessment_date, value: d.peso };
+      case 'gordura': return { date: a.assessment_date, value: d.composicao?.gordura };
+      case 'massa_magra': return { date: a.assessment_date, value: d.composicao?.massa_magra };
+      case 'imc': return { date: a.assessment_date, value: d.imc };
+      case 'cintura': return { date: a.assessment_date, value: d.circunferencias?.cintura };
+      case 'abdomen': return { date: a.assessment_date, value: d.circunferencias?.abdomen };
+      case 'quadril': return { date: a.assessment_date, value: d.circunferencias?.quadril };
+      case 'braco_contraido': return { date: a.assessment_date, value: d.circunferencias?.braco_contraido };
+      case 'coxa': return { date: a.assessment_date, value: d.circunferencias?.coxa };
+      case 'torax': return { date: a.assessment_date, value: d.circunferencias?.torax };
+      default: return { date: a.assessment_date, value: null };
+    }
+  }).filter(p => p.value != null);
+}
+
+function renderChart() {
+  if (assessments.length === 0) { loadAssessments().then(() => renderChart()); return; }
+  const metric = document.getElementById('chartMetric').value;
+  const points = getMetricValues(metric);
+  const canvas = document.getElementById('evolutionChart');
+
+  if (chartInstance) chartInstance.destroy();
+  if (points.length < 2) {
+    canvas.parentElement.innerHTML = '<div class="empty-state" style="padding:40px;">Precisa de pelo menos 2 avaliações para gerar gráfico.</div><canvas id="evolutionChart"></canvas>';
+    return;
+  }
+
+  const labels = points.map(p => new Date(p.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+  const values = points.map(p => p.value);
+  const label = document.getElementById('chartMetric').selectedOptions[0].text;
+
+  chartInstance = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{ label, data: values, borderColor: '#f5c518', backgroundColor: 'rgba(245,197,24,0.1)', tension: 0.3, fill: true, pointRadius: 5, pointBackgroundColor: '#f5c518' }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: '#ccc' } } },
+      scales: {
+        x: { ticks: { color: '#888' }, grid: { color: '#222' } },
+        y: { ticks: { color: '#888' }, grid: { color: '#222' } }
+      }
+    }
+  });
+}
+
+// === Init ===
+guard('trainer', {
+  onReady: async (session, profile) => {
+    coachId = profile.id;
+    studentId = new URLSearchParams(location.search).get('aluno');
+    if (!studentId) { document.getElementById('panel-form').innerHTML = '<div class="empty-state">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#f5c518;">Voltar</a></div>'; return; }
+
+    // Info do aluno
+    const { data: student } = await _sb.from('profiles')
+      .select('full_name, birth_date, gym_name')
+      .eq('id', studentId).maybeSingle();
+
+    document.getElementById('studentName').textContent = student?.full_name || '';
+    const age = calcAge(student?.birth_date);
+    const infoHtml = [
+      student?.full_name ? `<div class="info-item"><strong>${esc(student.full_name)}</strong></div>` : '',
+      age ? `<div class="info-item">Idade: <strong>${age} anos</strong></div>` : '',
+      student?.gym_name ? `<div class="info-item">Academia: <strong>${esc(student.gym_name)}</strong></div>` : ''
+    ].join('');
+    document.getElementById('infoBar').innerHTML = infoHtml;
+
+    // Preenche data de hoje
+    document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
+
+    await loadAssessments();
+  },
+  onBlocked: () => { location.replace('login.html'); }
+});
+</script>
+</body>
+</html>

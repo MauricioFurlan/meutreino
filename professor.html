@@ -139,6 +139,10 @@
           <label>Duração (meses)</label>
           <input type="number" id="newMonths" inputmode="numeric" value="3" min="1" max="24">
         </div>
+        <div class="form-group">
+          <label>Data de nascimento</label>
+          <input type="date" id="newBirth">
+        </div>
         <button class="submit-btn" id="createBtn" onclick="createStudent()">Cadastrar Aluno</button>
       </div>
     </div>
@@ -230,6 +234,7 @@ function renderStudents() {
             <button class="action-btn" onclick="openRenewModal('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')">Renovar</button>
             <button class="action-btn" onclick="location.href='treinador.html?aluno=${s.id}'">📊 Ver</button>
             <button class="action-btn" onclick="location.href='editor.html?aluno=${s.id}'">✏️ Treino</button>
+            <button class="action-btn" onclick="location.href='anamnese.html?aluno=${s.id}'">🩺 Anamnese</button>
           </div>
         </div>
         <span class="student-status ${status}">${statusLabel}</span>
@@ -279,6 +284,7 @@ async function createStudent() {
   const email = document.getElementById('newEmail').value.trim().toLowerCase();
   const gym = document.getElementById('newGym').value.trim();
   const months = parseInt(document.getElementById('newMonths').value) || 3;
+  const birthDate = document.getElementById('newBirth').value || null;
 
   if (!name || !email) { showToast('Preencha nome e e-mail.', true); return; }
 
@@ -292,6 +298,7 @@ async function createStudent() {
     full_name: name,
     gym_name: gym || null,
     months,
+    birth_date: birthDate,
     created_by: myId
   });
 
