@@ -59,14 +59,7 @@
 
     /* Gráficos */
     .chart-selector { margin-bottom: 12px; }
-    .metric-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-    .metric-chip { display: inline-flex; align-items: center; cursor: pointer; }
-    .metric-chip input { display: none; }
-    .metric-chip span {
-      padding: 6px 10px; border-radius: 14px; border: 1px solid #555; background: none;
-      color: #888; font-size: 0.7rem; font-weight: 600; transition: all 0.15s;
-    }
-    .metric-chip input:checked + span { border-color: #f5c518; background: #f5c518; color: #000; }
+    .chart-selector select { padding: 10px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; font-size: 16px; width: 100%; box-sizing: border-box; }
     .chart-container { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px; }
     canvas { max-height: 280px; }
 
@@ -232,25 +225,30 @@
   <!-- Gráficos -->
   <div class="panel" id="panel-charts">
     <div class="chart-selector">
-      <div class="metric-chips" id="metricChips">
-        <label class="metric-chip"><input type="checkbox" value="peso" checked><span>Peso</span></label>
-        <label class="metric-chip"><input type="checkbox" value="gordura"><span>% Gordura</span></label>
-        <label class="metric-chip"><input type="checkbox" value="massa_magra"><span>M. Magra (kg)</span></label>
-        <label class="metric-chip"><input type="checkbox" value="massa_magra_perc"><span>% M. Magra</span></label>
-        <label class="metric-chip"><input type="checkbox" value="massa_gorda"><span>M. Gorda</span></label>
-        <label class="metric-chip"><input type="checkbox" value="imc"><span>IMC</span></label>
-        <label class="metric-chip"><input type="checkbox" value="cintura"><span>Cintura</span></label>
-        <label class="metric-chip"><input type="checkbox" value="abdomen"><span>Abdômen</span></label>
-        <label class="metric-chip"><input type="checkbox" value="quadril"><span>Quadril</span></label>
-        <label class="metric-chip"><input type="checkbox" value="ombro"><span>Ombro</span></label>
-        <label class="metric-chip"><input type="checkbox" value="braco_d_contraido"><span>Braço D</span></label>
-        <label class="metric-chip"><input type="checkbox" value="braco_e_contraido"><span>Braço E</span></label>
-        <label class="metric-chip"><input type="checkbox" value="antebraco_d"><span>Anteb. D</span></label>
-        <label class="metric-chip"><input type="checkbox" value="coxa_d"><span>Coxa D</span></label>
-        <label class="metric-chip"><input type="checkbox" value="coxa_e"><span>Coxa E</span></label>
-        <label class="metric-chip"><input type="checkbox" value="panturrilha_d"><span>Pant. D</span></label>
-        <label class="metric-chip"><input type="checkbox" value="torax"><span>Tórax</span></label>
-      </div>
+      <select id="chartMetric" onchange="renderChart()">
+        <option value="peso">Peso (kg)</option>
+        <option value="gordura">% Gordura</option>
+        <option value="massa_magra">Massa magra (kg)</option>
+        <option value="massa_magra_perc">% Massa magra</option>
+        <option value="massa_gorda">Massa gorda (kg)</option>
+        <option value="imc">IMC</option>
+        <option value="cintura">Cintura (cm)</option>
+        <option value="abdomen">Abdômen (cm)</option>
+        <option value="quadril">Quadril (cm)</option>
+        <option value="ombro">Ombro (cm)</option>
+        <option value="torax">Tórax (cm)</option>
+        <option value="braco_d_relaxado">Braço D relaxado (cm)</option>
+        <option value="braco_d_contraido">Braço D contraído (cm)</option>
+        <option value="braco_e_relaxado">Braço E relaxado (cm)</option>
+        <option value="braco_e_contraido">Braço E contraído (cm)</option>
+        <option value="antebraco_d">Antebraço D (cm)</option>
+        <option value="antebraco_e">Antebraço E (cm)</option>
+        <option value="coxa_d">Coxa D (cm)</option>
+        <option value="coxa_e">Coxa E (cm)</option>
+        <option value="panturrilha_d">Panturrilha D (cm)</option>
+        <option value="panturrilha_e">Panturrilha E (cm)</option>
+      </select>
+    </div>
     </div>
     <div class="chart-container"><canvas id="evolutionChart"></canvas></div>
   </div>
@@ -619,12 +617,16 @@ function getMetricValues(metric) {
       case 'abdomen': value = d.circunferencias?.abdomen; break;
       case 'quadril': value = d.circunferencias?.quadril; break;
       case 'ombro': value = d.circunferencias?.ombro; break;
+      case 'braco_d_relaxado': value = d.circunferencias?.braco_d_relaxado; break;
       case 'braco_d_contraido': value = d.circunferencias?.braco_d_contraido; break;
+      case 'braco_e_relaxado': value = d.circunferencias?.braco_e_relaxado; break;
       case 'braco_e_contraido': value = d.circunferencias?.braco_e_contraido; break;
       case 'antebraco_d': value = d.circunferencias?.antebraco_d; break;
+      case 'antebraco_e': value = d.circunferencias?.antebraco_e; break;
       case 'coxa_d': value = d.circunferencias?.coxa_d; break;
       case 'coxa_e': value = d.circunferencias?.coxa_e; break;
       case 'panturrilha_d': value = d.circunferencias?.panturrilha_d; break;
+      case 'panturrilha_e': value = d.circunferencias?.panturrilha_e; break;
       case 'torax': value = d.circunferencias?.torax; break;
       default: value = null;
     }
@@ -633,75 +635,32 @@ function getMetricValues(metric) {
   }).filter(p => p.value !== null);
 }
 
-const METRIC_COLORS = [
-  '#f5c518', '#4caf50', '#2196F3', '#ff5722', '#9c27b0',
-  '#00bcd4', '#ff9800', '#e91e63', '#8bc34a', '#673ab7',
-  '#009688', '#f44336', '#3f51b5', '#cddc39', '#795548', '#607d8b'
-];
-
-const METRIC_LABELS = {
-  peso: 'Peso (kg)', gordura: '% Gordura', massa_magra: 'M. Magra (kg)', massa_magra_perc: '% M. Magra', massa_gorda: 'M. Gorda (kg)',
-  imc: 'IMC', cintura: 'Cintura', abdomen: 'Abdômen', quadril: 'Quadril', ombro: 'Ombro',
-  braco_d_contraido: 'Braço D', braco_e_contraido: 'Braço E', antebraco_d: 'Anteb. D',
-  coxa_d: 'Coxa D', coxa_e: 'Coxa E', panturrilha_d: 'Pant. D', torax: 'Tórax'
-};
-
-function getSelectedMetrics() {
-  return [...document.querySelectorAll('#metricChips input:checked')].map(cb => cb.value);
-}
-
 function renderChart() {
   if (assessments.length === 0) { loadAssessments().then(() => renderChart()); return; }
-  const metrics = getSelectedMetrics();
+  const metric = document.getElementById('chartMetric').value;
+  const points = getMetricValues(metric);
   const canvas = document.getElementById('evolutionChart');
 
   if (chartInstance) chartInstance.destroy();
 
-  if (metrics.length === 0) {
-    canvas.parentElement.innerHTML = '<div class="empty-state" style="padding:40px;">Selecione ao menos uma métrica acima.</div><canvas id="evolutionChart"></canvas>';
+  if (points.length < 2) {
+    canvas.parentElement.innerHTML = '<div class="empty-state" style="padding:40px;">Precisa de pelo menos 2 avaliações com este campo preenchido.</div><canvas id="evolutionChart"></canvas>';
     return;
   }
 
-  // Coletar todas as datas únicas (labels do eixo X)
-  const allDates = [...new Set(assessments.map(a => a.assessment_date))].sort();
-  const labels = allDates.map(d => new Date(d + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
-
-  // Gerar datasets
-  const datasets = metrics.map((metric, i) => {
-    const points = getMetricValues(metric);
-    // Mapear valores para as datas do eixo X (null se não houver dado naquela data)
-    const data = allDates.map(date => {
-      const p = points.find(pt => pt.date === date);
-      return p ? p.value : null;
-    });
-    const color = METRIC_COLORS[i % METRIC_COLORS.length];
-    return {
-      label: METRIC_LABELS[metric] || metric,
-      data,
-      borderColor: color,
-      backgroundColor: color + '22',
-      tension: 0.3,
-      fill: false,
-      pointRadius: 4,
-      pointBackgroundColor: color,
-      spanGaps: true
-    };
-  });
-
-  // Verifica se há dados suficientes
-  const hasData = datasets.some(ds => ds.data.filter(v => v !== null).length >= 1);
-  if (!hasData) {
-    canvas.parentElement.innerHTML = '<div class="empty-state" style="padding:40px;">Nenhuma avaliação com dados para as métricas selecionadas.</div><canvas id="evolutionChart"></canvas>';
-    return;
-  }
+  const labels = points.map(p => new Date(p.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+  const values = points.map(p => p.value);
+  const label = document.getElementById('chartMetric').selectedOptions[0].text;
 
   chartInstance = new Chart(canvas, {
     type: 'line',
-    data: { labels, datasets },
+    data: {
+      labels,
+      datasets: [{ label, data: values, borderColor: '#f5c518', backgroundColor: 'rgba(245,197,24,0.1)', tension: 0.3, fill: true, pointRadius: 5, pointBackgroundColor: '#f5c518' }]
+    },
     options: {
       responsive: true,
-      interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { labels: { color: '#ccc', boxWidth: 12 } } },
+      plugins: { legend: { labels: { color: '#ccc' } } },
       scales: {
         x: { ticks: { color: '#888' }, grid: { color: '#222' } },
         y: { ticks: { color: '#888' }, grid: { color: '#222' } }
@@ -709,9 +668,6 @@ function renderChart() {
     }
   });
 }
-
-// Atualiza gráfico ao mudar seleção de métricas
-document.getElementById('metricChips').addEventListener('change', () => renderChart());
 
 // === Gerar PDF da avaliação ===
 function generatePDF() {
