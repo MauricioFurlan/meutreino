@@ -6,7 +6,7 @@
 
 ---
 
-## 0. Progresso (atualizado 2026-08-01)
+## 0. Progresso (atualizado 2026-08-02)
 
 **Feito e verificado:**
 - Backup das tabelas antigas em `backup/` (22 logs de sábado + 3 notas).
@@ -21,18 +21,33 @@
   e só envia para a equipe. Remetente verificado; template "Magic Link" usa `{{ .Token }}` (código).
 - **Confirmação de e-mail desligada** no Supabase (fluxo OTP puro).
 - **Fase 2 — `login.html`** criado: e-mail + código, sessão persistente, redirecionamento por
-  papel (student→index.html, trainer→treinador.html, owner→owner.html), telas de bloqueio
-  (`expired`/`unavailable`/`suspended`) usando `get_my_access()`.
+  papel (student→index.html, trainer→professor.html, owner→owner.html), telas de bloqueio
+  (`expired`/`unavailable`/`suspended`) usando `get_my_access()`. Suporte a `?logout`.
 - Convite do professor piloto criado: `sankarinknight@gmail.com` (role trainer, 12 meses).
+  Professor logou e perfil materializado (id `4e69036c-e322-485a-b4ef-b8f0fc6c0dc0`).
+- **Fase 3 — `index.html`** reescrito: auth-guard.js + treino carregado do banco (JSONB) +
+  logs com student_id/session_date + vídeos/notas da structure + título/gym_name + tela de
+  bloqueio + escape XSS. WORKOUT hardcoded removido.
+- **Aluno piloto** `mauricio.furlan@hotmail.com` logado, perfil criado (id `136ff046-...`),
+  convite resgatado (coach = professor piloto, 3 meses até 2026-11-02).
+- **Migração do treino** (script 05) executada: plano JSONB ativo + 22 logs de sábado.
+- **Fase 4 — `professor.html`** criado: guard('trainer'), lista de alunos (nome/gym/status/prazo),
+  criar aluno (dropdown accordion → insert invites), desativar/reativar, renovar prazo (modal),
+  alertas (vencendo 7d / vencidos), botão "📊 Ver" por aluno → treinador.html?aluno=ID.
+- **`treinador.html`** com botão "← Voltar" pro professor.html, guard básico (sem sessão → login).
+- **Botão de logout** em index.html, professor.html e treinador.html.
+- **`FLUXOGRAMA.md`** com 6 diagramas Mermaid (acesso, hierarquia, telas, dados, segurança, stack).
 
 **Pendente:**
-- **Migração do treino (script 05):** aguarda o aluno `mauricio.furlan@hotmail.com` logar (cria o
-  perfil). Falta também criar o convite do aluno (precisa do professor ter logado antes, para o
-  `coach_id`).
-- Rotacionar chaves expostas / revisar `RESUMO.md`.
+- Fase 5 — Editor de treino (professor monta/edita o plano do aluno pelo celular).
+- Fase 6 — Anamnese e evolução (formulário + gráficos).
+- Fase 7 — Acompanhamento por aluno (treinador.html filtrado por student_id via ?aluno=).
+- Fase 8 — Painel do dono (owner.html).
+- Fase 8.5 — Hardening XSS/CSP.
+- Fase 9 — PWA e polimento mobile.
+- Fase 10 — Futuro (fotos, SMTP Resend, notificação por email, cobrança automatizada).
+- `owner.html` ainda não existe.
 - Teste do login no iPhone (PWA instalado).
-- `owner.html` ainda não existe (login de owner redireciona para uma página a construir — Fase 8).
-- Demais fases (3 em diante).
 
 > **Segredos:** o Personal Access Token usado para aplicar o SQL é temporário e **deve ser
 > revogado** em https://supabase.com/dashboard/account/tokens. Não foi salvo em nenhum arquivo.
