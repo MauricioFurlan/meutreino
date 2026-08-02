@@ -27,10 +27,11 @@
     .nav-btn.left { left: 14px; }
     .nav-btn.right { right: 14px; }
 
-    .title-section { padding: 16px; }
+    .title-section { padding: 12px; }
     .title-input {
-      width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333;
+      width: 100%; max-width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333;
       background: #1a1a1a; color: #f5c518; font-size: 1rem; font-weight: 700; text-align: center;
+      box-sizing: border-box;
     }
     .title-input:focus { outline: none; border-color: #f5c518; }
 
@@ -44,35 +45,36 @@
     .day-header .day-count { font-size: 0.7rem; color: #888; }
     .day-header .arrow { color: #888; font-size: 0.6rem; transition: transform 0.2s; }
     .day-accordion.open .day-header .arrow { transform: rotate(180deg); }
-    .day-body { display: none; padding: 0 12px 12px; }
+    .day-body { display: none; padding: 0 10px 12px; overflow: hidden; }
     .day-accordion.open .day-body { display: block; }
 
     /* Exercício */
     .exercise-item {
       background: #0d0d0d; border: 1px solid #333; border-radius: 10px;
-      padding: 12px; margin-bottom: 10px;
+      padding: 12px; margin-bottom: 10px; overflow: hidden;
     }
     .exercise-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .exercise-top input {
-      flex: 1; padding: 8px; border-radius: 6px; border: 1px solid #333;
-      background: #1a1a1a; color: #fff; font-size: 14px;
+      flex: 1; min-width: 0; padding: 8px; border-radius: 6px; border: 1px solid #333;
+      background: #1a1a1a; color: #fff; font-size: 16px; box-sizing: border-box;
     }
     .exercise-top input:focus { outline: none; border-color: #f5c518; }
     .exercise-extras { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
     .exercise-extras input {
       flex: 1; min-width: 0; padding: 6px 8px; border-radius: 6px; border: 1px solid #333;
-      background: #1a1a1a; color: #ccc; font-size: 12px;
+      background: #1a1a1a; color: #ccc; font-size: 14px; box-sizing: border-box;
     }
     .exercise-extras input:focus { outline: none; border-color: #f5c518; }
 
     /* Sets */
     .set-item {
-      display: grid; grid-template-columns: 70px 1fr 1fr 30px; gap: 6px;
+      display: grid; grid-template-columns: 60px 1fr 1fr 28px; gap: 4px;
       align-items: center; margin-bottom: 6px;
     }
     .set-item input {
-      padding: 6px; border-radius: 6px; border: 1px solid #333;
-      background: #1a1a1a; color: #fff; font-size: 12px; text-align: center;
+      padding: 6px 4px; border-radius: 6px; border: 1px solid #333;
+      background: #1a1a1a; color: #fff; font-size: 14px; text-align: center;
+      min-width: 0; box-sizing: border-box;
     }
     .set-item input:focus { outline: none; border-color: #f5c518; }
     .set-type-input { text-transform: uppercase; font-weight: 600; color: #f5c518 !important; }

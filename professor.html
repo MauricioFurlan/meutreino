@@ -63,6 +63,20 @@
     .action-btn.danger { border-color: #f44336; color: #f44336; }
     .action-btn.success { border-color: #4caf50; color: #4caf50; }
 
+    /* Toggle switch */
+    .toggle { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .toggle input { display: none; }
+    .toggle-slider {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: #555; border-radius: 20px; cursor: pointer; transition: 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; width: 16px; height: 16px;
+      left: 2px; bottom: 2px; background: #fff; border-radius: 50%; transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: #4caf50; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
+
     /* Formulário */
     .form-section { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
     .form-section h3 {
@@ -71,13 +85,13 @@
     }
     .form-section h3::after { content: '▼'; font-size: 0.6rem; color: #888; transition: transform 0.2s; }
     .form-section.open h3::after { transform: rotate(180deg); }
-    .form-body { display: none; padding: 0 16px 16px; }
+    .form-body { display: none; padding: 0 16px 16px; overflow: hidden; }
     .form-section.open .form-body { display: block; }
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 0.7rem; color: #999; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
     .form-group input, .form-group select {
-      width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333;
-      background: #0d0d0d; color: #fff; font-size: 16px;
+      width: 100%; max-width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333;
+      background: #0d0d0d; color: #fff; font-size: 16px; box-sizing: border-box;
     }
     .form-group input:focus, .form-group select:focus { outline: none; border-color: #f5c518; }
     .submit-btn {
@@ -232,12 +246,16 @@ function renderStudents() {
     const initials = (s.full_name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
     const status = getStatus(s);
     const statusLabel = status === 'active' ? 'Ativo' : status === 'expired' ? 'Vencido' : 'Inativo';
+    const isActive = s.status === 'active';
     const expiresText = s.access_expires_at
       ? new Date(s.access_expires_at + 'T00:00:00').toLocaleDateString('pt-BR')
       : 'Sem prazo';
     return `
       <div class="student-card ${s.status === 'suspended' ? 'suspended' : ''}">
-        <div class="student-avatar">${esc(initials)}</div>
+        <label class="toggle" title="${isActive ? 'Desativar' : 'Reativar'}">
+          <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleStatus('${s.id}', this.checked ? 'active' : 'suspended')">
+          <span class="toggle-slider"></span>
+        </label>
         <div class="student-info">
           <div class="student-name">${esc(s.full_name)}</div>
           <div class="student-meta">
@@ -245,10 +263,6 @@ function renderStudents() {
             até ${expiresText}
           </div>
           <div class="actions">
-            ${s.status === 'active'
-              ? `<button class="action-btn danger" onclick="toggleStatus('${s.id}','suspended')">Desativar</button>`
-              : `<button class="action-btn success" onclick="toggleStatus('${s.id}','active')">Reativar</button>`
-            }
             <button class="action-btn" onclick="openRenewModal('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')">Renovar</button>
             <button class="action-btn" onclick="location.href='treinador.html?aluno=${s.id}'">📊 Ver</button>
             <button class="action-btn" onclick="location.href='editor.html?aluno=${s.id}'">✏️ Treino</button>

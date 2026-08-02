@@ -38,11 +38,11 @@
     .form-card { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 14px; margin-bottom: 12px; overflow: hidden; }
     .form-card h3 { font-size: 0.8rem; color: #f5c518; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-    .field { display: flex; flex-direction: column; min-width: 0; }
+    .field { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
     .field label { font-size: 0.65rem; color: #888; margin-bottom: 3px; text-transform: uppercase; font-weight: 600; }
     .field input, .field textarea, .field select {
       padding: 10px 8px; border-radius: 8px; border: 1px solid #333; background: #0d0d0d; color: #fff; font-size: 16px;
-      width: 100%; min-width: 0; box-sizing: border-box;
+      width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
     }
     .field input:focus, .field textarea:focus { outline: none; border-color: #f5c518; }
     .field textarea { resize: vertical; min-height: 60px; }
@@ -594,26 +594,29 @@ function viewAssessment(id) {
 function getMetricValues(metric) {
   return assessments.map(a => {
     const d = a.data || {};
+    let value;
     switch (metric) {
-      case 'peso': return { date: a.assessment_date, value: d.peso };
-      case 'gordura': return { date: a.assessment_date, value: d.composicao?.gordura };
-      case 'massa_magra': return { date: a.assessment_date, value: d.composicao?.massa_magra };
-      case 'massa_gorda': return { date: a.assessment_date, value: d.composicao?.massa_gorda };
-      case 'imc': return { date: a.assessment_date, value: d.imc };
-      case 'cintura': return { date: a.assessment_date, value: d.circunferencias?.cintura };
-      case 'abdomen': return { date: a.assessment_date, value: d.circunferencias?.abdomen };
-      case 'quadril': return { date: a.assessment_date, value: d.circunferencias?.quadril };
-      case 'ombro': return { date: a.assessment_date, value: d.circunferencias?.ombro };
-      case 'braco_d_contraido': return { date: a.assessment_date, value: d.circunferencias?.braco_d_contraido };
-      case 'braco_e_contraido': return { date: a.assessment_date, value: d.circunferencias?.braco_e_contraido };
-      case 'antebraco_d': return { date: a.assessment_date, value: d.circunferencias?.antebraco_d };
-      case 'coxa_d': return { date: a.assessment_date, value: d.circunferencias?.coxa_d };
-      case 'coxa_e': return { date: a.assessment_date, value: d.circunferencias?.coxa_e };
-      case 'panturrilha_d': return { date: a.assessment_date, value: d.circunferencias?.panturrilha_d };
-      case 'torax': return { date: a.assessment_date, value: d.circunferencias?.torax };
-      default: return { date: a.assessment_date, value: null };
+      case 'peso': value = d.peso; break;
+      case 'gordura': value = d.composicao?.gordura; break;
+      case 'massa_magra': value = d.composicao?.massa_magra; break;
+      case 'massa_gorda': value = d.composicao?.massa_gorda; break;
+      case 'imc': value = d.imc; break;
+      case 'cintura': value = d.circunferencias?.cintura; break;
+      case 'abdomen': value = d.circunferencias?.abdomen; break;
+      case 'quadril': value = d.circunferencias?.quadril; break;
+      case 'ombro': value = d.circunferencias?.ombro; break;
+      case 'braco_d_contraido': value = d.circunferencias?.braco_d_contraido; break;
+      case 'braco_e_contraido': value = d.circunferencias?.braco_e_contraido; break;
+      case 'antebraco_d': value = d.circunferencias?.antebraco_d; break;
+      case 'coxa_d': value = d.circunferencias?.coxa_d; break;
+      case 'coxa_e': value = d.circunferencias?.coxa_e; break;
+      case 'panturrilha_d': value = d.circunferencias?.panturrilha_d; break;
+      case 'torax': value = d.circunferencias?.torax; break;
+      default: value = null;
     }
-  }).filter(p => p.value != null);
+    const num = parseFloat(value);
+    return { date: a.assessment_date, value: isNaN(num) ? null : num };
+  }).filter(p => p.value !== null);
 }
 
 const METRIC_COLORS = [
@@ -672,9 +675,9 @@ function renderChart() {
   });
 
   // Verifica se há dados suficientes
-  const hasData = datasets.some(ds => ds.data.filter(v => v !== null).length >= 2);
+  const hasData = datasets.some(ds => ds.data.filter(v => v !== null).length >= 1);
   if (!hasData) {
-    canvas.parentElement.innerHTML = '<div class="empty-state" style="padding:40px;">Precisa de pelo menos 2 avaliações com dados para gerar gráfico.</div><canvas id="evolutionChart"></canvas>';
+    canvas.parentElement.innerHTML = '<div class="empty-state" style="padding:40px;">Nenhuma avaliação com dados para as métricas selecionadas.</div><canvas id="evolutionChart"></canvas>';
     return;
   }
 
