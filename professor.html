@@ -141,8 +141,7 @@
     <div id="studentsList"></div>
   </div>
 
-  <!-- Link para acompanhamento -->
-  <a class="nav-link" href="treinador.html">📊 Ver acompanhamento</a>
+  <!-- Link para acompanhamento (movido para dentro do card do aluno futuramente) -->
 
   <!-- Modal de renovação -->
   <div class="modal" id="renewModal">
@@ -220,6 +219,7 @@ function renderStudents() {
               : `<button class="action-btn success" onclick="toggleStatus('${s.id}','active')">Reativar</button>`
             }
             <button class="action-btn" onclick="openRenewModal('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')">Renovar</button>
+            <button class="action-btn" onclick="location.href='treinador.html?aluno=${s.id}'">📊 Ver</button>
           </div>
         </div>
         <span class="student-status ${status}">${statusLabel}</span>

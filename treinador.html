@@ -408,6 +408,7 @@
 </head>
 <body>
   <div class="header">
+    <button class="logout-btn" onclick="location.href='professor.html'" style="left:14px;right:auto;">← Voltar</button>
     <button class="logout-btn" onclick="location.href='login.html?logout'">Sair</button>
     <h1>Olá Mauricio Furlan</h1>
     <div class="subtitle">Visualização do treinador</div>
@@ -464,6 +465,8 @@
     </div>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-guard.js"></script>
 <script>
 const SUPABASE_URL = 'https://qslvwyhpamazoqhcmqan.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_lTQKzQJc5uq7LNq-N1UvRg_w3aF_7zH';
@@ -1277,6 +1280,12 @@ function init() {
 }
 
 init();
+
+// Proteção: sem sessão → login
+(async () => {
+  const { data: { session } } = await _sb.auth.getSession();
+  if (!session) location.replace('login.html');
+})();
 </script>
 </body>
 </html>
