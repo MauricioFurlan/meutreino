@@ -183,11 +183,14 @@
         <h3>⚖️ Composição corporal</h3>
         <div class="field-row">
           <div class="field"><label>% Gordura</label><input type="number" step="0.1" id="fGord" inputmode="decimal"></div>
-          <div class="field"><label>Massa magra (kg)</label><input type="number" step="0.1" id="fMagra" inputmode="decimal"></div>
+          <div class="field"><label>% Massa magra (auto)</label><input type="text" id="fMagraPerc" readonly placeholder="calculado" style="color:#f5c518;"></div>
         </div>
         <div class="field-row">
+          <div class="field"><label>Massa magra (kg)</label><input type="number" step="0.1" id="fMagra" inputmode="decimal"></div>
           <div class="field"><label>Massa gorda (kg)</label><input type="number" step="0.1" id="fGorda" inputmode="decimal"></div>
-          <div class="field"><label>IMC (auto)</label><input type="text" id="fIMC" disabled placeholder="calculado"></div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>IMC (auto)</label><input type="text" id="fIMC" readonly placeholder="calculado" style="color:#f5c518;"></div>
         </div>
       </div>
 
@@ -232,7 +235,8 @@
       <div class="metric-chips" id="metricChips">
         <label class="metric-chip"><input type="checkbox" value="peso" checked><span>Peso</span></label>
         <label class="metric-chip"><input type="checkbox" value="gordura"><span>% Gordura</span></label>
-        <label class="metric-chip"><input type="checkbox" value="massa_magra"><span>M. Magra</span></label>
+        <label class="metric-chip"><input type="checkbox" value="massa_magra"><span>M. Magra (kg)</span></label>
+        <label class="metric-chip"><input type="checkbox" value="massa_magra_perc"><span>% M. Magra</span></label>
         <label class="metric-chip"><input type="checkbox" value="massa_gorda"><span>M. Gorda</span></label>
         <label class="metric-chip"><input type="checkbox" value="imc"><span>IMC</span></label>
         <label class="metric-chip"><input type="checkbox" value="cintura"><span>Cintura</span></label>
@@ -291,6 +295,7 @@ function switchTab(tab) {
 }
 
 // === IMC automático ===
+// === IMC e % Massa Magra automáticos ===
 document.addEventListener('input', (e) => {
   if (e.target.id === 'fPeso' || e.target.id === 'fAltura') {
     const peso = parseFloat(document.getElementById('fPeso').value);
@@ -298,6 +303,12 @@ document.addEventListener('input', (e) => {
     if (peso > 0 && alt > 0) {
       const imc = (peso / ((alt / 100) ** 2)).toFixed(1);
       document.getElementById('fIMC').value = imc;
+    }
+  }
+  if (e.target.id === 'fGord') {
+    const gordura = parseFloat(document.getElementById('fGord').value);
+    if (gordura >= 0 && gordura <= 100) {
+      document.getElementById('fMagraPerc').value = (100 - gordura).toFixed(1);
     }
   }
 });
@@ -322,7 +333,7 @@ function collectFormData() {
     peso: n('fPeso'), altura: n('fAltura'), imc: n('fIMC'),
     circunferencias: { cintura: n('fCintura'), abdomen: n('fAbdomen'), quadril: n('fQuadril'), torax: n('fTorax'), ombro: n('fOmbro'), braco_d_relaxado: n('fBracoDR'), braco_d_contraido: n('fBracoDC'), braco_e_relaxado: n('fBracoER'), braco_e_contraido: n('fBracoEC'), antebraco_d: n('fAntebD'), antebraco_e: n('fAntebE'), coxa_d: n('fCoxaD'), coxa_e: n('fCoxaE'), panturrilha_d: n('fPantD'), panturrilha_e: n('fPantE') },
     dobras: { triceps: n('fDTriceps'), subescapular: n('fDSubesc'), suprailiaca: n('fDSupra'), abdominal: n('fDAbdom'), coxa: n('fDCoxa'), axilar_media: n('fDAxilar'), toracica: n('fDToracica') },
-    composicao: { gordura: n('fGord'), massa_magra: n('fMagra'), massa_gorda: n('fGorda') },
+    composicao: { gordura: n('fGord'), massa_magra: n('fMagra'), massa_gorda: n('fGorda'), massa_magra_perc: n('fMagraPerc') },
     saude: { lesoes: v('fLesoes'), medicamentos: v('fMeds'), restricoes: v('fRestr'), nivel_atividade: v('fNivel') },
     observacoes: v('fObs')
   };
@@ -417,6 +428,7 @@ function editAssessment() {
   document.getElementById('fGord').value = comp.gordura ?? '';
   document.getElementById('fMagra').value = comp.massa_magra ?? '';
   document.getElementById('fGorda').value = comp.massa_gorda ?? '';
+  document.getElementById('fMagraPerc').value = comp.massa_magra_perc ?? (comp.gordura ? (100 - comp.gordura).toFixed(1) : '');
   document.getElementById('fLesoes').value = saude.lesoes || '';
   document.getElementById('fMeds').value = saude.medicamentos || '';
   document.getElementById('fRestr').value = saude.restricoes || '';
@@ -474,6 +486,7 @@ function populatePlaceholders() {
   set('fGord', comp.gordura);
   set('fMagra', comp.massa_magra);
   set('fGorda', comp.massa_gorda);
+  set('fMagraPerc', comp.massa_magra_perc || (comp.gordura ? (100 - comp.gordura).toFixed(1) : null));
   set('fLesoes', saude.lesoes);
   set('fMeds', saude.medicamentos);
   set('fRestr', saude.restricoes);
@@ -599,6 +612,7 @@ function getMetricValues(metric) {
       case 'peso': value = d.peso; break;
       case 'gordura': value = d.composicao?.gordura; break;
       case 'massa_magra': value = d.composicao?.massa_magra; break;
+      case 'massa_magra_perc': value = d.composicao?.massa_magra_perc || (d.composicao?.gordura ? 100 - d.composicao.gordura : null); break;
       case 'massa_gorda': value = d.composicao?.massa_gorda; break;
       case 'imc': value = d.imc; break;
       case 'cintura': value = d.circunferencias?.cintura; break;
@@ -626,7 +640,7 @@ const METRIC_COLORS = [
 ];
 
 const METRIC_LABELS = {
-  peso: 'Peso (kg)', gordura: '% Gordura', massa_magra: 'M. Magra (kg)', massa_gorda: 'M. Gorda (kg)',
+  peso: 'Peso (kg)', gordura: '% Gordura', massa_magra: 'M. Magra (kg)', massa_magra_perc: '% M. Magra', massa_gorda: 'M. Gorda (kg)',
   imc: 'IMC', cintura: 'Cintura', abdomen: 'Abdômen', quadril: 'Quadril', ombro: 'Ombro',
   braco_d_contraido: 'Braço D', braco_e_contraido: 'Braço E', antebraco_d: 'Anteb. D',
   coxa_d: 'Coxa D', coxa_e: 'Coxa E', panturrilha_d: 'Pant. D', torax: 'Tórax'

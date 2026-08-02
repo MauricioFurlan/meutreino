@@ -24,7 +24,7 @@
       color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
     }
     .logout-btn:active { opacity: 0.6; }
-    .section { padding: 16px; }
+    .section { padding: 16px; overflow: hidden; }
     .section-title { font-size: 0.85rem; color: #f5c518; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 
     /* Alertas */
@@ -36,15 +36,18 @@
     /* Lista de alunos */
     .student-card {
       background: #1a1a1a; border: 1px solid #333; border-radius: 12px;
-      padding: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 12px;
+      padding: 14px; margin-bottom: 10px; position: relative;
     }
     .student-card.suspended { opacity: 0.5; }
+    .student-card .toggle-wrap {
+      position: absolute; top: 14px; right: 14px;
+    }
     .student-avatar {
       width: 38px; height: 38px; border-radius: 50%; background: #333;
       display: flex; align-items: center; justify-content: center;
       font-size: 0.9rem; font-weight: 700; color: #f5c518; flex-shrink: 0;
     }
-    .student-info { flex: 1; min-width: 0; }
+    .student-info { min-width: 0; padding-right: 50px; }
     .student-name { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .student-meta { font-size: 0.7rem; color: #999; margin-top: 2px; }
     .student-meta .gym { color: #888; }
@@ -87,12 +90,14 @@
     .form-section.open h3::after { transform: rotate(180deg); }
     .form-body { display: none; padding: 0 16px 16px; overflow: hidden; }
     .form-section.open .form-body { display: block; }
-    .form-group { margin-bottom: 12px; }
+    .form-group { margin-bottom: 12px; overflow: hidden; }
     .form-group label { display: block; font-size: 0.7rem; color: #999; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
     .form-group input, .form-group select {
       width: 100%; max-width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333;
       background: #0d0d0d; color: #fff; font-size: 16px; box-sizing: border-box;
+      -webkit-appearance: none; appearance: none;
     }
+    .form-group input[type="date"] { min-width: 0; }
     .form-group input:focus, .form-group select:focus { outline: none; border-color: #f5c518; }
     .submit-btn {
       width: 100%; padding: 14px; border: none; border-radius: 10px;
@@ -197,6 +202,35 @@
     </div>
   </div>
 
+  <!-- Modal de edição do aluno -->
+  <div class="modal" id="editModal">
+    <div class="modal-content">
+      <h3>Editar Aluno</h3>
+      <div class="form-group">
+        <label>Nome completo</label>
+        <input type="text" id="editName">
+      </div>
+      <div class="form-group">
+        <label>Academia</label>
+        <input type="text" id="editGym" placeholder="Nome da academia">
+      </div>
+      <div class="form-group">
+        <label>Data de nascimento</label>
+        <input type="date" id="editBirth">
+      </div>
+      <div class="form-group">
+        <label>Sexo</label>
+        <select id="editSex">
+          <option value="">-</option>
+          <option value="M">Masculino</option>
+          <option value="F">Feminino</option>
+        </select>
+      </div>
+      <button class="submit-btn" onclick="confirmEdit()">Salvar</button>
+      <button class="modal-close" onclick="closeEditModal()">Cancelar</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -224,7 +258,7 @@ function updateStudentCount() {
 // === Carregar alunos ===
 async function loadStudents() {
   const { data, error } = await _sb.from('profiles')
-    .select('id, full_name, email, gym_name, status, access_starts_at, access_expires_at')
+    .select('id, full_name, email, gym_name, sex, birth_date, status, access_starts_at, access_expires_at')
     .eq('coach_id', myId)
     .eq('role', 'student')
     .order('full_name', { ascending: true });
@@ -243,19 +277,19 @@ function renderStudents() {
     return;
   }
   container.innerHTML = students.map(s => {
-    const initials = (s.full_name || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
     const status = getStatus(s);
-    const statusLabel = status === 'active' ? 'Ativo' : status === 'expired' ? 'Vencido' : 'Inativo';
     const isActive = s.status === 'active';
     const expiresText = s.access_expires_at
       ? new Date(s.access_expires_at + 'T00:00:00').toLocaleDateString('pt-BR')
       : 'Sem prazo';
     return `
       <div class="student-card ${s.status === 'suspended' ? 'suspended' : ''}">
-        <label class="toggle" title="${isActive ? 'Desativar' : 'Reativar'}">
-          <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleStatus('${s.id}', this.checked ? 'active' : 'suspended')">
-          <span class="toggle-slider"></span>
-        </label>
+        <div class="toggle-wrap">
+          <label class="toggle" title="${isActive ? 'Desativar' : 'Reativar'}">
+            <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleStatus('${s.id}', this.checked ? 'active' : 'suspended')">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
         <div class="student-info">
           <div class="student-name">${esc(s.full_name)}</div>
           <div class="student-meta">
@@ -264,12 +298,12 @@ function renderStudents() {
           </div>
           <div class="actions">
             <button class="action-btn" onclick="openRenewModal('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')">Renovar</button>
+            <button class="action-btn" onclick="openEditModal('${s.id}')">✏️ Editar</button>
             <button class="action-btn" onclick="location.href='treinador.html?aluno=${s.id}'">📊 Ver</button>
-            <button class="action-btn" onclick="location.href='editor.html?aluno=${s.id}'">✏️ Treino</button>
+            <button class="action-btn" onclick="location.href='editor.html?aluno=${s.id}'">🏋️ Treino</button>
             <button class="action-btn" onclick="location.href='anamnese.html?aluno=${s.id}'">🩺 Anamnese</button>
           </div>
         </div>
-        <span class="student-status ${status}">${statusLabel}</span>
       </div>
     `;
   }).join('');
@@ -406,6 +440,44 @@ async function confirmRenew() {
   if (error) { showToast('Erro: ' + error.message, true); return; }
   showToast(`Prazo renovado até ${newExp.toLocaleDateString('pt-BR')}!`);
   closeRenewModal();
+  await loadStudents();
+}
+
+// === Editar dados do aluno ===
+let editStudentId = null;
+
+function openEditModal(studentId) {
+  const s = students.find(x => x.id === studentId);
+  if (!s) return;
+  editStudentId = studentId;
+  document.getElementById('editName').value = s.full_name || '';
+  document.getElementById('editGym').value = s.gym_name || '';
+  document.getElementById('editBirth').value = s.birth_date || '';
+  document.getElementById('editSex').value = s.sex || '';
+  document.getElementById('editModal').classList.add('show');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('show');
+  editStudentId = null;
+}
+
+async function confirmEdit() {
+  if (!editStudentId) return;
+  const name = document.getElementById('editName').value.trim();
+  const gym = document.getElementById('editGym').value.trim();
+  const birth = document.getElementById('editBirth').value || null;
+  const sex = document.getElementById('editSex').value || null;
+
+  if (!name) { showToast('Nome é obrigatório.', true); return; }
+
+  const { error } = await _sb.from('profiles')
+    .update({ full_name: name, gym_name: gym || null, birth_date: birth, sex })
+    .eq('id', editStudentId);
+
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  showToast('Dados atualizados!');
+  closeEditModal();
   await loadStudents();
 }
 
