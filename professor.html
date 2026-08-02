@@ -43,11 +43,11 @@
     .student-card.suspended { opacity: 0.5; }
     .student-card .toggle-wrap {
       position: absolute; top: 14px; right: 14px; z-index: 2;
-      display: flex; flex-direction: column; align-items: center; gap: 6px;
     }
     .delete-x {
-      background: none; border: none; color: #f44336; font-size: 1.1rem;
-      cursor: pointer; line-height: 1; opacity: 0.6; padding: 0;
+      position: absolute; bottom: 12px; right: 14px;
+      background: none; border: none; color: #f44336; font-size: 1.4rem;
+      cursor: pointer; line-height: 1; opacity: 0.5; padding: 0; z-index: 2;
     }
     .delete-x:active { opacity: 1; }
     .student-avatar {
@@ -300,8 +300,8 @@ function renderStudents() {
             <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleStatus('${s.id}', this.checked ? 'active' : 'suspended')">
             <span class="toggle-slider"></span>
           </label>
-          <button class="delete-x" onclick="deleteStudent('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')" title="Excluir">×</button>
         </div>
+        <button class="delete-x" onclick="deleteStudent('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')" title="Excluir">×</button>
         <div class="student-info">
           <div class="student-name">${esc(s.full_name)} <button class="edit-icon" onclick="openEditModal('${s.id}')">✏️</button></div>
           <div class="student-meta">
