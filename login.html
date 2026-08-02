@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#f5c518">
+  <!-- CSP: será endurecida na Fase 8.5. Restringe conexões e origem de scripts. -->
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self';
+                 script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+                 style-src 'self' 'unsafe-inline';
+                 connect-src 'self' https://qslvwyhpamazoqhcmqan.supabase.co;
+                 img-src 'self' data:;">
+  <title>Entrar</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0d0d0d; color: #f0f0f0; min-height: 100vh;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+    }
+    .card {
+      background: #1a1a1a; border: 1px solid #333; border-radius: 16px;
+      padding: 28px 22px; width: 100%; max-width: 380px;
+    }
+    h1 { font-size: 1.3rem; color: #f5c518; text-align: center; letter-spacing: 1px; margin-bottom: 6px; }
+    .sub { font-size: 0.85rem; color: #999; text-align: center; margin-bottom: 22px; }
+    label { display: block; font-size: 0.75rem; color: #ccc; margin-bottom: 6px; font-weight: 600; text-transform: uppercase; }
+    input {
+      width: 100%; padding: 14px; border-radius: 10px; border: 1px solid #333;
+      background: #0d0d0d; color: #fff; font-size: 16px; margin-bottom: 16px;
+    }
+    input:focus { outline: none; border-color: #f5c518; }
+    #code { text-align: center; letter-spacing: 8px; font-size: 22px; font-weight: 700; }
+    button {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      background: #f5c518; color: #000; font-weight: 700; font-size: 0.95rem; cursor: pointer;
+    }
+    button:disabled { opacity: 0.5; }
+    .link { background: none; color: #999; text-decoration: underline; font-weight: 500; font-size: 0.8rem; margin-top: 12px; padding: 8px; }
+    .msg { font-size: 0.82rem; text-align: center; margin-top: 14px; min-height: 18px; }
+    .msg.err { color: #f44336; }
+    .msg.ok { color: #4caf50; }
+    .hidden { display: none; }
+    .block { text-align: center; }
+    .block .icon { font-size: 2.4rem; margin-bottom: 10px; }
+    .block h2 { font-size: 1.05rem; color: #f5c518; margin-bottom: 8px; }
+    .block p { font-size: 0.9rem; color: #ccc; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>ENTRAR</h1>
+    <div class="sub" id="sub">Acesse com seu e-mail</div>
+
+    <!-- Etapa 1: e-mail -->
+    <form id="emailStep">
+      <label for="email">E-mail</label>
+      <input type="email" id="email" inputmode="email" autocomplete="email" placeholder="voce@email.com" required>
+      <button type="submit" id="sendBtn">Enviar código</button>
+    </form>
+
+    <!-- Etapa 2: código -->
+    <form id="codeStep" class="hidden">
+      <label for="code">Código de 6 dígitos</label>
+      <input type="text" id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="______" required>
+      <button type="submit" id="verifyBtn">Entrar</button>
+      <button type="button" class="link" id="backBtn">Usar outro e-mail</button>
+    </form>
+
+    <!-- Bloqueio / sem acesso -->
+    <div id="blockStep" class="block hidden">
+      <div class="icon">🔒</div>
+      <h2 id="blockTitle"></h2>
+      <p id="blockText"></p>
+      <button type="button" class="link" id="logoutBtn">Sair</button>
+    </div>
+
+    <div class="msg" id="msg"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://qslvwyhpamazoqhcmqan.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_lTQKzQJc5uq7LNq-N1UvRg_w3aF_7zH';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Destinos por papel
+    const ROUTES = { student: 'index.html', trainer: 'treinador.html', owner: 'owner.html' };
+
+    const el = (id) => document.getElementById(id);
+    const emailStep = el('emailStep'), codeStep = el('codeStep'), blockStep = el('blockStep');
+    const msg = el('msg');
+    let currentEmail = '';
+
+    function showMsg(text, kind) { msg.textContent = text || ''; msg.className = 'msg' + (kind ? ' ' + kind : ''); }
+
+    // Se já houver sessão, roteia direto
+    (async function boot() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session) route();
+    })();
+
+    // Etapa 1 — envia OTP
+    emailStep.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      currentEmail = el('email').value.trim().toLowerCase();
+      if (!currentEmail) return;
+      el('sendBtn').disabled = true;
+      showMsg('Enviando código...', 'ok');
+      const { error } = await sb.auth.signInWithOtp({ email: currentEmail, options: { shouldCreateUser: true } });
+      el('sendBtn').disabled = false;
+      if (error) { showMsg('Erro ao enviar: ' + error.message, 'err'); return; }
+      emailStep.classList.add('hidden');
+      codeStep.classList.remove('hidden');
+      el('sub').textContent = 'Enviamos um código para ' + currentEmail;
+      showMsg('Confira seu e-mail (e a pasta de spam).', 'ok');
+      el('code').focus();
+    });
+
+    // Etapa 2 — verifica OTP
+    codeStep.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const token = el('code').value.trim();
+      if (token.length < 6) { showMsg('Digite os 6 dígitos.', 'err'); return; }
+      el('verifyBtn').disabled = true;
+      showMsg('Verificando...', 'ok');
+      const { error } = await sb.auth.verifyOtp({ email: currentEmail, token, type: 'email' });
+      el('verifyBtn').disabled = false;
+      if (error) { showMsg('Código inválido ou expirado.', 'err'); return; }
+      showMsg('', '');
+      route();
+    });
+
+    el('backBtn').addEventListener('click', () => {
+      codeStep.classList.add('hidden');
+      emailStep.classList.remove('hidden');
+      el('sub').textContent = 'Acesse com seu e-mail';
+      showMsg('', '');
+    });
+
+    el('logoutBtn').addEventListener('click', async () => {
+      await sb.auth.signOut();
+      location.reload();
+    });
+
+    // Decide destino conforme papel e estado de acesso
+    async function route() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) return;
+
+      // Estado de acesso seguro (o banco decide; motivos sensíveis colapsam)
+      const { data: access } = await sb.rpc('get_my_access');
+
+      const { data: prof } = await sb.from('profiles')
+        .select('role').eq('id', session.user.id).maybeSingle();
+
+      if (!prof) { return showBlock('unavailable'); }
+      if (access && access !== 'active') { return showBlock(access); }
+
+      const dest = ROUTES[prof.role] || 'index.html';
+      location.href = dest;
+    }
+
+    function showBlock(state) {
+      emailStep.classList.add('hidden');
+      codeStep.classList.add('hidden');
+      blockStep.classList.remove('hidden');
+      el('sub').classList.add('hidden');
+      showMsg('', '');
+      const map = {
+        expired: { t: 'Período encerrado', p: 'Seu período de acompanhamento terminou. Fale com seu personal para renovar.' },
+        unavailable: { t: 'Acesso indisponível', p: 'Seu acesso está indisponível no momento. Fale com seu personal.' },
+        suspended: { t: 'Acesso suspenso', p: 'Seu acesso está suspenso. Entre em contato para regularizar.' }
+      };
+      const m = map[state] || map.unavailable;
+      el('blockTitle').textContent = m.t;
+      el('blockText').textContent = m.p;
+    }
+  </script>
+</body>
+</html>
