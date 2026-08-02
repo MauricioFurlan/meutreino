@@ -41,6 +41,14 @@
       padding: 14px; margin-bottom: 10px; position: relative;
     }
     .student-card.suspended { opacity: 0.5; }
+    .student-card.pending {
+      border: 1px dashed #f5c518; background: #1a1a00; opacity: 0.85;
+    }
+    .pending-badge {
+      display: inline-block; font-size: 0.6rem; padding: 2px 8px; border-radius: 10px;
+      background: #3a3000; color: #f5c518; font-weight: 600; margin-left: 8px;
+      letter-spacing: 0.3px; vertical-align: middle;
+    }
     .student-card .toggle-wrap {
       position: absolute; top: 14px; right: 14px; z-index: 2;
     }
@@ -269,6 +277,7 @@
 <script>
 let myId = null;
 let students = [];
+let pendingInvites = [];
 let maxStudents = 20;
 
 function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
@@ -289,8 +298,21 @@ function updateStudentCount() {
   if (el) el.textContent = `${activeCount} / ${maxStudents} alunos`;
 }
 
+// === Carregar convites pendentes ===
+async function loadPendingInvites() {
+  const { data, error } = await _sb.from('invites')
+    .select('id, full_name, email, gym_name, created_at')
+    .eq('coach_id', myId)
+    .eq('role', 'student')
+    .eq('redeemed', false)
+    .order('created_at', { ascending: false });
+  if (error) { console.log('Erro ao carregar invites:', error); return; }
+  pendingInvites = data || [];
+}
+
 // === Carregar alunos ===
 async function loadStudents() {
+  await loadPendingInvites();
   const { data, error } = await _sb.from('profiles')
     .select('id, full_name, email, gym_name, sex, birth_date, status, access_starts_at, access_expires_at')
     .eq('coach_id', myId)
@@ -307,11 +329,31 @@ async function loadStudents() {
 // === Renderizar lista ===
 function renderStudents() {
   const container = document.getElementById('studentsList');
-  if (students.length === 0) {
+  if (students.length === 0 && pendingInvites.length === 0) {
     container.innerHTML = '<div class="empty-state">Nenhum aluno cadastrado ainda.</div>';
     return;
   }
-  container.innerHTML = students.map(s => {
+
+  // Cards de convites pendentes
+  let pendingHtml = pendingInvites.map(inv => {
+    const createdDate = new Date(inv.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    return `
+      <div class="student-card pending">
+        <button class="delete-x" onclick="cancelInvite('${inv.id}','${esc(inv.full_name).replace(/'/g,"\\'")}')" title="Cancelar convite">×</button>
+        <div class="student-info">
+          <div class="student-name">${esc(inv.full_name)} <span class="pending-badge">⏳ Pendente</span></div>
+          <div class="student-meta">
+            ${inv.gym_name ? `<span class="gym">${esc(inv.gym_name)} · </span>` : ''}
+            ${esc(inv.email)} · convidado em ${createdDate}
+          </div>
+          <div class="student-meta" style="color:#f5c518; margin-top:4px; font-size:0.65rem;">Aguardando primeiro acesso do aluno</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Cards de alunos ativos/suspensos
+  let studentsHtml = students.map(s => {
     const status = getStatus(s);
     const isActive = s.status === 'active';
     const expiresText = s.access_expires_at
@@ -342,6 +384,8 @@ function renderStudents() {
       </div>
     `;
   }).join('');
+
+  container.innerHTML = pendingHtml + studentsHtml;
 }
 
 function getStatus(s) {
@@ -547,6 +591,17 @@ async function deleteStudent(studentId, name) {
     .eq('id', studentId);
   if (error) { showToast('Erro: ' + error.message, true); return; }
   showToast('Aluno excluído.');
+  await loadStudents();
+}
+
+// === Cancelar convite pendente ===
+async function cancelInvite(inviteId, name) {
+  if (!confirm(`Cancelar convite de "${name}"?`)) return;
+  const { error } = await _sb.from('invites')
+    .delete()
+    .eq('id', inviteId);
+  if (error) { showToast('Erro: ' + error.message, true); return; }
+  showToast('Convite cancelado.');
   await loadStudents();
 }
 
