@@ -363,7 +363,7 @@ function collectStructure() {
 
 // === Salvar ===
 async function savePlan() {
-  const title = document.getElementById('planTitle').value.trim() || 'Treino';
+  const title = document.getElementById('planTitle').value.trim();
   const structure = collectStructure();
 
   // Validação básica
