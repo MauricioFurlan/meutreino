@@ -228,6 +228,20 @@ function getToday() {
 
 function getTodayDate() { return new Date().toISOString().split('T')[0]; }
 
+// Retorna a data mais recente para o dia da semana informado
+// Ex: se hoje é Domingo e day='Segunda', retorna a segunda passada (há 6 dias)
+// Se day é o dia de hoje, retorna hoje
+function getDateForDay(day) {
+  const dayIndex = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'].indexOf(day);
+  const now = new Date();
+  const todayIndex = now.getDay();
+  let diff = todayIndex - dayIndex;
+  if (diff < 0) diff += 7;
+  const target = new Date(now);
+  target.setDate(now.getDate() - diff);
+  return target.toISOString().split('T')[0];
+}
+
 function showToast(text, isError) {
   const t = document.getElementById('toast');
   t.textContent = text;
@@ -253,12 +267,12 @@ function resetDayInputs(day) {
 async function loadTodayData(day) {
   try {
     resetDayInputs(day);
-    const today = getTodayDate();
+    const sessionDate = getDateForDay(day);
     const { data, error } = await _sb.from('workout_logs')
       .select('*')
       .eq('student_id', studentId)
       .eq('weekday', day)
-      .eq('session_date', today)
+      .eq('session_date', sessionDate)
       .order('set_number', { ascending: true });
     if (error) throw error;
     if (!data || data.length === 0) { await loadLastWorkout(day); return; }
@@ -311,14 +325,14 @@ async function saveExercise(day, exerciseName, cardId) {
   const card = document.getElementById(cardId);
   const rows = card.querySelectorAll('.set-row');
   const records = [];
-  const today = getTodayDate();
+  const sessionDate = getDateForDay(day);
   rows.forEach((row, i) => {
     const weight = row.querySelector('.weight-input')?.value;
     const reps = row.querySelector('.reps-input')?.value;
     if (weight !== '' || reps !== '') {
       records.push({
         student_id: studentId,
-        session_date: today,
+        session_date: sessionDate,
         weekday: day,
         exercise_name: exerciseName,
         set_type: row.dataset.setType,
@@ -335,7 +349,7 @@ async function saveExercise(day, exerciseName, cardId) {
     const { error: delErr } = await _sb.from('workout_logs')
       .delete()
       .eq('student_id', studentId)
-      .eq('session_date', today)
+      .eq('session_date', sessionDate)
       .eq('exercise_name', exerciseName);
     if (delErr) throw delErr;
     // Insere novos
