@@ -265,6 +265,7 @@ async function loadStudents() {
     .select('id, full_name, email, gym_name, sex, birth_date, status, access_starts_at, access_expires_at')
     .eq('coach_id', myId)
     .eq('role', 'student')
+    .eq('is_deleted', false)
     .order('full_name', { ascending: true });
   if (error) { console.log('Erro ao carregar alunos:', error); return; }
   students = data || [];
@@ -485,11 +486,11 @@ async function confirmEdit() {
   await loadStudents();
 }
 
-// === Excluir aluno (soft delete — remove vínculo, dados preservados no banco) ===
+// === Excluir aluno (soft delete) ===
 async function deleteStudent(studentId, name) {
-  if (!confirm(`Tem certeza que deseja excluir "${name}"?\n\nO aluno perderá o acesso e não aparecerá mais na sua lista. Os dados ficam preservados no banco.`)) return;
+  if (!confirm(`Excluir "${name}"?`)) return;
   const { error } = await _sb.from('profiles')
-    .update({ coach_id: null, status: 'suspended' })
+    .update({ is_deleted: true })
     .eq('id', studentId);
   if (error) { showToast('Erro: ' + error.message, true); return; }
   showToast('Aluno excluído.');

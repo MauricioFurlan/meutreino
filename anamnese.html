@@ -645,8 +645,8 @@ function renderChart() {
 
   if (chartInstance) chartInstance.destroy();
 
-  if (points.length < 2) {
-    canvas.parentElement.innerHTML = '<div class="empty-state" style="padding:40px;">Precisa de pelo menos 2 avaliações com este campo preenchido.</div><canvas id="evolutionChart"></canvas>';
+  if (points.length === 0) {
+    canvas.parentElement.innerHTML = '<div class="empty-state" style="padding:40px;">Sem dados para esta métrica.</div><canvas id="evolutionChart"></canvas>';
     return;
   }
 
