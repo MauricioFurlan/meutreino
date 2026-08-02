@@ -95,7 +95,7 @@
     }
     .set-row input {
       width: 100%;
-      padding: 10px 30px 10px 8px;
+      padding: 10px 8px;
       border-radius: 8px;
       border: 1px solid #333;
       background: #0d0d0d;
@@ -103,13 +103,12 @@
       font-size: 16px;
       font-weight: 600;
       text-align: center;
+      min-width: 0;
+      box-sizing: border-box;
     }
-    .input-wrap { position: relative; width: 100%; }
-    .input-suffix {
-      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
-      font-size: 0.65rem; color: #888; pointer-events: none;
-    }
-    .set-row input::placeholder { color: #999; font-size: 16px; font-weight: 500; }
+    .set-header { margin-bottom: 0; padding: 0; }
+    .col-title { font-size: 0.65rem; color: #888; text-align: center; font-weight: 700; text-transform: uppercase; }
+    .set-row input::placeholder { color: #999; font-size: 14px; font-weight: 500; }
     .set-row input:focus { outline: none; border-color: #f5c518; }
     .save-btn {
       width: 100%; padding: 12px; border: none; border-radius: 8px;
@@ -257,7 +256,7 @@ function resetDayInputs(day) {
     const wi = row.querySelector('.weight-input');
     const ri = row.querySelector('.reps-input');
     const check = row.querySelector('.check-icon');
-    if (wi) { wi.value = ''; wi.placeholder = 'kg'; }
+    if (wi) { wi.value = ''; wi.placeholder = '-'; }
     if (ri) { ri.value = ''; ri.placeholder = ri.dataset.prescribed || ''; }
     if (check) check.classList.remove('done');
   });
@@ -444,6 +443,8 @@ function renderDay(day) {
     html += `<div class="note-bubble" id="nb-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span>${esc(exNote)}</span></div>`;
     // Histórico
     html += `<button class="history-btn" onclick="toggleHistory('${exName.replace(/'/g,"\\'")}')">Ver histórico</button>`;
+    // Header colunas
+    html += `<div class="set-row set-header"><span class="set-label"></span><span class="col-title">KG</span><span class="col-title">REPS</span><span></span></div>`;
     // Sets
     ex.sets.forEach((set, setIdx) => {
       const typeLabel = set.type === 'aquec' ? 'AQUEC' : set.type === 'feeder' ? 'FEEDER' : 'HARD';
@@ -452,8 +453,8 @@ function renderDay(day) {
       const notes = repsText.includes('+') ? repsText.split('+')[1].trim() : '';
       html += `<div class="set-row" data-set-type="${set.type}" data-notes="${esc(notes)}">`;
       html += `<span class="set-label">${typeLabel} ${setIdx+1} <button class="note-icon ${setNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}-${setIdx}')">!</button></span>`;
-      html += `<div class="input-wrap"><input type="number" class="weight-input" placeholder="kg" inputmode="decimal"><span class="input-suffix">kg</span></div>`;
-      html += `<div class="input-wrap"><input type="number" class="reps-input" placeholder="${esc(repsText)}" data-prescribed="${esc(repsText)}" inputmode="numeric"><span class="input-suffix">reps</span></div>`;
+      html += `<input type="number" class="weight-input" placeholder="-" inputmode="decimal">`;
+      html += `<input type="number" class="reps-input" placeholder="${esc(repsText)}" data-prescribed="${esc(repsText)}" inputmode="numeric">`;
       html += `<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
       html += `</div>`;
       // Nota do set
