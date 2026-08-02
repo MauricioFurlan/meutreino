@@ -225,6 +225,7 @@
         <option value="peso">Peso (kg)</option>
         <option value="gordura">% Gordura</option>
         <option value="massa_magra">Massa magra (kg)</option>
+        <option value="massa_gorda">Massa gorda (kg)</option>
         <option value="imc">IMC</option>
         <option value="cintura">Cintura (cm)</option>
         <option value="abdomen">Abdômen (cm)</option>
@@ -589,6 +590,7 @@ function getMetricValues(metric) {
       case 'peso': return { date: a.assessment_date, value: d.peso };
       case 'gordura': return { date: a.assessment_date, value: d.composicao?.gordura };
       case 'massa_magra': return { date: a.assessment_date, value: d.composicao?.massa_magra };
+      case 'massa_gorda': return { date: a.assessment_date, value: d.composicao?.massa_gorda };
       case 'imc': return { date: a.assessment_date, value: d.imc };
       case 'cintura': return { date: a.assessment_date, value: d.circunferencias?.cintura };
       case 'abdomen': return { date: a.assessment_date, value: d.circunferencias?.abdomen };
