@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Olá Mauricio Furlan</title>
+  <title>Treino</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#f5c518">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -26,6 +26,7 @@
     }
     .header h1 { font-size: 1.2rem; color: #f5c518; letter-spacing: 1px; }
     .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .header .plan-title { font-size: 0.75rem; color: #666; margin-top: 2px; }
     .tabs {
       display: flex;
       background: #1a1a1a;
@@ -50,10 +51,7 @@
       transition: all 0.2s;
       text-align: center;
     }
-    .tab.active {
-      background: #f5c518;
-      color: #000;
-    }
+    .tab.active { background: #f5c518; color: #000; }
     .day-content { display: none; padding: 16px; }
     .day-content.active { display: block; }
     .exercise-card {
@@ -95,182 +93,102 @@
       font-weight: 600;
       text-align: center;
     }
-    .input-wrap {
-      position: relative;
-      width: 100%;
-    }
+    .input-wrap { position: relative; width: 100%; }
     .input-suffix {
-      position: absolute;
-      right: 6px;
-      top: 50%;
-      transform: translateY(-50%);
-      font-size: 0.65rem;
-      color: #888;
-      pointer-events: none;
+      position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+      font-size: 0.65rem; color: #888; pointer-events: none;
     }
     .set-row input::placeholder { color: #999; font-size: 16px; font-weight: 500; }
     .set-row input:focus { outline: none; border-color: #f5c518; }
     .save-btn {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      background: #f5c518;
-      color: #000;
-      font-weight: 700;
-      font-size: 0.9rem;
-      cursor: pointer;
-      margin-top: 8px;
-      transition: opacity 0.2s;
+      width: 100%; padding: 12px; border: none; border-radius: 8px;
+      background: #f5c518; color: #000; font-weight: 700; font-size: 0.9rem;
+      cursor: pointer; margin-top: 8px; transition: opacity 0.2s;
     }
     .save-btn:active { opacity: 0.7; }
     .save-btn.saved { background: #4caf50; color: #fff; }
     .history-btn {
-      background: none;
-      border: none;
-      color: #f5c518;
-      font-size: 0.75rem;
-      cursor: pointer;
-      padding: 4px 0;
-      margin-bottom: 8px;
-      text-decoration: underline;
+      background: none; border: none; color: #f5c518; font-size: 0.75rem;
+      cursor: pointer; padding: 4px 0; margin-bottom: 8px; text-decoration: underline;
     }
     .check-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      border: 2px solid #555;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
+      width: 28px; height: 28px; border-radius: 50%; border: 2px solid #555;
+      display: flex; align-items: center; justify-content: center; transition: all 0.2s;
     }
     .check-icon svg { display: none; }
-    .check-icon.done {
-      border-color: #4caf50;
-      background: #4caf50;
-    }
+    .check-icon.done { border-color: #4caf50; background: #4caf50; }
     .check-icon.done svg { display: block; }
     .loading { text-align: center; padding: 40px; color: #888; }
     .toast {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #f5c518;
-      color: #000;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      display: none;
-      z-index: 1000;
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #f5c518; color: #000; padding: 10px 20px; border-radius: 20px;
+      font-size: 0.85rem; font-weight: 600; display: none; z-index: 1000;
     }
     .toast.error { background: #f44336; color: #fff; }
     .toast.show { display: block; animation: fadeOut 2s forwards; }
     @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
-    .date-display {
-      text-align: center;
-      padding: 8px;
-      font-size: 0.8rem;
-      color: #999;
-    }
+    .date-display { text-align: center; padding: 8px; font-size: 0.8rem; color: #999; }
     .note-icon {
-      display: none;
-      background: #f44336;
-      color: #fff;
-      width: 18px;
-      height: 18px;
-      border-radius: 50%;
-      font-size: 0.65rem;
-      font-weight: 700;
-      border: none;
-      cursor: pointer;
-      margin-left: 4px;
-      flex-shrink: 0;
-      vertical-align: middle;
+      display: none; background: #f44336; color: #fff; width: 18px; height: 18px;
+      border-radius: 50%; font-size: 0.65rem; font-weight: 700; border: none;
+      cursor: pointer; margin-left: 4px; flex-shrink: 0; vertical-align: middle;
     }
     .note-icon.visible { display: inline-flex; align-items: center; justify-content: center; }
     .exercise-header { display: flex; align-items: center; }
     .exercise-name { flex: 1; }
     .video-btn {
-      background: none;
-      border: 1px solid #555;
-      color: #f5c518;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      font-size: 0.6rem;
-      cursor: pointer;
-      margin-left: 8px;
-      flex-shrink: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      background: none; border: 1px solid #555; color: #f5c518; width: 22px; height: 22px;
+      border-radius: 50%; font-size: 0.6rem; cursor: pointer; margin-left: 8px;
+      flex-shrink: 0; display: none; align-items: center; justify-content: center;
     }
+    .video-btn.visible { display: flex; }
     .note-bubble {
-      display: none;
-      background: #2a2a2a;
-      border: 1px solid #f5c518;
-      border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 10px;
-      font-size: 0.8rem;
-      color: #f0f0f0;
+      display: none; background: #2a2a2a; border: 1px solid #f5c518; border-radius: 8px;
+      padding: 10px; margin-bottom: 10px; font-size: 0.8rem; color: #f0f0f0;
     }
     .note-bubble.show { display: block; }
     .note-bubble-label { font-size: 0.65rem; color: #f5c518; margin-bottom: 4px; font-weight: 600; }
     .history-modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.9);
-      z-index: 1000;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9); z-index: 1000; align-items: center;
+      justify-content: center; padding: 16px;
     }
     .history-modal.show { display: flex; }
     .history-modal-content {
-      background: #1a1a1a;
-      border-radius: 12px;
-      padding: 16px;
-      width: 100%;
-      max-width: 400px;
-      max-height: 80vh;
-      overflow-y: auto;
-      border: 1px solid #333;
+      background: #1a1a1a; border-radius: 12px; padding: 16px; width: 100%;
+      max-width: 400px; max-height: 80vh; overflow-y: auto; border: 1px solid #333;
     }
-    .history-modal-content h3 {
-      color: #f5c518;
-      font-size: 0.9rem;
-      margin-bottom: 12px;
-    }
+    .history-modal-content h3 { color: #f5c518; font-size: 0.9rem; margin-bottom: 12px; }
     .history-modal-close {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      background: #2a2a2a;
-      color: #999;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      margin-top: 12px;
+      width: 100%; padding: 10px; border: none; border-radius: 8px;
+      background: #2a2a2a; color: #999; font-weight: 600; font-size: 0.85rem;
+      cursor: pointer; margin-top: 12px;
     }
     .history-date { color: #f5c518; font-size: 0.75rem; font-weight: 600; margin-top: 10px; margin-bottom: 4px; }
     .history-set { font-size: 0.8rem; color: #ddd; padding: 3px 0; border-bottom: 1px solid #222; }
+    /* Tela de bloqueio */
+    .block-screen { display: none; text-align: center; padding: 60px 24px; }
+    .block-screen.show { display: block; }
+    .block-screen .icon { font-size: 2.4rem; margin-bottom: 12px; }
+    .block-screen h2 { font-size: 1.05rem; color: #f5c518; margin-bottom: 8px; }
+    .block-screen p { font-size: 0.9rem; color: #ccc; line-height: 1.5; }
   </style>
 </head>
 <body>
   <div class="header">
-    <h1>Olá Mauricio Furlan</h1>
+    <h1 id="greeting">Carregando...</h1>
     <div class="subtitle" id="gymName"></div>
+    <div class="plan-title" id="planTitle"></div>
   </div>
   <div class="date-display" id="dateDisplay"></div>
   <div class="tabs" id="tabs"></div>
   <div id="content"></div>
   <div class="toast" id="toast"></div>
+  <div class="block-screen" id="blockScreen">
+    <div class="icon">🔒</div>
+    <h2 id="blockTitle"></h2>
+    <p id="blockText"></p>
+  </div>
   <div class="history-modal" id="historyModal">
     <div class="history-modal-content">
       <h3 id="historyModalTitle">Histórico</h3>
@@ -279,145 +197,16 @@
     </div>
   </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-guard.js"></script>
 <script>
-const SUPABASE_URL = 'https://qslvwyhpamazoqhcmqan.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_lTQKzQJc5uq7LNq-N1UvRg_w3aF_7zH';
+// === Estado global ===
+let WORKOUT = {};  // carregado do banco
+let studentId = null;
 
-const WORKOUT = {
-  'Segunda': [
-    { name: 'Barra fixa (ativação)', sets: [{type:'hard', reps:'até falha'}] },
-    { name: 'Remada baixa triângulo cimerian', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Remada curvada pronada irontech', sets: [
-      {type:'feeder', reps:'2-4'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Puxador alto aberto cimerian', sets: [
-      {type:'feeder', reps:'2-4'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Pulldown corda', sets: [
-      {type:'feeder', reps:'2-4'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}
-    ]},
-    { name: 'Crucifixo inverso + Face pull (biset)', sets: [
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}
-    ]},
-    { name: 'Rosca alta máquina unilateral', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]}
-  ],
-  'Terça': [
-    { name: 'Peck Deck (ativação)', sets: [{type:'aquec', reps:'15'}] },
-    { name: 'Supino reto sentado cimerian', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Desenvolvimento irontech', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Supino inclinado irontech guiado', sets: [
-      {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Crossover cima pra baixo', sets: [
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9 + drop'}
-    ]},
-    { name: 'Tríceps polia barra W', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]}
-  ],
-  'Quarta': [
-    { name: 'Banco romano (ativação)', sets: [{type:'aquec', reps:'15'}] },
-    { name: 'Cadeira flexora', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Elevação pélvica', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'7-9'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}
-    ]},
-    { name: 'Mesa flexora', sets: [
-      {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Leg press 90° irontech', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Cadeira abdutora + adutora', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'10-15'}
-    ]}
-  ],
-  'Quinta': [
-    { name: 'Panturrilha sentado', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'10-15'}
-    ]},
-    { name: 'Panturrilha em pé', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'10-15'}
-    ]},
-    { name: 'Abdômen máquina', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'10-15'}
-    ]},
-    { name: 'Abdômen paralela', sets: [
-      {type:'hard', reps:'10-15'}, {type:'hard', reps:'10-15'}, {type:'hard', reps:'10-15'}
-    ]},
-    { name: 'Cardio', sets: [{type:'hard', reps:'40 min'}] }
-  ],
-  'Sexta': [
-    { name: 'Peck Deck (ativação)', sets: [{type:'aquec', reps:'15'}] },
-    { name: 'Puxador frente aberto barra anatômica', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Puxada unilateral Cimerian', sets: [
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Supino inclinado máquina Cimerian', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Crossover baixo pra cima', sets: [
-      {type:'hard', reps:'8-12 + drop'}, {type:'hard', reps:'8-12 + drop'}, {type:'hard', reps:'8-12 + drop'}
-    ]},
-    { name: 'Elevação frontal halter simultâneo', sets: [
-      {type:'hard', reps:'8-12 + parciais'}, {type:'hard', reps:'8-12 + parciais'}, {type:'hard', reps:'8-12 + parciais'}
-    ]},
-    { name: 'Elevação lateral unilateral Crossover', sets: [
-      {type:'hard', reps:'8-12 + parciais'}, {type:'hard', reps:'8-12 + parciais'}, {type:'hard', reps:'8-12 + parciais'}
-    ]},
-    { name: 'Tríceps corda + Bíceps corda', sets: [
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}
-    ]}
-  ],
-  'Sábado': [
-    { name: 'Extensora unilateral (ativação)', sets: [{type:'aquec', reps:'12-15'}] },
-    { name: 'Leg press 45° articulado cimerian', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Hack glutebuilder', sets: [
-      {type:'feeder', reps:'2-4'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}
-    ]},
-    { name: 'Cadeira extensora (pico de contração)', sets: [
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'7-9'}, {type:'hard', reps:'8-12 + drop'}
-    ]},
-    { name: 'Stiff glutebuilder', sets: [
-      {type:'aquec', reps:'12-15'}, {type:'feeder', reps:'2-4'},
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}
-    ]},
-    { name: 'Cadeira abdutora pra frente', sets: [
-      {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}, {type:'hard', reps:'8-12'}
-    ]}
-  ],
-  'Domingo': []
+// === Helpers ===
+const esc = (s) => { // escape HTML (proteção XSS)
+  const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML;
 };
 
 function getToday() {
@@ -425,22 +214,27 @@ function getToday() {
   return days[new Date().getDay()];
 }
 
-function getTodayDate() {
-  const now = new Date();
-  return now.toISOString().split('T')[0];
+function getTodayDate() { return new Date().toISOString().split('T')[0]; }
+
+function showToast(text, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2500);
 }
 
+// === Carregamento de dados do dia ===
 async function loadTodayData(day) {
   try {
     const today = getTodayDate();
-    const data = await supaFetch(
-      `workout_logs?day=eq.${encodeURIComponent(day)}&created_at=gte.${today}T00:00:00&created_at=lt.${today}T23:59:59&order=set_number.asc`
-    );
-    if (!data || data.length === 0) {
-      // Sem dados de hoje — carregar fantasma do último treino
-      await loadLastWorkout(day);
-      return;
-    }
+    const { data, error } = await _sb.from('workout_logs')
+      .select('*')
+      .eq('student_id', studentId)
+      .eq('weekday', day)
+      .eq('session_date', today)
+      .order('set_number', { ascending: true });
+    if (error) throw error;
+    if (!data || data.length === 0) { await loadLastWorkout(day); return; }
     data.forEach(record => {
       const card = document.querySelector(`[data-exercise="${CSS.escape(record.exercise_name)}"][data-day="${day}"]`);
       if (!card) return;
@@ -454,21 +248,20 @@ async function loadTodayData(day) {
       if (repsInput && record.reps !== null) repsInput.value = record.reps;
       if (check && (record.weight !== null || record.reps !== null)) check.classList.add('done');
     });
-  } catch (e) {
-    console.log('Erro ao carregar dados do dia:', e);
-  }
+  } catch (e) { console.log('Erro ao carregar dados do dia:', e); }
 }
 
 async function loadLastWorkout(day) {
   try {
-    const data = await supaFetch(
-      `workout_logs?day=eq.${encodeURIComponent(day)}&order=created_at.desc&limit=100`
-    );
-    if (!data || data.length === 0) return;
-    // Pega só os registros do dia mais recente
-    const lastDate = data[0].created_at.split('T')[0];
-    const lastData = data.filter(r => r.created_at.startsWith(lastDate));
-
+    const { data, error } = await _sb.from('workout_logs')
+      .select('*')
+      .eq('student_id', studentId)
+      .eq('weekday', day)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error || !data || data.length === 0) return;
+    const lastDate = data[0].session_date;
+    const lastData = data.filter(r => r.session_date === lastDate);
     lastData.forEach(record => {
       const card = document.querySelector(`[data-exercise="${CSS.escape(record.exercise_name)}"][data-day="${day}"]`);
       if (!card) return;
@@ -477,51 +270,29 @@ async function loadLastWorkout(day) {
       if (!row) return;
       const weightInput = row.querySelector('.weight-input');
       const repsInput = row.querySelector('.reps-input');
-      if (weightInput && record.weight !== null) {
-        weightInput.placeholder = record.weight + ' kg';
-      }
+      if (weightInput && record.weight !== null) weightInput.placeholder = record.weight + ' kg';
       if (repsInput && record.reps !== null) {
         const prescribed = repsInput.placeholder;
         repsInput.placeholder = record.reps + ' · ' + prescribed;
       }
     });
-  } catch (e) {
-    console.log('Erro ao carregar último treino:', e);
-  }
+  } catch (e) { console.log('Erro ao carregar último treino:', e); }
 }
 
-function showToast(msg, isError) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className = 'toast show' + (isError ? ' error' : '');
-  setTimeout(() => t.className = 'toast', 2500);
-}
-
-async function supaFetch(endpoint, options = {}) {
-  const headers = {
-    'apikey': SUPABASE_KEY,
-    'Authorization': 'Bearer ' + SUPABASE_KEY,
-    'Content-Type': 'application/json'
-  };
-  if (options.method === 'POST') headers['Prefer'] = 'return=minimal';
-  const res = await fetch(SUPABASE_URL + '/rest/v1/' + endpoint, {
-    ...options,
-    headers: { ...headers, ...options.headers }
-  });
-  if (!res.ok) throw new Error('Erro: ' + res.status);
-  if (options.method === 'POST' || options.method === 'DELETE') return null;
-  return res.json();
-}
-
-async function saveExercise(day, exerciseName, card) {
+// === Salvar ===
+async function saveExercise(day, exerciseName, cardId) {
+  const card = document.getElementById(cardId);
   const rows = card.querySelectorAll('.set-row');
   const records = [];
+  const today = getTodayDate();
   rows.forEach((row, i) => {
     const weight = row.querySelector('.weight-input')?.value;
     const reps = row.querySelector('.reps-input')?.value;
     if (weight !== '' || reps !== '') {
       records.push({
-        day: day,
+        student_id: studentId,
+        session_date: today,
+        weekday: day,
         exercise_name: exerciseName,
         set_type: row.dataset.setType,
         set_number: i + 1,
@@ -533,15 +304,18 @@ async function saveExercise(day, exerciseName, card) {
   });
   if (records.length === 0) { showToast('Preencha ao menos um set', true); return; }
   try {
-    const today = getTodayDate();
-    await supaFetch(
-      `workout_logs?day=eq.${encodeURIComponent(day)}&exercise_name=eq.${encodeURIComponent(exerciseName)}&created_at=gte.${today}T00:00:00&created_at=lt.${today}T23:59:59`,
-      { method: 'DELETE' }
-    );
-    await supaFetch('workout_logs', { method: 'POST', body: JSON.stringify(records) });
+    // Deleta registros de hoje deste exercício
+    const { error: delErr } = await _sb.from('workout_logs')
+      .delete()
+      .eq('student_id', studentId)
+      .eq('session_date', today)
+      .eq('exercise_name', exerciseName);
+    if (delErr) throw delErr;
+    // Insere novos
+    const { error: insErr } = await _sb.from('workout_logs').insert(records);
+    if (insErr) throw insErr;
     const btn = card.querySelector('.save-btn');
-    btn.textContent = '✓ Salvo!';
-    btn.classList.add('saved');
+    btn.textContent = '✓ Salvo!'; btn.classList.add('saved');
     rows.forEach(row => {
       const weight = row.querySelector('.weight-input')?.value;
       const reps = row.querySelector('.reps-input')?.value;
@@ -551,39 +325,34 @@ async function saveExercise(day, exerciseName, card) {
     });
     setTimeout(() => { btn.textContent = 'Salvar'; btn.classList.remove('saved'); }, 2000);
     showToast('Salvo com sucesso!');
-  } catch (e) {
-    showToast('Erro ao salvar: ' + e.message, true);
-  }
+  } catch (e) { showToast('Erro ao salvar: ' + e.message, true); }
 }
 
-async function loadHistory(exerciseName, panel) {
+// === Histórico ===
+async function loadHistory(exerciseName) {
   try {
-    // Últimas 4 semanas
     const fourWeeksAgo = new Date();
     fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
     const since = fourWeeksAgo.toISOString().split('T')[0];
-
-    const data = await supaFetch(
-      `workout_logs?exercise_name=eq.${encodeURIComponent(exerciseName)}&created_at=gte.${since}T00:00:00&order=created_at.desc,set_number.asc`
-    );
-
+    const { data, error } = await _sb.from('workout_logs')
+      .select('*')
+      .eq('student_id', studentId)
+      .eq('exercise_name', exerciseName)
+      .gte('session_date', since)
+      .order('created_at', { ascending: false })
+      .order('set_number', { ascending: true });
+    if (error) throw error;
     const body = document.getElementById('historyModalBody');
     document.getElementById('historyModalTitle').textContent = exerciseName;
-
     if (!data || data.length === 0) {
       body.innerHTML = '<div style="color:#888;text-align:center;padding:20px;">Sem histórico nas últimas 4 semanas</div>';
       return;
     }
-
-    let html = '';
-    let lastDate = '';
+    let html = '', lastDate = '';
     data.forEach(r => {
-      const date = new Date(r.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', weekday: 'short' });
-      if (date !== lastDate) {
-        html += `<div class="history-date">${date}</div>`;
-        lastDate = date;
-      }
-      html += `<div class="history-set">${r.set_type} ${r.set_number}: ${r.weight || '-'}kg × ${r.reps || '-'} reps</div>`;
+      const date = new Date(r.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', weekday:'short' });
+      if (date !== lastDate) { html += `<div class="history-date">${esc(date)}</div>`; lastDate = date; }
+      html += `<div class="history-set">${esc(r.set_type)} ${r.set_number}: ${r.weight || '-'}kg × ${r.reps || '-'} reps</div>`;
     });
     body.innerHTML = html;
   } catch (e) {
@@ -591,16 +360,26 @@ async function loadHistory(exerciseName, panel) {
   }
 }
 
-function toggleHistory(day, exIdx, name) {
+function toggleHistory(exerciseName) {
   document.getElementById('historyModal').classList.add('show');
   document.getElementById('historyModalBody').innerHTML = '<div style="color:#888;text-align:center;padding:20px;">Carregando...</div>';
-  loadHistory(name);
+  loadHistory(exerciseName);
+}
+function closeHistoryModal() { document.getElementById('historyModal').classList.remove('show'); }
+
+// === Vídeo ===
+function openVideo(url, exerciseName) {
+  const target = url || 'https://www.youtube.com/results?search_query=' + encodeURIComponent(exerciseName + ' execução correta');
+  window.location.href = target;
 }
 
-function closeHistoryModal() {
-  document.getElementById('historyModal').classList.remove('show');
+// === Notas toggle ===
+function toggleNote(id) {
+  const bubble = document.getElementById(id);
+  if (bubble) bubble.classList.toggle('show');
 }
 
+// === Render ===
 function renderDay(day) {
   const exercises = WORKOUT[day];
   if (!exercises || exercises.length === 0) {
@@ -608,132 +387,121 @@ function renderDay(day) {
   }
   let html = '';
   exercises.forEach((ex, exIdx) => {
-    html += `<div class="exercise-card" id="card-${day}-${exIdx}" data-exercise="${ex.name}" data-day="${day}">`;
-    html += `<div class="exercise-header"><div class="exercise-name">${ex.name}</div><button class="video-btn" onclick="openVideo('${ex.name.replace(/'/g, "\\'")}')">▶</button><button class="note-icon" id="note-icon-${day}-${exIdx}" onclick="toggleNote('${day}', ${exIdx}, null)">!</button></div>`;
-    html += `<div class="note-bubble" id="note-bubble-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span id="note-text-${day}-${exIdx}"></span></div>`;
-    html += `<button class="history-btn" onclick="toggleHistory('${day}', ${exIdx}, '${ex.name.replace(/'/g, "\\'")}')">Ver histórico</button>`;
+    const cardId = `card-${day}-${exIdx}`;
+    const exName = esc(ex.name);
+    const videoUrl = ex.video_url || '';
+    const exNote = ex.note || '';
+
+    html += `<div class="exercise-card" id="${cardId}" data-exercise="${exName}" data-day="${day}">`;
+    // Header
+    html += `<div class="exercise-header">`;
+    html += `<div class="exercise-name">${exName}</div>`;
+    html += `<button class="video-btn ${videoUrl ? 'visible' : ''}" onclick="openVideo('${esc(videoUrl).replace(/'/g,"\\'")}','${exName.replace(/'/g,"\\'")}')">▶</button>`;
+    html += `<button class="note-icon ${exNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}')">!</button>`;
+    html += `</div>`;
+    // Nota do exercício
+    html += `<div class="note-bubble" id="nb-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span>${esc(exNote)}</span></div>`;
+    // Histórico
+    html += `<button class="history-btn" onclick="toggleHistory('${exName.replace(/'/g,"\\'")}')">Ver histórico</button>`;
+    // Sets
     ex.sets.forEach((set, setIdx) => {
       const typeLabel = set.type === 'aquec' ? 'AQUEC' : set.type === 'feeder' ? 'FEEDER' : 'HARD';
-      const notes = set.reps.includes('+') ? set.reps.split('+')[1].trim() : '';
-      html += `<div class="set-row" data-set-type="${set.type}" data-notes="${notes}">`;
-      html += `<span class="set-label">${typeLabel} ${setIdx+1} <button class="note-icon" id="note-icon-${day}-${exIdx}-${setIdx}" onclick="toggleNote('${day}', ${exIdx}, ${setIdx})">!</button></span>`;
+      const setNote = set.note || '';
+      const repsText = set.reps || '';
+      const notes = repsText.includes('+') ? repsText.split('+')[1].trim() : '';
+      html += `<div class="set-row" data-set-type="${set.type}" data-notes="${esc(notes)}">`;
+      html += `<span class="set-label">${typeLabel} ${setIdx+1} <button class="note-icon ${setNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}-${setIdx}')">!</button></span>`;
       html += `<div class="input-wrap"><input type="number" class="weight-input" placeholder="kg" inputmode="decimal"><span class="input-suffix">kg</span></div>`;
-      html += `<div class="input-wrap"><input type="number" class="reps-input" placeholder="${set.reps}" inputmode="numeric"><span class="input-suffix">reps</span></div>`;
+      html += `<div class="input-wrap"><input type="number" class="reps-input" placeholder="${esc(repsText)}" inputmode="numeric"><span class="input-suffix">reps</span></div>`;
       html += `<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
       html += `</div>`;
-      html += `<div class="note-bubble" id="note-bubble-${day}-${exIdx}-${setIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span id="note-text-${day}-${exIdx}-${setIdx}"></span></div>`;
+      // Nota do set
+      html += `<div class="note-bubble" id="nb-${day}-${exIdx}-${setIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span>${esc(setNote)}</span></div>`;
     });
-    html += `<button class="save-btn" onclick="saveExercise('${day}', '${ex.name.replace(/'/g, "\\'")}', document.getElementById('card-${day}-${exIdx}'))">Salvar</button>`;
+    // Salvar
+    html += `<button class="save-btn" onclick="saveExercise('${day}','${exName.replace(/'/g,"\\'")}','${cardId}')">Salvar</button>`;
     html += `</div>`;
   });
   return html;
 }
 
-// === VIDEO LINKS ===
-const videoLinks = {};
+// === Bloqueio ===
+function showBlock(state) {
+  document.getElementById('tabs').style.display = 'none';
+  document.getElementById('content').style.display = 'none';
+  const screen = document.getElementById('blockScreen');
+  screen.classList.add('show');
+  const map = {
+    expired: { t: 'Período encerrado', p: 'Seu período de acompanhamento terminou. Fale com seu personal para renovar.' },
+    unavailable: { t: 'Acesso indisponível', p: 'Seu acesso está indisponível no momento. Fale com seu personal.' },
+    suspended: { t: 'Acesso suspenso', p: 'Seu acesso está suspenso. Entre em contato para regularizar.' }
+  };
+  const m = map[state] || map.unavailable;
+  document.getElementById('blockTitle').textContent = m.t;
+  document.getElementById('blockText').textContent = m.p;
+}
 
-async function loadVideoLinks() {
-  try {
-    const data = await supaFetch('exercise_videos?order=created_at.desc');
-    if (!data || data.length === 0) return;
-    data.forEach(r => {
-      if (!videoLinks[r.exercise_name]) {
-        videoLinks[r.exercise_name] = r.video_url;
-      }
+// === Inicialização via auth-guard ===
+guard('student', {
+  onReady: async (session, profile) => {
+    studentId = profile.id;
+
+    // Header: saudação + academia + título do treino
+    document.getElementById('greeting').textContent = 'Olá ' + (profile.full_name || '');
+    if (profile.gym_name) document.getElementById('gymName').textContent = profile.gym_name;
+
+    // Data
+    document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('pt-BR', {
+      weekday: 'long', day: 'numeric', month: 'long'
     });
-  } catch (e) {
-    console.log('Erro ao carregar vídeos:', e);
-  }
-}
 
-function openVideo(exerciseName) {
-  const url = videoLinks[exerciseName]
-    ? videoLinks[exerciseName]
-    : 'https://www.youtube.com/results?search_query=' + encodeURIComponent(exerciseName + ' execução correta');
-  // location.href força o iOS a sair da PWA e abrir no Safari
-  window.location.href = url;
-}
+    // Carrega plano ativo
+    const { data: plan, error } = await _sb.from('workout_plans')
+      .select('title, structure')
+      .eq('student_id', studentId)
+      .eq('is_active', true)
+      .maybeSingle();
 
-function toggleNote(day, exIdx, setIdx) {
-  const id = setIdx !== null ? `note-bubble-${day}-${exIdx}-${setIdx}` : `note-bubble-${day}-${exIdx}`;
-  const bubble = document.getElementById(id);
-  if (bubble) bubble.classList.toggle('show');
-}
+    if (error || !plan) {
+      document.getElementById('content').innerHTML = '<div class="loading">Nenhum treino atribuído.<br>Fale com seu personal.</div>';
+      return;
+    }
 
-async function loadTrainerNotes() {
-  try {
-    const data = await supaFetch('trainer_notes?active=eq.true&order=created_at.desc');
-    if (!data || data.length === 0) return;
+    if (plan.title) document.getElementById('planTitle').textContent = plan.title;
+    WORKOUT = plan.structure || {};
 
+    // Renderiza tabs e dias
+    const today = getToday();
     const days = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+    const tabsEl = document.getElementById('tabs');
+    const contentEl = document.getElementById('content');
+
     days.forEach(day => {
-      if (!WORKOUT[day]) return;
-      WORKOUT[day].forEach((ex, exIdx) => {
-        data.forEach(note => {
-          if (note.exercise_name !== ex.name) return;
-          if (note.set_number) {
-            // Nota específica de um set
-            const setIdx = note.set_number - 1;
-            const icon = document.getElementById(`note-icon-${day}-${exIdx}-${setIdx}`);
-            const text = document.getElementById(`note-text-${day}-${exIdx}-${setIdx}`);
-            if (icon) icon.classList.add('visible');
-            if (text) text.textContent = note.note;
-          } else {
-            // Nota geral do exercício
-            const icon = document.getElementById(`note-icon-${day}-${exIdx}`);
-            const text = document.getElementById(`note-text-${day}-${exIdx}`);
-            if (icon) icon.classList.add('visible');
-            if (text) text.textContent = note.note;
-          }
-        });
-      });
+      const tab = document.createElement('button');
+      tab.className = 'tab' + (day === today ? ' active' : '');
+      tab.textContent = day.substring(0, 3);
+      tab.onclick = () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.day-content').forEach(d => d.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('day-' + day).classList.add('active');
+        loadTodayData(day);
+      };
+      tabsEl.appendChild(tab);
+
+      const div = document.createElement('div');
+      div.className = 'day-content' + (day === today ? ' active' : '');
+      div.id = 'day-' + day;
+      div.innerHTML = renderDay(day);
+      contentEl.appendChild(div);
     });
-  } catch (e) {
-    console.log('Erro ao carregar notas:', e);
-  }
-}
 
-function init() {
-  const today = getToday();
-  const days = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+    loadTodayData(today);
+  },
+  onBlocked: showBlock
+});
 
-  document.getElementById('dateDisplay').textContent = new Date().toLocaleDateString('pt-BR', {
-    weekday: 'long', day: 'numeric', month: 'long'
-  });
-
-  const tabsEl = document.getElementById('tabs');
-  const contentEl = document.getElementById('content');
-
-  days.forEach(day => {
-    const tab = document.createElement('button');
-    tab.className = 'tab' + (day === today ? ' active' : '');
-    tab.textContent = day.substring(0, 3);
-    tab.onclick = () => {
-      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-      document.querySelectorAll('.day-content').forEach(d => d.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById('day-' + day).classList.add('active');
-      loadTodayData(day);
-    };
-    tabsEl.appendChild(tab);
-
-    const div = document.createElement('div');
-    div.className = 'day-content' + (day === today ? ' active' : '');
-    div.id = 'day-' + day;
-    div.innerHTML = renderDay(day);
-    contentEl.appendChild(div);
-  });
-
-  loadTodayData(today);
-  loadTrainerNotes();
-  loadVideoLinks();
-}
-
-init();
-
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js');
-}
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 </script>
 </body>
 </html>
