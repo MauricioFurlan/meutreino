@@ -113,6 +113,15 @@
     </div>
   </div>
 
+  <!-- Modal de histórico de pagamentos -->
+  <div class="modal" id="histModal">
+    <div class="modal-content">
+      <h3 id="histTitle">Histórico de Pagamentos</h3>
+      <div id="histBody" style="max-height:50vh;overflow-y:auto;"></div>
+      <button class="modal-close" onclick="document.getElementById('histModal').classList.remove('show')">Fechar</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -174,6 +183,7 @@ function renderTrainers() {
             : `<button class="action-btn success" onclick="toggleStatus('${t.id}','active')">Reativar</button>`
           }
           <button class="action-btn" onclick="openPayModal('${t.id}','${esc(t.full_name).replace(/'/g,"\\'")}')">💰 Pagamento</button>
+          <button class="action-btn" onclick="viewPayments('${t.id}','${esc(t.full_name).replace(/'/g,"\\'")}')">📋 Histórico</button>
           <button class="action-btn" onclick="editLimit('${t.id}', ${t.max_students || 20})">👥 Limite</button>
         </div>
       </div>
@@ -292,6 +302,35 @@ async function confirmPayment() {
   showToast(`Pagamento registrado! Prazo até ${newExp.toLocaleDateString('pt-BR')}.`);
   closePayModal();
   await loadTrainers();
+}
+
+// === Histórico de pagamentos ===
+async function viewPayments(trainerId, name) {
+  document.getElementById('histTitle').textContent = 'Pagamentos — ' + name;
+  document.getElementById('histBody').innerHTML = '<div style="color:#888;text-align:center;padding:20px;">Carregando...</div>';
+  document.getElementById('histModal').classList.add('show');
+
+  const { data, error } = await _sb.from('trainer_payments')
+    .select('*')
+    .eq('trainer_id', trainerId)
+    .order('paid_at', { ascending: false });
+
+  if (error || !data || data.length === 0) {
+    document.getElementById('histBody').innerHTML = '<div style="color:#888;text-align:center;padding:20px;">Nenhum pagamento registrado.</div>';
+    return;
+  }
+
+  document.getElementById('histBody').innerHTML = data.map(p => {
+    const paidAt = new Date(p.paid_at + 'T00:00:00').toLocaleDateString('pt-BR');
+    const periodEnd = p.period_end ? new Date(p.period_end + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+    const amount = p.amount ? `R$ ${parseFloat(p.amount).toFixed(2)}` : '-';
+    const method = p.method || '-';
+    return `<div style="border-bottom:1px solid #333;padding:10px 0;">
+      <div style="font-size:0.8rem;color:#f5c518;font-weight:600;">${paidAt}</div>
+      <div style="font-size:0.75rem;color:#ccc;margin-top:3px;">${amount} · ${esc(method)} · até ${periodEnd}</div>
+      ${p.note ? `<div style="font-size:0.7rem;color:#888;margin-top:2px;">${esc(p.note)}</div>` : ''}
+    </div>`;
+  }).join('');
 }
 
 // === Editar limite de alunos ===
