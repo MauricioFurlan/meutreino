@@ -145,6 +145,14 @@
           <label>Data de nascimento</label>
           <input type="date" id="newBirth">
         </div>
+        <div class="form-group">
+          <label>Sexo</label>
+          <select id="newSex">
+            <option value="">-</option>
+            <option value="M">Masculino</option>
+            <option value="F">Feminino</option>
+          </select>
+        </div>
         <button class="submit-btn" id="createBtn" onclick="createStudent()">Cadastrar Aluno</button>
       </div>
     </div>
@@ -295,6 +303,7 @@ async function createStudent() {
   const gym = document.getElementById('newGym').value.trim();
   const months = parseInt(document.getElementById('newMonths').value) || 3;
   const birthDate = document.getElementById('newBirth').value || null;
+  const sex = document.getElementById('newSex').value || null;
 
   if (!name || !email) { showToast('Preencha nome e e-mail.', true); return; }
   const activeCount = students.filter(s => s.status === 'active').length;
@@ -311,6 +320,7 @@ async function createStudent() {
     gym_name: gym || null,
     months,
     birth_date: birthDate,
+    sex,
     created_by: myId
   });
 
@@ -327,6 +337,8 @@ async function createStudent() {
   document.getElementById('newEmail').value = '';
   document.getElementById('newGym').value = '';
   document.getElementById('newMonths').value = '3';
+  document.getElementById('newBirth').value = '';
+  document.getElementById('newSex').value = '';
 
   // Recarrega (o aluno aparece na lista quando logar, mas mostramos o convite como pendente)
   await loadStudents();

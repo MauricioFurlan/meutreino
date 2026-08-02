@@ -6,8 +6,9 @@
   <title>Anamnese</title>
   <meta name="theme-color" content="#f5c518">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://qslvwyhpamazoqhcmqan.supabase.co; img-src 'self' data:;">
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://qslvwyhpamazoqhcmqan.supabase.co blob:; img-src 'self' data:;">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -245,6 +246,7 @@
     <div class="modal-content" style="max-height:85vh; overflow-y:auto;">
       <h3 id="detailTitle">Avaliação</h3>
       <div id="detailBody"></div>
+      <button class="submit-btn" style="margin-top:12px;" onclick="generatePDF()">📄 Gerar PDF</button>
       <button class="modal-close" onclick="document.getElementById('detailModal').classList.remove('show')">Fechar</button>
     </div>
   </div>
@@ -256,6 +258,8 @@
 <script>
 let studentId = null, coachId = null, assessments = [];
 let chartInstance = null;
+let studentInfo = null; // dados do aluno para o PDF
+let currentAssessmentId = null; // avaliação aberta no modal
 
 const esc = (s) => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
 function showToast(t, err) { const e = document.getElementById('toast'); e.textContent = t; e.className = 'toast show' + (err ? ' error' : ''); setTimeout(() => e.className = 'toast', 2500); }
@@ -349,6 +353,7 @@ async function loadHistory() {
 }
 
 function viewAssessment(id) {
+  currentAssessmentId = id;
   const a = assessments.find(x => x.id === id);
   if (!a) return;
   const d = a.data || {};
@@ -491,6 +496,168 @@ function renderChart() {
   });
 }
 
+// === Gerar PDF da avaliação ===
+function generatePDF() {
+  const a = assessments.find(x => x.id === currentAssessmentId);
+  if (!a) { showToast('Nenhuma avaliação selecionada.', true); return; }
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const d = a.data || {};
+  const c = d.circunferencias || {};
+  const db = d.dobras || {};
+  const comp = d.composicao || {};
+  const saude = d.saude || {};
+  const dateStr = new Date(a.assessment_date + 'T00:00:00').toLocaleDateString('pt-BR');
+
+  const pageW = 210;
+  const marginL = 15;
+  const marginR = 195;
+  let y = 15;
+
+  // === Cabeçalho ===
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('AVALIAÇÃO FÍSICA', pageW / 2, y, { align: 'center' });
+  y += 8;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Data: ' + dateStr, marginR, y, { align: 'right' });
+  y += 6;
+
+  // Linha separadora
+  doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 6;
+
+  // === Dados pessoais ===
+  doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
+  doc.text('DADOS PESSOAIS', marginL, y); y += 6;
+  doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
+
+  const nome = studentInfo?.full_name || '-';
+  const idade = calcAge(studentInfo?.birth_date);
+  const sexo = studentInfo?.sex === 'M' ? 'Masculino' : studentInfo?.sex === 'F' ? 'Feminino' : '-';
+  const nascimento = studentInfo?.birth_date ? new Date(studentInfo.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+
+  doc.text(`Nome: ${nome}`, marginL, y); y += 5;
+  doc.text(`Idade: ${idade || '-'}`, marginL, y);
+  doc.text(`Sexo: ${sexo}`, marginL + 50, y);
+  doc.text(`Nascimento: ${nascimento}`, marginL + 100, y); y += 5;
+  if (d.objetivo) { doc.text(`Objetivo: ${d.objetivo}`, marginL, y); y += 5; }
+  y += 3;
+
+  // === Antropometria ===
+  if (d.peso || d.altura || d.imc) {
+    doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 5;
+    doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
+    doc.text('ANTROPOMETRIA', marginL, y); y += 6;
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
+    const items = [];
+    if (d.peso) items.push('Peso: ' + d.peso + ' kg');
+    if (d.altura) items.push('Altura: ' + d.altura + ' cm');
+    if (d.imc) items.push('IMC: ' + d.imc);
+    doc.text(items.join('    |    '), marginL, y); y += 7;
+  }
+
+  // === Circunferências ===
+  function hasValues(obj) { return Object.values(obj).some(v => v != null && v !== ''); }
+  if (hasValues(c)) {
+    doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 5;
+    doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
+    doc.text('CIRCUNFERÊNCIAS (cm)', marginL, y); y += 6;
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
+
+    const circRows = [
+      ['Cintura', c.cintura, 'Abdômen', c.abdomen],
+      ['Quadril', c.quadril, 'Tórax', c.torax],
+      ['Ombro', c.ombro, '', ''],
+      ['Braço D relax.', c.braco_d_relaxado, 'Braço D contr.', c.braco_d_contraido],
+      ['Braço E relax.', c.braco_e_relaxado, 'Braço E contr.', c.braco_e_contraido],
+      ['Antebraço D', c.antebraco_d, 'Antebraço E', c.antebraco_e],
+      ['Coxa D', c.coxa_d, 'Coxa E', c.coxa_e],
+      ['Panturrilha D', c.panturrilha_d, 'Panturrilha E', c.panturrilha_e]
+    ];
+    circRows.forEach(row => {
+      if (row[1] == null && row[3] == null) return;
+      let line = '';
+      if (row[0] && row[1] != null) line += `${row[0]}: ${row[1]}`;
+      if (row[2] && row[3] != null) line += `    |    ${row[2]}: ${row[3]}`;
+      if (line) { doc.text(line, marginL, y); y += 4.5; }
+    });
+    y += 2;
+  }
+
+  // === Dobras cutâneas ===
+  if (hasValues(db)) {
+    if (y > 250) { doc.addPage(); y = 15; }
+    doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 5;
+    doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
+    doc.text('DOBRAS CUTÂNEAS (mm)', marginL, y); y += 6;
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
+
+    const dobraRows = [
+      ['Tríceps', db.triceps, 'Subescapular', db.subescapular],
+      ['Supra-ilíaca', db.supra_iliaca, 'Abdominal', db.abdominal],
+      ['Coxa', db.coxa, 'Axilar média', db.axilar_media],
+      ['Torácica', db.toracica, '', '']
+    ];
+    dobraRows.forEach(row => {
+      if (row[1] == null && row[3] == null) return;
+      let line = '';
+      if (row[0] && row[1] != null) line += `${row[0]}: ${row[1]}`;
+      if (row[2] && row[3] != null) line += `    |    ${row[2]}: ${row[3]}`;
+      if (line) { doc.text(line, marginL, y); y += 4.5; }
+    });
+    y += 2;
+  }
+
+  // === Composição corporal ===
+  if (hasValues(comp)) {
+    if (y > 260) { doc.addPage(); y = 15; }
+    doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 5;
+    doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
+    doc.text('COMPOSIÇÃO CORPORAL', marginL, y); y += 6;
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
+    const compItems = [];
+    if (comp.gordura != null) compItems.push('% Gordura: ' + comp.gordura);
+    if (comp.massa_magra != null) compItems.push('Massa magra: ' + comp.massa_magra + ' kg');
+    if (comp.massa_gorda != null) compItems.push('Massa gorda: ' + comp.massa_gorda + ' kg');
+    doc.text(compItems.join('    |    '), marginL, y); y += 7;
+  }
+
+  // === Saúde ===
+  if (hasValues(saude)) {
+    if (y > 250) { doc.addPage(); y = 15; }
+    doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 5;
+    doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
+    doc.text('SAÚDE', marginL, y); y += 6;
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
+    if (saude.lesoes) { doc.text('Lesões/Cirurgias: ' + saude.lesoes, marginL, y, { maxWidth: 170 }); y += 5; }
+    if (saude.medicamentos) { doc.text('Medicamentos: ' + saude.medicamentos, marginL, y, { maxWidth: 170 }); y += 5; }
+    if (saude.restricoes) { doc.text('Restrições: ' + saude.restricoes, marginL, y, { maxWidth: 170 }); y += 5; }
+    if (saude.nivel_atividade) { doc.text('Nível de atividade: ' + saude.nivel_atividade, marginL, y); y += 5; }
+    y += 2;
+  }
+
+  // === Observações ===
+  if (d.observacoes) {
+    if (y > 255) { doc.addPage(); y = 15; }
+    doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 5;
+    doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
+    doc.text('OBSERVAÇÕES', marginL, y); y += 6;
+    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
+    doc.text(d.observacoes, marginL, y, { maxWidth: 170 }); y += 7;
+  }
+
+  // === Rodapé ===
+  doc.setFontSize(7); doc.setTextColor(150);
+  doc.text('Gerado automaticamente pelo sistema de treino', pageW / 2, 287, { align: 'center' });
+
+  // Download
+  const fileName = `avaliacao_${(studentInfo?.full_name || 'aluno').replace(/\s+/g, '_')}_${a.assessment_date}.pdf`;
+  doc.save(fileName);
+  showToast('PDF gerado!');
+}
+
 // === Init ===
 guard('trainer', {
   onReady: async (session, profile) => {
@@ -500,14 +667,16 @@ guard('trainer', {
 
     // Info do aluno
     const { data: student } = await _sb.from('profiles')
-      .select('full_name, birth_date, gym_name')
+      .select('full_name, birth_date, sex, gym_name')
       .eq('id', studentId).maybeSingle();
 
+    studentInfo = student; // guardar referência global para o PDF
     document.getElementById('studentName').textContent = student?.full_name || '';
     const age = calcAge(student?.birth_date);
     const infoHtml = [
       student?.full_name ? `<div class="info-item"><strong>${esc(student.full_name)}</strong></div>` : '',
       age ? `<div class="info-item">Idade: <strong>${age} anos</strong></div>` : '',
+      student?.sex ? `<div class="info-item">Sexo: <strong>${student.sex === 'M' ? 'Masculino' : 'Feminino'}</strong></div>` : '',
       student?.gym_name ? `<div class="info-item">Academia: <strong>${esc(student.gym_name)}</strong></div>` : ''
     ].join('');
     document.getElementById('infoBar').innerHTML = infoHtml;
