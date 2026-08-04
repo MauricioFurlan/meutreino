@@ -56,7 +56,7 @@
     .day-header .day-count { font-size: 0.7rem; color: #888; }
     .day-header .arrow { color: #888; font-size: 0.6rem; transition: transform 0.2s; }
     .day-accordion.open .day-header .arrow { transform: rotate(180deg); }
-    .day-body { display: none; padding: 0 10px 12px; overflow: hidden; }
+    .day-body { display: none; padding: 0 10px 12px; }
     .day-accordion.open .day-body { display: block; }
 
     /* Exercício */
@@ -122,18 +122,18 @@
 
     /* Grupo visual no editor */
     .group-wrapper {
-      border: 2px solid #f5c518; border-radius: 14px; padding: 8px 6px;
-      margin-bottom: 10px; position: relative;
+      border: 2px solid #f5c518; border-radius: 14px; padding: 18px 6px 8px;
+      margin-top: 14px; margin-bottom: 10px; position: relative;
     }
     .group-wrapper .group-label {
-      position: absolute; top: -10px; left: 12px; background: #1a1a1a;
+      position: absolute; top: -10px; left: 12px; background: #0d0d0d;
       color: #f5c518; font-size: 0.65rem; font-weight: 700; padding: 0 6px;
       letter-spacing: 0.5px;
     }
     .group-wrapper .exercise-item { margin-bottom: 8px; }
     .group-wrapper .exercise-item:last-of-type { margin-bottom: 4px; }
     .ungroup-btn {
-      position: absolute; top: -10px; right: 12px; background: #1a1a1a;
+      position: absolute; top: -10px; right: 12px; background: #0d0d0d;
       border: 1px solid #f44336; color: #f44336; font-size: 0.6rem; padding: 1px 8px;
       border-radius: 8px; cursor: pointer;
     }
