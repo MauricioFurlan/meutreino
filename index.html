@@ -93,6 +93,9 @@
       min-width: 60px;
       font-weight: 600;
     }
+    .set-label.type-aquec { color: #4caf50; }
+    .set-label.type-feeder { color: #b388ff; }
+    .set-label.type-hard { color: #ff5252; }
     .set-row input {
       width: 100%;
       padding: 10px 8px;
@@ -468,12 +471,13 @@ function renderDay(day) {
     html += `<div class="set-row set-header"><span class="set-label"></span><span class="col-title">KG</span><span class="col-title">REPS</span><span></span></div>`;
     // Sets
     ex.sets.forEach((set, setIdx) => {
-      const typeLabel = set.type === 'aquec' ? 'AQUEC' : set.type === 'feeder' ? 'FEEDER' : 'HARD';
+      const typeLabel = set.type === 'aquec' ? 'AQUEC' : set.type === 'feeder' ? 'FEEDER' : set.type === 'hard' ? 'HARD' : (set.type || 'SET').toUpperCase();
+      const typeClass = (set.type === 'aquec' || set.type === 'feeder' || set.type === 'hard') ? 'type-' + set.type : '';
       const setNote = set.note || '';
       const repsText = set.reps || '';
       const notes = repsText.includes('+') ? repsText.split('+')[1].trim() : '';
       html += `<div class="set-row" data-set-type="${set.type}" data-notes="${esc(notes)}">`;
-      html += `<span class="set-label">${typeLabel} ${setIdx+1} <button class="note-icon ${setNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}-${setIdx}')">!</button></span>`;
+      html += `<span class="set-label ${typeClass}">${typeLabel} ${setIdx+1} <button class="note-icon ${setNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}-${setIdx}')">!</button></span>`;
       html += `<input type="number" class="weight-input" placeholder="-" inputmode="decimal">`;
       html += `<input type="number" class="reps-input" placeholder="${esc(repsText)}" data-prescribed="${esc(repsText)}" inputmode="numeric">`;
       html += `<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
