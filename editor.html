@@ -47,16 +47,18 @@
     .date-field input[type="date"]:focus { outline: none; border-color: #f5c518; }
 
     /* Accordion dias */
-    .day-accordion { margin: 0 12px 8px; border: 1px solid #333; border-radius: 12px; background: #1a1a1a; overflow: visible; }
+    .day-accordion { margin: 0 12px 8px; border: 1px solid #333; border-radius: 12px; }
     .day-header {
       padding: 14px 16px; cursor: pointer; display: flex; align-items: center;
-      justify-content: space-between; user-select: none; border-radius: 12px;
+      justify-content: space-between; user-select: none;
+      background: #1a1a1a; border-radius: 12px;
     }
     .day-header .day-name { font-weight: 700; font-size: 0.9rem; color: #f5c518; }
     .day-header .day-count { font-size: 0.7rem; color: #888; }
     .day-header .arrow { color: #888; font-size: 0.6rem; transition: transform 0.2s; }
+    .day-accordion.open .day-header { border-radius: 12px 12px 0 0; }
     .day-accordion.open .day-header .arrow { transform: rotate(180deg); }
-    .day-body { display: none; padding: 10px 10px 12px; }
+    .day-body { display: none; padding: 10px 10px 12px; background: #1a1a1a; border-radius: 0 0 12px 12px; }
     .day-accordion.open .day-body { display: block; }
 
     /* Exercício */
@@ -122,24 +124,24 @@
 
     /* Grupo visual no editor */
     .group-wrapper {
-      border: 2px solid #f5c518; border-radius: 14px; padding: 12px 10px 10px;
-      margin-bottom: 10px; overflow: visible;
+      border: 2px solid #f5c518; border-radius: 14px;
+      margin-bottom: 10px; display: flex; flex-direction: column;
     }
-    .day-body > .group-wrapper:first-child { margin-top: 4px; }
+    .day-body > .group-wrapper:first-child { margin-top: 0; }
     .group-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 4px 10px; min-height: 28px; gap: 8px;
+      padding: 10px 12px 8px; min-height: 32px; gap: 8px;
     }
     .group-header .group-label {
       color: #f5c518; font-size: 0.75rem; font-weight: 700;
-      letter-spacing: 0.5px; white-space: nowrap;
+      letter-spacing: 0.5px; white-space: nowrap; line-height: 1.2;
     }
-    .group-wrapper .exercise-item { margin-bottom: 8px; overflow: visible; }
-    .group-wrapper .exercise-item:last-of-type { margin-bottom: 4px; }
+    .group-wrapper .exercise-item { margin: 0 10px 8px; overflow: visible; }
+    .group-wrapper .exercise-item:last-of-type { margin-bottom: 10px; }
     .ungroup-btn {
       background: none; border: 1px solid #f44336; color: #f44336;
       font-size: 0.65rem; padding: 4px 10px; border-radius: 8px; cursor: pointer;
-      white-space: nowrap; flex-shrink: 0;
+      white-space: nowrap; flex-shrink: 0; line-height: 1.2;
     }
     .ungroup-btn:active { opacity: 0.5; }
 
@@ -445,8 +447,9 @@ function linkToNext(btn) {
   }
 
   if (next.classList.contains('group-wrapper')) {
-    // Adiciona o exercício atual no início do grupo existente
-    next.insertBefore(item, next.querySelector('.exercise-item'));
+    // Adiciona o exercício atual no início do grupo existente (após o header)
+    const firstExInGroup = next.querySelector('.exercise-item');
+    next.insertBefore(item, firstExInGroup);
     updateGroupLabel(next);
   } else if (next.classList.contains('exercise-item')) {
     // Cria novo grupo com os dois exercícios
@@ -454,9 +457,17 @@ function linkToNext(btn) {
     const wrapper = document.createElement('div');
     wrapper.className = 'group-wrapper';
     wrapper.dataset.groupId = groupId;
+
+    // Insere o wrapper antes do item atual
     body.insertBefore(wrapper, item);
+
+    // Move os exercícios para dentro do wrapper
     wrapper.appendChild(item);
     wrapper.appendChild(next);
+
+    // Força reflow antes de adicionar o header (fix Safari iOS)
+    void wrapper.offsetHeight;
+
     updateGroupLabel(wrapper);
   }
 
