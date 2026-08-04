@@ -62,7 +62,7 @@
     /* Exercício */
     .exercise-item {
       background: #0d0d0d; border: 1px solid #333; border-radius: 10px;
-      padding: 12px; margin-bottom: 10px; overflow: hidden;
+      padding: 12px; margin-bottom: 10px;
     }
     .exercise-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .exercise-top input {
@@ -111,10 +111,10 @@
     .add-exercise-btn { margin: 8px 0; }
 
     /* Botões de ação do exercício */
-    .ex-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+    .ex-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; align-items: center; }
     .ex-action-btn {
-      padding: 4px 10px; border: 1px solid #555; border-radius: 6px; background: none;
-      color: #999; font-size: 0.65rem; cursor: pointer;
+      padding: 5px 10px; border: 1px solid #555; border-radius: 6px; background: none;
+      color: #999; font-size: 0.65rem; cursor: pointer; white-space: nowrap;
     }
     .ex-action-btn.danger { border-color: #f44336; color: #f44336; }
     .ex-action-btn.group-active { border-color: #f5c518; color: #f5c518; }
@@ -122,22 +122,23 @@
 
     /* Grupo visual no editor */
     .group-wrapper {
-      border: 2px solid #f5c518; border-radius: 14px; padding: 8px 6px 8px;
-      margin-bottom: 10px;
+      border: 2px solid #f5c518; border-radius: 14px; padding: 12px 10px 10px;
+      margin-bottom: 10px; overflow: visible;
     }
     .group-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 6px 8px;
+      padding: 0 4px 10px; min-height: 28px; gap: 8px;
     }
     .group-header .group-label {
-      color: #f5c518; font-size: 0.7rem; font-weight: 700;
-      letter-spacing: 0.5px;
+      color: #f5c518; font-size: 0.75rem; font-weight: 700;
+      letter-spacing: 0.5px; white-space: nowrap;
     }
-    .group-wrapper .exercise-item { margin-bottom: 8px; }
+    .group-wrapper .exercise-item { margin-bottom: 8px; overflow: visible; }
     .group-wrapper .exercise-item:last-of-type { margin-bottom: 4px; }
     .ungroup-btn {
       background: none; border: 1px solid #f44336; color: #f44336;
-      font-size: 0.6rem; padding: 2px 8px; border-radius: 8px; cursor: pointer;
+      font-size: 0.65rem; padding: 4px 10px; border-radius: 8px; cursor: pointer;
+      white-space: nowrap; flex-shrink: 0;
     }
     .ungroup-btn:active { opacity: 0.5; }
 
