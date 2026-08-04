@@ -77,6 +77,27 @@
       margin-bottom: 12px;
       border: 1px solid #333;
     }
+
+    /* Biset/Triset/Giant Set wrapper */
+    .biset-wrapper {
+      border: 2px solid #f5c518;
+      border-radius: 14px;
+      padding: 12px 10px 10px;
+      margin-bottom: 12px;
+      position: relative;
+      background: #111;
+    }
+    .biset-wrapper .biset-label {
+      position: absolute; top: -11px; left: 14px;
+      background: #111; color: #f5c518; font-size: 0.7rem;
+      font-weight: 700; padding: 0 8px; letter-spacing: 0.5px;
+    }
+    .biset-wrapper .exercise-card {
+      margin-bottom: 8px;
+      border: 1px solid #333;
+    }
+    .biset-wrapper .exercise-card:last-of-type { margin-bottom: 10px; }
+    .biset-wrapper .save-btn { margin-top: 4px; }
     .exercise-name {
       font-size: 1.3rem;
       font-weight: 700;
@@ -405,6 +426,75 @@ async function saveExercise(day, exerciseName, cardId) {
   } catch (e) { showToast('Erro ao salvar: ' + e.message, true); btn.disabled = false; btn.textContent = 'Salvar'; }
 }
 
+// === Salvar grupo (biset/triset) ===
+async function saveGroup(day, cardIds) {
+  const wrapper = document.getElementById(cardIds[0]).closest('.biset-wrapper');
+  const btn = wrapper.querySelector('.save-btn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  const sessionDate = getDateForDay(day);
+  const allRecords = [];
+  const exerciseNames = [];
+
+  for (const cardId of cardIds) {
+    const card = document.getElementById(cardId);
+    const exerciseName = card.dataset.exercise;
+    exerciseNames.push(exerciseName);
+    const rows = card.querySelectorAll('.set-row:not(.set-header)');
+    rows.forEach((row, i) => {
+      const weight = row.querySelector('.weight-input')?.value;
+      const reps = row.querySelector('.reps-input')?.value;
+      if (weight !== '' || reps !== '') {
+        allRecords.push({
+          student_id: studentId,
+          session_date: sessionDate,
+          weekday: day,
+          exercise_name: exerciseName,
+          set_type: row.dataset.setType,
+          set_number: i + 1,
+          weight: weight ? parseFloat(weight) : null,
+          reps: reps ? parseInt(reps) : null,
+          notes: row.dataset.notes || null
+        });
+      }
+    });
+  }
+
+  if (allRecords.length === 0) { showToast('Preencha ao menos um set', true); btn.disabled = false; btn.textContent = 'Salvar'; return; }
+
+  try {
+    // Deleta registros de hoje de todos os exercícios do grupo
+    for (const name of exerciseNames) {
+      const { error: delErr } = await _sb.from('workout_logs')
+        .delete()
+        .eq('student_id', studentId)
+        .eq('session_date', sessionDate)
+        .eq('exercise_name', name);
+      if (delErr) throw delErr;
+    }
+    // Insere todos
+    const { error: insErr } = await _sb.from('workout_logs').insert(allRecords);
+    if (insErr) throw insErr;
+
+    btn.textContent = '✓ Salvo!'; btn.classList.add('saved');
+    // Marca checks
+    for (const cardId of cardIds) {
+      const card = document.getElementById(cardId);
+      card.querySelectorAll('.set-row:not(.set-header)').forEach(row => {
+        const weight = row.querySelector('.weight-input')?.value;
+        const reps = row.querySelector('.reps-input')?.value;
+        const check = row.querySelector('.check-icon');
+        if ((weight || reps) && check) check.classList.add('done');
+        else if (check) check.classList.remove('done');
+      });
+    }
+    setTimeout(() => { btn.textContent = 'Salvar'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
+    showToast('Salvo com sucesso!');
+  } catch (e) { showToast('Erro ao salvar: ' + e.message, true); btn.disabled = false; btn.textContent = 'Salvar'; }
+}
+
 // === Histórico ===
 async function loadHistory(exerciseName) {
   try {
@@ -463,45 +553,77 @@ function renderDay(day) {
     return '<div class="loading">Dia de descanso 🎉</div>';
   }
   let html = '';
-  exercises.forEach((ex, exIdx) => {
-    const cardId = `card-${day}-${exIdx}`;
-    const exName = esc(ex.name);
-    const videoUrl = ex.video_url || '';
-    const exNote = ex.note || '';
-
-    html += `<div class="exercise-card" id="${cardId}" data-exercise="${exName}" data-day="${day}">`;
-    // Header
-    html += `<div class="exercise-header">`;
-    html += `<div class="exercise-name">${exName}</div>`;
-    html += `<button class="video-btn ${videoUrl ? 'visible' : ''}" onclick="openVideo('${esc(videoUrl).replace(/'/g,"\\'")}','${exName.replace(/'/g,"\\'")}')">▶</button>`;
-    html += `<button class="note-icon ${exNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}')">!</button>`;
-    html += `</div>`;
-    // Nota do exercício
-    html += `<div class="note-bubble" id="nb-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span>${esc(exNote)}</span></div>`;
-    // Histórico
-    html += `<button class="history-btn" onclick="toggleHistory('${exName.replace(/'/g,"\\'")}')">Ver histórico</button>`;
-    // Header colunas
-    html += `<div class="set-row set-header"><span class="set-label"></span><span class="col-title">KG</span><span class="col-title">REPS</span><span></span></div>`;
-    // Sets
-    ex.sets.forEach((set, setIdx) => {
-      const typeLabel = set.type === 'aquec' ? 'AQUEC' : set.type === 'feeder' ? 'FEEDER' : set.type === 'hard' ? 'HARD' : (set.type || 'SET').toUpperCase();
-      const typeClass = (set.type === 'aquec' || set.type === 'feeder' || set.type === 'hard') ? 'type-' + set.type : '';
-      const setNote = set.note || '';
-      const repsText = set.reps || '';
-      const notes = repsText.includes('+') ? repsText.split('+')[1].trim() : '';
-      html += `<div class="set-row" data-set-type="${set.type}" data-notes="${esc(notes)}">`;
-      html += `<span class="set-label ${typeClass}">${typeLabel} ${setIdx+1} <button class="note-icon ${setNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}-${setIdx}')">!</button></span>`;
-      html += `<input type="number" class="weight-input" placeholder="-" inputmode="decimal">`;
-      html += `<input type="number" class="reps-input" placeholder="${esc(repsText)}" data-prescribed="${esc(repsText)}" inputmode="numeric">`;
-      html += `<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
+  let i = 0;
+  while (i < exercises.length) {
+    const ex = exercises[i];
+    if (ex.group) {
+      // Coleta todos os consecutivos com o mesmo group
+      const groupId = ex.group;
+      const grouped = [];
+      const startIdx = i;
+      while (i < exercises.length && exercises[i].group === groupId) {
+        grouped.push({ ex: exercises[i], idx: i });
+        i++;
+      }
+      const label = grouped.length === 2 ? 'BISET' : grouped.length === 3 ? 'TRISET' : 'GIANT SET';
+      html += `<div class="biset-wrapper">`;
+      html += `<span class="biset-label">🔗 ${label}</span>`;
+      grouped.forEach(({ ex: gex, idx: gIdx }) => {
+        html += renderExerciseCard(day, gIdx, gex);
+      });
+      // Botão salvar único para o grupo
+      const groupCardIds = grouped.map(({ idx: gIdx }) => `card-${day}-${gIdx}`);
+      html += `<button class="save-btn" onclick="saveGroup('${day}', [${groupCardIds.map(id => `'${id}'`).join(',')}])">Salvar ${label}</button>`;
       html += `</div>`;
-      // Nota do set
-      html += `<div class="note-bubble" id="nb-${day}-${exIdx}-${setIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span>${esc(setNote)}</span></div>`;
-    });
-    // Salvar
-    html += `<button class="save-btn" onclick="saveExercise('${day}','${exName.replace(/'/g,"\\'")}','${cardId}')">Salvar</button>`;
+    } else {
+      html += renderExerciseCard(day, i, ex);
+      i++;
+    }
+  }
+  return html;
+}
+
+function renderExerciseCard(day, exIdx, ex) {
+  const cardId = `card-${day}-${exIdx}`;
+  const exName = esc(ex.name);
+  const videoUrl = ex.video_url || '';
+  const exNote = ex.note || '';
+
+  let html = '';
+  html += `<div class="exercise-card" id="${cardId}" data-exercise="${exName}" data-day="${day}">`;
+  // Header
+  html += `<div class="exercise-header">`;
+  html += `<div class="exercise-name">${exName}</div>`;
+  html += `<button class="video-btn ${videoUrl ? 'visible' : ''}" onclick="openVideo('${esc(videoUrl).replace(/'/g,"\\'")}','${exName.replace(/'/g,"\\'")}')">▶</button>`;
+  html += `<button class="note-icon ${exNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}')">!</button>`;
+  html += `</div>`;
+  // Nota do exercício
+  html += `<div class="note-bubble" id="nb-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span>${esc(exNote)}</span></div>`;
+  // Histórico
+  html += `<button class="history-btn" onclick="toggleHistory('${exName.replace(/'/g,"\\'")}')">Ver histórico</button>`;
+  // Header colunas
+  html += `<div class="set-row set-header"><span class="set-label"></span><span class="col-title">KG</span><span class="col-title">REPS</span><span></span></div>`;
+  // Sets
+  ex.sets.forEach((set, setIdx) => {
+    const typeLabel = set.type === 'aquec' ? 'AQUEC' : set.type === 'feeder' ? 'FEEDER' : set.type === 'hard' ? 'HARD' : (set.type || 'SET').toUpperCase();
+    const typeClass = (set.type === 'aquec' || set.type === 'feeder' || set.type === 'hard') ? 'type-' + set.type : '';
+    const setNote = set.note || '';
+    const repsText = set.reps || '';
+    const notes = repsText.includes('+') ? repsText.split('+')[1].trim() : '';
+    html += `<div class="set-row" data-set-type="${set.type}" data-notes="${esc(notes)}">`;
+    html += `<span class="set-label ${typeClass}">${typeLabel} ${setIdx+1} <button class="note-icon ${setNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}-${setIdx}')">!</button></span>`;
+    html += `<input type="number" class="weight-input" placeholder="-" inputmode="decimal">`;
+    html += `<input type="number" class="reps-input" placeholder="${esc(repsText)}" data-prescribed="${esc(repsText)}" inputmode="numeric">`;
+    html += `<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
     html += `</div>`;
+    // Nota do set
+    html += `<div class="note-bubble" id="nb-${day}-${exIdx}-${setIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span>${esc(setNote)}</span></div>`;
   });
+  // Salvar individual (só para exercícios soltos, dentro de grupo o wrapper tem o botão)
+  if (!ex.group) {
+    html += `<button class="save-btn" onclick="saveExercise('${day}','${exName.replace(/'/g,"\\'")}','${cardId}')">Salvar</button>`;
+  }
+  html += `</div>`;
   return html;
 }
 
