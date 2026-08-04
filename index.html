@@ -118,7 +118,8 @@
       background: #f5c518; color: #000; font-weight: 700; font-size: 0.9rem;
       cursor: pointer; margin-top: 8px; transition: opacity 0.2s;
     }
-    .save-btn:active { opacity: 0.7; }
+    .save-btn:active:not(:disabled) { opacity: 0.7; }
+    .save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .save-btn.saved { background: #4caf50; color: #fff; }
     .history-btn {
       background: none; border: none; color: #f5c518; font-size: 0.75rem;
@@ -346,6 +347,12 @@ async function loadLastWorkout(day) {
 // === Salvar ===
 async function saveExercise(day, exerciseName, cardId) {
   const card = document.getElementById(cardId);
+  const btn = card.querySelector('.save-btn');
+  // Evita cliques duplicados
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
   const rows = card.querySelectorAll('.set-row:not(.set-header)');
   const records = [];
   const sessionDate = getDateForDay(day);
@@ -366,7 +373,7 @@ async function saveExercise(day, exerciseName, cardId) {
       });
     }
   });
-  if (records.length === 0) { showToast('Preencha ao menos um set', true); return; }
+  if (records.length === 0) { showToast('Preencha ao menos um set', true); btn.disabled = false; btn.textContent = 'Salvar'; return; }
   try {
     // Deleta registros de hoje deste exercício
     const { error: delErr } = await _sb.from('workout_logs')
@@ -378,7 +385,6 @@ async function saveExercise(day, exerciseName, cardId) {
     // Insere novos
     const { error: insErr } = await _sb.from('workout_logs').insert(records);
     if (insErr) throw insErr;
-    const btn = card.querySelector('.save-btn');
     btn.textContent = '✓ Salvo!'; btn.classList.add('saved');
     rows.forEach(row => {
       const weight = row.querySelector('.weight-input')?.value;
@@ -387,9 +393,9 @@ async function saveExercise(day, exerciseName, cardId) {
       if ((weight || reps) && check) check.classList.add('done');
       else if (check) check.classList.remove('done');
     });
-    setTimeout(() => { btn.textContent = 'Salvar'; btn.classList.remove('saved'); }, 2000);
+    setTimeout(() => { btn.textContent = 'Salvar'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
     showToast('Salvo com sucesso!');
-  } catch (e) { showToast('Erro ao salvar: ' + e.message, true); }
+  } catch (e) { showToast('Erro ao salvar: ' + e.message, true); btn.disabled = false; btn.textContent = 'Salvar'; }
 }
 
 // === Histórico ===
