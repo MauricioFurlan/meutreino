@@ -37,6 +37,15 @@
     }
     .title-input:focus { outline: none; border-color: #f5c518; }
 
+    .dates-row { display: flex; gap: 8px; padding: 0 12px 12px; }
+    .date-field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+    .date-field label { font-size: 0.7rem; color: #888; font-weight: 600; text-transform: uppercase; }
+    .date-field input[type="date"] {
+      width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #333;
+      background: #1a1a1a; color: #fff; font-size: 0.85rem; box-sizing: border-box;
+    }
+    .date-field input[type="date"]:focus { outline: none; border-color: #f5c518; }
+
     /* Accordion dias */
     .day-accordion { margin: 0 12px 8px; border: 1px solid #333; border-radius: 12px; overflow: hidden; background: #1a1a1a; }
     .day-header {
@@ -164,6 +173,17 @@
 
   <div class="title-section">
     <input type="text" class="title-input" id="planTitle" placeholder="Título do treino (ex: Hipertrofia)">
+  </div>
+
+  <div class="dates-row">
+    <div class="date-field">
+      <label>Data Início</label>
+      <input type="date" id="planStartDate">
+    </div>
+    <div class="date-field">
+      <label>Data Fim</label>
+      <input type="date" id="planEndDate">
+    </div>
   </div>
 
   <div id="daysContainer"></div>
@@ -365,6 +385,8 @@ function collectStructure() {
 async function savePlan() {
   const title = document.getElementById('planTitle').value.trim();
   const structure = collectStructure();
+  const planStartDate = document.getElementById('planStartDate').value || null;
+  const planEndDate = document.getElementById('planEndDate').value || null;
 
   // Validação básica
   const totalEx = Object.values(structure).reduce((sum, d) => sum + d.length, 0);
@@ -387,7 +409,9 @@ async function savePlan() {
       coach_id: coachId,
       title,
       structure,
-      is_active: true
+      is_active: true,
+      plan_start_date: planStartDate,
+      plan_end_date: planEndDate
     });
 
     if (error) throw error;
@@ -423,16 +447,21 @@ guard('trainer', {
 
     // Carrega plano ativo (se existir)
     const { data: plan } = await _sb.from('workout_plans')
-      .select('title, structure')
+      .select('title, structure, plan_start_date, plan_end_date')
       .eq('student_id', studentId)
       .eq('is_active', true)
       .maybeSingle();
 
+    const today = new Date().toISOString().split('T')[0];
     if (plan) {
       document.getElementById('planTitle').value = plan.title || '';
+      document.getElementById('planStartDate').value = plan.plan_start_date || today;
+      document.getElementById('planEndDate').value = plan.plan_end_date || '';
       renderEditor(plan.structure || emptyStructure());
     } else {
       document.getElementById('planTitle').value = '';
+      document.getElementById('planStartDate').value = today;
+      document.getElementById('planEndDate').value = '';
       renderEditor(emptyStructure());
     }
     hideLoading();
