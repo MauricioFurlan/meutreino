@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Treinos do Aluno</title>
   <meta name="theme-color" content="#f5c518">
+  <!-- PWA: precisa estar em TODAS as páginas, senão o iOS mostra a barra do
+       Safari ao navegar dentro do app instalado (modo standalone) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Treino">
+  <link rel="apple-touch-icon" href="icon-192.svg">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://qslvwyhpamazoqhcmqan.supabase.co; img-src 'self' data:;">
   <style>
@@ -200,7 +208,6 @@
 <script>
 const DAYS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
 let studentId = null;
-let coachId = null;
 let plans = [];
 let busy = false;
 
@@ -295,7 +302,6 @@ function renderPlans() {
         <div class="plan-actions">
           <button class="action-btn" onclick="viewPlan('${p.id}')">👁 Ver</button>
           <button class="action-btn primary" onclick="location.href='editor.html?plan=${p.id}'">✏️ Editar</button>
-          <button class="action-btn" onclick="duplicatePlan('${p.id}')">📋 Duplicar</button>
           <button class="action-btn danger" onclick="deletePlan('${p.id}')" title="Excluir">×</button>
         </div>
       </div>
@@ -377,35 +383,13 @@ function viewPlan(planId) {
 }
 function closeView() { document.getElementById('viewModal').classList.remove('show'); }
 
-// === Duplicar treino do próprio aluno (nova fase) ===
-async function duplicatePlan(planId) {
-  const p = plans.find(x => x.id === planId);
-  if (!p) return;
-  if (!confirm(`Criar uma cópia de "${p.title || 'Treino'}"? A cópia entra como inativa.`)) return;
-
-  showLoading();
-  const { error } = await _sb.from('workout_plans').insert({
-    student_id: studentId,
-    coach_id: coachId,
-    title: (p.title || 'Treino') + ' (cópia)',
-    structure: p.structure || {},
-    is_active: false,
-    plan_start_date: null,
-    plan_end_date: null
-  });
-  if (error) { hideLoading(); showToast('Erro: ' + error.message, true); return; }
-  await loadPlans();
-  hideLoading();
-  showToast('Cópia criada. Edite e ative quando quiser.');
-}
-
 // === Excluir treino ===
 async function deletePlan(planId) {
   const p = plans.find(x => x.id === planId);
   if (!p) return;
   const warn = p.is_active
     ? `"${p.title || 'Treino'}" está ATIVO. Excluir vai deixar o aluno sem ficha. Continuar?`
-    : `Excluir "${p.title || 'Treino'}"? O histórico de execuções do aluno é preservado.`;
+    : `Excluir "${p.title || 'Treino'}"?`;
   if (!confirm(warn)) return;
 
   showLoading();
@@ -420,7 +404,6 @@ async function deletePlan(planId) {
 guard('trainer', {
   onReady: async (session, profile) => {
     showLoading();
-    coachId = profile.id;
     studentId = new URLSearchParams(location.search).get('aluno');
 
     if (!studentId) {

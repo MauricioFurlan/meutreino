@@ -5,6 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Editor de Treino</title>
   <meta name="theme-color" content="#f5c518">
+  <!-- PWA: precisa estar em TODAS as páginas, senão o iOS mostra a barra do
+       Safari ao navegar dentro do app instalado (modo standalone) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Treino">
+  <link rel="apple-touch-icon" href="icon-192.svg">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://qslvwyhpamazoqhcmqan.supabase.co; img-src 'self' data:;">
   <style>
@@ -14,6 +22,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: #0d0d0d; color: #f0f0f0; min-height: 100vh; padding-bottom: 100px;
+      max-width: 100%; overflow-x: hidden;
     }
     .header {
       background: #1a1a1a; padding: 16px; text-align: center;
@@ -37,13 +46,22 @@
     }
     .title-input:focus { outline: none; border-color: #f5c518; }
 
-    .dates-row { display: flex; gap: 8px; padding: 0 12px 12px; }
-    .date-field { flex: 1; display: flex; flex-direction: column; gap: 4px; }
-    .date-field label { font-size: 0.7rem; color: #888; font-weight: 600; text-transform: uppercase; }
-    .date-field input[type="date"] {
-      width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #333;
-      background: #1a1a1a; color: #fff; font-size: 0.85rem; box-sizing: border-box;
+    .dates-row { display: flex; gap: 8px; padding: 0 12px 12px; max-width: 100%; }
+    /* flex-basis 0 + min-width 0 impede o input[type=date] do iOS de forçar
+       largura intrínseca maior que a tela (causava scroll horizontal) */
+    .date-field { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+    .date-field label {
+      font-size: 0.7rem; color: #888; font-weight: 600; text-transform: uppercase;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
+    .date-field input[type="date"] {
+      width: 100%; min-width: 0; max-width: 100%; padding: 10px 8px; border-radius: 8px;
+      border: 1px solid #333; background: #1a1a1a; color: #fff; font-size: 0.8rem;
+      box-sizing: border-box; -webkit-appearance: none; appearance: none;
+    }
+    /* Remove o padding interno que o Safari adiciona no seletor de data */
+    .date-field input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+    .date-field input[type="date"]::-webkit-calendar-picker-indicator { margin-left: 2px; }
     .date-field input[type="date"]:focus { outline: none; border-color: #f5c518; }
 
     /* Opções do plano (ativo + importar) */
@@ -463,7 +481,13 @@ function renderDayBody(day, exercises) {
       wrapper.dataset.groupId = groupId;
       updateGroupLabel(wrapper, groupExercises.length);
       groupExercises.forEach((gex, gi) => {
-        wrapper.appendChild(renderExercise(day, startIdx + gi, gex));
+        const node = renderExercise(day, startIdx + gi, gex);
+        // Só o último do grupo pode vincular ao próximo (estender para triset/giant set)
+        if (gi < groupExercises.length - 1) {
+          const linkBtn = node.querySelector('.link-btn');
+          if (linkBtn) linkBtn.remove();
+        }
+        wrapper.appendChild(node);
       });
       body.appendChild(wrapper);
     } else {
@@ -540,7 +564,7 @@ function renderExercise(day, idx, ex) {
     <div class="ex-actions">
       <button class="ex-action-btn" onclick="moveExercise(this, -1)">↑</button>
       <button class="ex-action-btn" onclick="moveExercise(this, 1)">↓</button>
-      <button class="ex-action-btn" onclick="linkToNext(this)">🔗 Vincular ao próximo</button>
+      <button class="ex-action-btn link-btn" onclick="linkToNext(this)">🔗 Vincular ao próximo</button>
       <button class="ex-action-btn danger" onclick="removeExercise(this)">Remover</button>
     </div>
   `;
@@ -650,7 +674,7 @@ function moveExercise(btn, dir) {
   renderDayBody(day, list);
 }
 
-// === Vincular exercício ao próximo (criar/estender biset) ===
+// === Vincular exercício ao próximo (criar biset / estender para triset, giant set) ===
 function linkToNext(btn) {
   const item = btn.closest('.exercise-item');
   const day = dayOf(item);
@@ -658,20 +682,30 @@ function linkToNext(btn) {
   const idx = flatIndexOf(item, day);
   if (idx < 0) return;
 
-  if (list[idx].group) {
-    showToast('Exercício já está em um grupo. Desvincule primeiro.', true);
-    return;
-  }
   if (idx >= list.length - 1) {
     showToast('Não há exercício abaixo para vincular.', true);
     return;
   }
 
-  const next = list[idx + 1];
-  // Se o próximo já é um grupo, entra nesse grupo; senão cria um novo
-  const groupId = next.group || newGroupId();
+  const curGroup = list[idx].group || null;
+  const nextGroup = list[idx + 1].group || null;
+
+  if (curGroup && curGroup === nextGroup) {
+    showToast('Esses exercícios já estão vinculados.', true);
+    return;
+  }
+
+  // Reaproveita o grupo existente (de cima ou de baixo) para que funcione
+  // vincular nos dois sentidos: biset → triset → giant set.
+  const groupId = curGroup || nextGroup || newGroupId();
+
+  // Todos os membros dos grupos envolvidos migram para o grupo final
+  list.forEach(ex => {
+    if (curGroup && ex.group === curGroup) ex.group = groupId;
+    if (nextGroup && ex.group === nextGroup) ex.group = groupId;
+  });
   list[idx].group = groupId;
-  next.group = groupId;
+  list[idx + 1].group = groupId;
 
   renderDayBody(day, list);
 }
