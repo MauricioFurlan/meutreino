@@ -1,8 +1,9 @@
-const CACHE_NAME = 'treino-v3';
+const CACHE_NAME = 'treino-v4';
 const urlsToCache = [
   '/meutreino/login.html',
   '/meutreino/index.html',
   '/meutreino/professor.html',
+  '/meutreino/treinos.html',
   '/meutreino/editor.html',
   '/meutreino/anamnese.html',
   '/meutreino/treinador.html',

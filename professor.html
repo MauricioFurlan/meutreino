@@ -381,7 +381,7 @@ function renderStudents() {
           <div class="actions">
             <button class="action-btn" onclick="openRenewModal('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')">Renovar</button>
             <button class="action-btn" onclick="location.href='treinador.html?aluno=${s.id}'">📊 Ver</button>
-            <button class="action-btn" onclick="location.href='editor.html?aluno=${s.id}'">🏋️ Treino</button>
+            <button class="action-btn" onclick="location.href='treinos.html?aluno=${s.id}'">🏋️ Treinos</button>
             <button class="action-btn" onclick="location.href='anamnese.html?aluno=${s.id}'">🩺 Anamnese</button>
           </div>
         </div>

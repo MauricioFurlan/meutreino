@@ -46,6 +46,96 @@
     }
     .date-field input[type="date"]:focus { outline: none; border-color: #f5c518; }
 
+    /* Opções do plano (ativo + importar) */
+    .options-row { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
+    .opt-card {
+      display: flex; align-items: center; gap: 12px;
+      background: #1a1a1a; border: 1px solid #333; border-radius: 12px; padding: 12px 14px;
+    }
+    .opt-card.on { border-color: #4caf50; background: #161c16; }
+    .opt-text { flex: 1; min-width: 0; }
+    .opt-title { font-size: 0.82rem; font-weight: 700; color: #f0f0f0; }
+    .opt-sub { font-size: 0.66rem; color: #888; margin-top: 3px; line-height: 1.4; }
+    .toggle { position: relative; display: block; width: 46px; height: 26px; flex-shrink: 0; }
+    .toggle input { display: none; }
+    .toggle-slider {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: #555; border-radius: 26px; cursor: pointer; transition: 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; width: 20px; height: 20px;
+      left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: #4caf50; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+    .import-open-btn {
+      width: 100%; min-height: 46px; border: 1px dashed #f5c518; border-radius: 12px;
+      background: none; color: #f5c518; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    }
+    .import-open-btn:active { opacity: 0.6; }
+
+    /* Modal de importação */
+    .modal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9); z-index: 1000; align-items: flex-end; justify-content: center;
+    }
+    .modal.show { display: flex; }
+    .modal-content {
+      background: #1a1a1a; border-radius: 16px 16px 0 0; padding: 18px;
+      width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto;
+      border: 1px solid #333; padding-bottom: calc(18px + env(safe-area-inset-bottom));
+    }
+    .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .modal-head h3 { color: #f5c518; font-size: 0.95rem; }
+    .modal-x {
+      background: none; border: none; color: #888; font-size: 1.1rem; cursor: pointer;
+      padding: 4px 8px; line-height: 1;
+    }
+    .modal-sub { font-size: 0.7rem; color: #888; margin-bottom: 12px; line-height: 1.4; }
+    .modal-close {
+      width: 100%; min-height: 46px; border: none; border-radius: 10px;
+      background: #2a2a2a; color: #999; font-weight: 600; font-size: 0.85rem;
+      cursor: pointer; margin-top: 14px;
+    }
+    .import-search {
+      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #333;
+      background: #0d0d0d; color: #fff; font-size: 16px; box-sizing: border-box; margin-bottom: 10px;
+    }
+    .import-search:focus { outline: none; border-color: #f5c518; }
+    .pick-item {
+      display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+      background: #0d0d0d; border: 1px solid #333; border-radius: 12px;
+      padding: 12px 14px; margin-bottom: 8px; cursor: pointer; min-height: 52px;
+    }
+    .pick-item:active { border-color: #f5c518; }
+    .pick-item .pick-avatar {
+      width: 34px; height: 34px; border-radius: 50%; background: #262626; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #f5c518; font-weight: 700; font-size: 0.8rem;
+    }
+    .pick-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+    .pick-title { display: block; font-size: 0.85rem; font-weight: 600; color: #f0f0f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pick-meta { display: block; font-size: 0.68rem; color: #888; }
+    .pick-arrow { color: #555; font-size: 0.8rem; flex-shrink: 0; }
+    .pick-badge {
+      display: inline-block; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.3px;
+      padding: 2px 7px; border-radius: 8px; background: #1b3a1b; color: #4caf50; margin-left: 6px;
+    }
+    .back-link {
+      background: none; border: none; color: #f5c518; font-size: 0.75rem;
+      cursor: pointer; padding: 4px 0 10px; font-weight: 600;
+    }
+    .confirm-btn {
+      width: 100%; min-height: 50px; border: none; border-radius: 12px;
+      background: #f5c518; color: #000; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 12px;
+    }
+    .confirm-btn:active { opacity: 0.7; }
+    .preview-day { margin-bottom: 12px; }
+    .preview-day h4 { font-size: 0.75rem; color: #f5c518; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .preview-ex { font-size: 0.76rem; color: #ddd; padding: 4px 0; border-bottom: 1px solid #222; }
+    .preview-ex .sets { color: #888; font-size: 0.68rem; }
+    .modal-empty { text-align: center; padding: 26px 12px; color: #666; font-size: 0.8rem; line-height: 1.6; }
+
     /* Accordion dias */
     .day-accordion { margin: 0 12px 8px; border: 1px solid #333; border-radius: 12px; background: #1a1a1a; }
     .day-header {
@@ -189,8 +279,8 @@
   </div>
 
   <div class="header">
-    <button class="nav-btn left" onclick="location.href='professor.html'">← Voltar</button>
-    <h1 id="heading">Editor de Treino</h1>
+    <button class="nav-btn left" id="backBtn" onclick="goBack()">← Voltar</button>
+    <h1 id="heading">Novo Treino</h1>
     <div class="subtitle" id="studentName"></div>
   </div>
 
@@ -209,10 +299,53 @@
     </div>
   </div>
 
+  <div class="options-row">
+    <div class="opt-card on" id="activeCard">
+      <div class="opt-text">
+        <div class="opt-title">Enviar para o aluno</div>
+        <div class="opt-sub" id="activeHint">Ao salvar, esta ficha fica ativa para o aluno.</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="planActive" checked onchange="onActiveChange()">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+    <button class="import-open-btn" id="importOpenBtn" onclick="openImport()">⬇ Importar treino de outro aluno</button>
+  </div>
+
   <div id="daysContainer"></div>
 
   <div class="save-bar">
     <button id="saveBtn" onclick="savePlan()">Salvar Treino</button>
+  </div>
+
+  <!-- Modal de importação -->
+  <div class="modal" id="importModal">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3 id="importTitle">Importar treino</h3>
+        <button class="modal-x" onclick="closeImport()">✕</button>
+      </div>
+      <div class="modal-sub" id="importSub">Escolha de qual aluno copiar o treino.</div>
+
+      <div id="importStep1">
+        <input type="text" class="import-search" id="importSearch" placeholder="Buscar aluno..." oninput="renderImportStudents()">
+        <div id="importStudents"></div>
+      </div>
+
+      <div id="importStep2" style="display:none;">
+        <button class="back-link" onclick="showImportStep(1)">← Trocar aluno</button>
+        <div id="importPlans"></div>
+      </div>
+
+      <div id="importStep3" style="display:none;">
+        <button class="back-link" onclick="showImportStep(2)">← Escolher outro treino</button>
+        <div id="importPreview"></div>
+        <button class="confirm-btn" onclick="confirmImport()">✓ Usar este treino</button>
+      </div>
+
+      <button class="modal-close" onclick="closeImport()">Cancelar</button>
+    </div>
   </div>
 
   <div class="toast" id="toast"></div>
@@ -226,6 +359,11 @@ function hideLoading() { document.getElementById('loadingOverlay').classList.add
 const DAYS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
 let studentId = null;
 let coachId = null;
+let planId = null;              // preenchido quando editando um treino existente
+let otherActivePlan = null;     // treino ativo do aluno diferente do que está aberto
+let importStudentsCache = [];   // alunos do professor (exceto o alvo)
+let importPlansCache = [];      // treinos do aluno escolhido no modal
+let importSelectedPlan = null;  // treino escolhido para importar
 
 const esc = (s) => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
 
@@ -236,9 +374,35 @@ function showToast(text, isError) {
   setTimeout(() => t.className = 'toast', 2500);
 }
 
-// === Obter aluno da URL ===
-function getStudentIdFromUrl() {
-  return new URLSearchParams(location.search).get('aluno');
+// === Parâmetros da URL ===
+function getParam(name) {
+  return new URLSearchParams(location.search).get(name);
+}
+
+function goBack() {
+  if (studentId) location.href = 'treinos.html?aluno=' + encodeURIComponent(studentId);
+  else location.href = 'professor.html';
+}
+
+// === Toggle "enviar para o aluno" ===
+function onActiveChange() {
+  const on = document.getElementById('planActive').checked;
+  document.getElementById('activeCard').classList.toggle('on', on);
+  updateActiveHint();
+}
+
+function updateActiveHint() {
+  const on = document.getElementById('planActive').checked;
+  const hint = document.getElementById('activeHint');
+  if (!on) {
+    hint.textContent = 'Fica salvo no histórico, mas o aluno não vê esta ficha.';
+    return;
+  }
+  if (otherActivePlan) {
+    hint.textContent = `Ao salvar, "${otherActivePlan.title || 'Treino'}" será desativado automaticamente.`;
+  } else {
+    hint.textContent = 'Ao salvar, esta ficha fica ativa para o aluno.';
+  }
 }
 
 // === Estrutura padrão vazia ===
@@ -597,6 +761,7 @@ async function savePlan() {
   const structure = collectStructure();
   const planStartDate = document.getElementById('planStartDate').value || null;
   const planEndDate = document.getElementById('planEndDate').value || null;
+  const makeActive = document.getElementById('planActive').checked;
 
   // Validação básica
   const totalEx = Object.values(structure).reduce((sum, d) => sum + d.length, 0);
@@ -607,27 +772,52 @@ async function savePlan() {
   btn.textContent = 'Salvando...';
 
   try {
-    // Desativa plano anterior
-    await _sb.from('workout_plans')
-      .update({ is_active: false })
-      .eq('student_id', studentId)
-      .eq('is_active', true);
+    // Só 1 treino ativo por aluno (índice único no banco): desativa os outros antes
+    if (makeActive) {
+      let q = _sb.from('workout_plans')
+        .update({ is_active: false })
+        .eq('student_id', studentId)
+        .eq('is_active', true);
+      if (planId) q = q.neq('id', planId);
+      const { error } = await q;
+      if (error) throw error;
+    }
 
-    // Cria novo plano ativo
-    const { error } = await _sb.from('workout_plans').insert({
-      student_id: studentId,
-      coach_id: coachId,
-      title,
-      structure,
-      is_active: true,
-      plan_start_date: planStartDate,
-      plan_end_date: planEndDate
-    });
+    if (planId) {
+      // Edição: atualiza o treino existente (mantém o histórico limpo)
+      const { error } = await _sb.from('workout_plans').update({
+        title: title || 'Treino',
+        structure,
+        is_active: makeActive,
+        plan_start_date: planStartDate,
+        plan_end_date: planEndDate
+      }).eq('id', planId);
+      if (error) throw error;
+    } else {
+      // Criação: insere um novo treino no histórico do aluno
+      const { data, error } = await _sb.from('workout_plans').insert({
+        student_id: studentId,
+        coach_id: coachId,
+        title: title || 'Treino',
+        structure,
+        is_active: makeActive,
+        plan_start_date: planStartDate,
+        plan_end_date: planEndDate
+      }).select('id').maybeSingle();
+      if (error) throw error;
+      // Passa para modo edição: salvar de novo não duplica o treino
+      if (data && data.id) {
+        planId = data.id;
+        document.getElementById('heading').textContent = 'Editar Treino';
+        history.replaceState(null, '', 'editor.html?plan=' + encodeURIComponent(planId));
+      }
+    }
 
-    if (error) throw error;
-    showToast('Treino salvo com sucesso!');
+    otherActivePlan = makeActive ? null : otherActivePlan;
+    updateActiveHint();
+    showToast(makeActive ? 'Treino salvo e enviado ao aluno!' : 'Treino salvo no histórico (inativo).');
     btn.textContent = '✓ Salvo!';
-    setTimeout(() => { btn.textContent = 'Salvar Treino'; btn.disabled = false; }, 2000);
+    setTimeout(() => { btn.textContent = 'Salvar Treino'; btn.disabled = false; }, 1500);
   } catch (e) {
     showToast('Erro: ' + e.message, true);
     btn.textContent = 'Salvar Treino';
@@ -635,12 +825,210 @@ async function savePlan() {
   }
 }
 
+// =====================================================================
+// Importar treino de outro aluno
+// Copia apenas a PRESCRIÇÃO (título + estrutura). Nenhum registro de
+// execução (workout_logs) é copiado — o histórico do aluno é dele.
+// =====================================================================
+function openImport() {
+  document.getElementById('importModal').classList.add('show');
+  showImportStep(1);
+  if (importStudentsCache.length === 0) loadImportStudents();
+}
+
+function closeImport() {
+  document.getElementById('importModal').classList.remove('show');
+}
+
+function showImportStep(n) {
+  document.getElementById('importStep1').style.display = n === 1 ? 'block' : 'none';
+  document.getElementById('importStep2').style.display = n === 2 ? 'block' : 'none';
+  document.getElementById('importStep3').style.display = n === 3 ? 'block' : 'none';
+  const titles = { 1: 'Importar treino', 2: 'Treinos do aluno', 3: 'Confirmar importação' };
+  const subs = {
+    1: 'Escolha de qual aluno copiar o treino.',
+    2: 'Toque no treino que deseja copiar.',
+    3: 'Revise o treino antes de trazer para o editor.'
+  };
+  document.getElementById('importTitle').textContent = titles[n];
+  document.getElementById('importSub').textContent = subs[n];
+}
+
+async function loadImportStudents() {
+  const box = document.getElementById('importStudents');
+  box.innerHTML = '<div class="modal-empty">Carregando alunos...</div>';
+
+  const { data, error } = await _sb.from('profiles')
+    .select('id, full_name, gym_name')
+    .eq('coach_id', coachId)
+    .eq('role', 'student')
+    .eq('is_deleted', false)
+    .order('full_name', { ascending: true });
+
+  if (error) { box.innerHTML = '<div class="modal-empty">Erro ao carregar alunos.</div>'; return; }
+
+  // Exclui o aluno alvo da lista
+  const others = (data || []).filter(s => s.id !== studentId);
+
+  // Mantém só quem tem treino cadastrado (evita beco sem saída no fluxo)
+  if (others.length > 0) {
+    const { data: rows } = await _sb.from('workout_plans')
+      .select('student_id')
+      .in('student_id', others.map(s => s.id));
+    const counts = {};
+    (rows || []).forEach(r => { counts[r.student_id] = (counts[r.student_id] || 0) + 1; });
+    importStudentsCache = others
+      .filter(s => counts[s.id])
+      .map(s => Object.assign({}, s, { plan_count: counts[s.id] }));
+  } else {
+    importStudentsCache = [];
+  }
+
+  renderImportStudents();
+}
+
+function renderImportStudents() {
+  const box = document.getElementById('importStudents');
+  const term = (document.getElementById('importSearch').value || '').trim().toLowerCase();
+  const list = term
+    ? importStudentsCache.filter(s => (s.full_name || '').toLowerCase().includes(term))
+    : importStudentsCache;
+
+  if (importStudentsCache.length === 0) {
+    box.innerHTML = '<div class="modal-empty">Nenhum outro aluno seu tem treino cadastrado ainda.</div>';
+    return;
+  }
+  if (list.length === 0) {
+    box.innerHTML = '<div class="modal-empty">Nenhum aluno encontrado.</div>';
+    return;
+  }
+
+  box.innerHTML = list.map(s => {
+    const initial = (s.full_name || '?').trim().charAt(0).toUpperCase();
+    const meta = [
+      `${s.plan_count} treino${s.plan_count !== 1 ? 's' : ''}`,
+      s.gym_name || null
+    ].filter(Boolean).join(' · ');
+    return `
+      <button class="pick-item" onclick="pickImportStudent('${s.id}')">
+        <span class="pick-avatar">${esc(initial)}</span>
+        <span class="pick-body">
+          <span class="pick-title">${esc(s.full_name || 'Aluno')}</span>
+          <span class="pick-meta">${esc(meta)}</span>
+        </span>
+        <span class="pick-arrow">›</span>
+      </button>
+    `;
+  }).join('');
+}
+
+async function pickImportStudent(sourceStudentId) {
+  showImportStep(2);
+  const box = document.getElementById('importPlans');
+  box.innerHTML = '<div class="modal-empty">Carregando treinos...</div>';
+
+  const { data, error } = await _sb.from('workout_plans')
+    .select('id, title, structure, is_active, plan_start_date, plan_end_date, created_at')
+    .eq('student_id', sourceStudentId)
+    .order('is_active', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) { box.innerHTML = '<div class="modal-empty">Erro ao carregar treinos.</div>'; return; }
+
+  importPlansCache = data || [];
+  if (importPlansCache.length === 0) {
+    box.innerHTML = '<div class="modal-empty">Esse aluno não tem treino cadastrado.<br>Escolha outro aluno.</div>';
+    return;
+  }
+
+  box.innerHTML = importPlansCache.map(p => {
+    const total = countExercises(p.structure);
+    const days = activeDays(p.structure);
+    const created = new Date(p.created_at).toLocaleDateString('pt-BR');
+    return `
+      <button class="pick-item" onclick="pickImportPlan('${p.id}')">
+        <span class="pick-body">
+          <span class="pick-title">${esc(p.title || 'Treino')}${p.is_active ? '<span class="pick-badge">ATIVO</span>' : ''}</span>
+          <span class="pick-meta">${total} exercício${total !== 1 ? 's' : ''} · ${days.length} dia${days.length !== 1 ? 's' : ''} · ${created}</span>
+        </span>
+        <span class="pick-arrow">›</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function countExercises(structure) {
+  if (!structure) return 0;
+  return DAYS.reduce((sum, d) => sum + (Array.isArray(structure[d]) ? structure[d].length : 0), 0);
+}
+
+function activeDays(structure) {
+  if (!structure) return [];
+  return DAYS.filter(d => Array.isArray(structure[d]) && structure[d].length > 0);
+}
+
+function pickImportPlan(sourcePlanId) {
+  const p = importPlansCache.find(x => x.id === sourcePlanId);
+  if (!p) return;
+  importSelectedPlan = p;
+  showImportStep(3);
+
+  const st = p.structure || {};
+  let html = `<div class="pick-title" style="margin-bottom:10px;">${esc(p.title || 'Treino')}</div>`;
+  DAYS.forEach(day => {
+    const list = Array.isArray(st[day]) ? st[day] : [];
+    if (list.length === 0) return;
+    let exHtml = '';
+    list.forEach(ex => {
+      const sets = (ex.sets || []).map(s => `${(s.type || '').toUpperCase()} ${s.reps || ''}`.trim()).join(' | ');
+      exHtml += `<div class="preview-ex">${ex.group ? '🔗 ' : ''}${esc(ex.name || '')}${sets ? `<div class="sets">${esc(sets)}</div>` : ''}</div>`;
+    });
+    html += `<div class="preview-day"><h4>${day} · ${list.length} ex.</h4>${exHtml}</div>`;
+  });
+  document.getElementById('importPreview').innerHTML = html;
+}
+
+function confirmImport() {
+  if (!importSelectedPlan) return;
+  // Cópia profunda: nada do plano de origem fica referenciado
+  const copy = JSON.parse(JSON.stringify(importSelectedPlan.structure || {}));
+  const structure = emptyStructure();
+  DAYS.forEach(d => { if (Array.isArray(copy[d])) structure[d] = copy[d]; });
+
+  const currentTitle = document.getElementById('planTitle').value.trim();
+  if (!currentTitle) document.getElementById('planTitle').value = importSelectedPlan.title || 'Treino';
+
+  renderEditor(structure);
+  closeImport();
+  showToast('Treino importado — revise e toque em Salvar.');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 // === Inicialização ===
 guard('trainer', {
   onReady: async (session, profile) => {
     showLoading();
     coachId = profile.id;
-    studentId = getStudentIdFromUrl();
+    planId = getParam('plan');
+    studentId = getParam('aluno');
+
+    let plan = null;
+
+    if (planId) {
+      // Modo edição: o aluno vem do próprio treino
+      const { data } = await _sb.from('workout_plans')
+        .select('id, student_id, title, structure, is_active, plan_start_date, plan_end_date')
+        .eq('id', planId)
+        .maybeSingle();
+      if (!data) {
+        hideLoading();
+        document.getElementById('daysContainer').innerHTML = '<div class="loading">Treino não encontrado.<br><a href="professor.html" style="color:#f5c518;">Voltar</a></div>';
+        return;
+      }
+      plan = data;
+      studentId = data.student_id;
+      document.getElementById('heading').textContent = 'Editar Treino';
+    }
 
     if (!studentId) {
       hideLoading();
@@ -648,33 +1036,41 @@ guard('trainer', {
       return;
     }
 
-    // Busca nome do aluno
+    // Nome do aluno
     const { data: student } = await _sb.from('profiles')
       .select('full_name')
       .eq('id', studentId)
       .maybeSingle();
     document.getElementById('studentName').textContent = student?.full_name || '';
 
-    // Carrega plano ativo (se existir)
-    const { data: plan } = await _sb.from('workout_plans')
-      .select('title, structure, plan_start_date, plan_end_date')
+    // Treino ativo do aluno (para avisar que será substituído)
+    const { data: active } = await _sb.from('workout_plans')
+      .select('id, title')
       .eq('student_id', studentId)
       .eq('is_active', true)
       .maybeSingle();
+    otherActivePlan = (active && active.id !== planId) ? active : null;
 
     const today = new Date().toISOString().split('T')[0];
     if (plan) {
       document.getElementById('planTitle').value = plan.title || '';
-      document.getElementById('planStartDate').value = plan.plan_start_date || today;
+      document.getElementById('planStartDate').value = plan.plan_start_date || '';
       document.getElementById('planEndDate').value = plan.plan_end_date || '';
+      document.getElementById('planActive').checked = !!plan.is_active;
       renderEditor(plan.structure || emptyStructure());
     } else {
       document.getElementById('planTitle').value = '';
       document.getElementById('planStartDate').value = today;
       document.getElementById('planEndDate').value = '';
+      document.getElementById('planActive').checked = true;
       renderEditor(emptyStructure());
     }
+    onActiveChange();
+
     hideLoading();
+
+    // Abertura direta do modal de importação (vindo de treinos.html)
+    if (getParam('importar') === '1') openImport();
   },
   onBlocked: () => { location.replace('login.html'); }
 });

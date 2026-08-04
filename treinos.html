@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Treinos do Aluno</title>
+  <meta name="theme-color" content="#f5c518">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://qslvwyhpamazoqhcmqan.supabase.co; img-src 'self' data:;">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body::-webkit-scrollbar, *::-webkit-scrollbar { display: none; }
+    body, * { scrollbar-width: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0d0d0d; color: #f0f0f0; min-height: 100vh; padding-bottom: 90px;
+      -webkit-text-size-adjust: 100%;
+    }
+    .header {
+      background: #1a1a1a; padding: 16px; text-align: center;
+      border-bottom: 1px solid #333; position: relative;
+    }
+    .header h1 { font-size: 1.1rem; color: #f5c518; letter-spacing: 1px; }
+    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .nav-btn {
+      position: absolute; top: 12px; background: none; border: 1px solid #555;
+      color: #999; font-size: 0.65rem; padding: 7px 11px; border-radius: 12px; cursor: pointer;
+    }
+    .nav-btn:active { opacity: 0.6; }
+    .nav-btn.left { left: 12px; }
+    .nav-btn.right { right: 12px; }
+
+    .section { padding: 14px 12px; overflow: hidden; }
+    .section-title {
+      font-size: 0.85rem; color: #f5c518; font-weight: 700; margin-bottom: 12px;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .section-title span { font-weight: 400; color: #888; font-size: 0.7rem; text-transform: none; letter-spacing: 0; }
+
+    .hint {
+      font-size: 0.7rem; color: #888; margin-top: 10px; line-height: 1.4;
+      background: #141414; border: 1px solid #262626; border-radius: 8px; padding: 10px 12px;
+    }
+    .hint strong { color: #4caf50; }
+
+    /* Card de treino */
+    .plan-card {
+      background: #1a1a1a; border: 1px solid #333; border-radius: 14px;
+      padding: 14px; margin-bottom: 12px; position: relative; overflow: hidden;
+    }
+    .plan-card.active { border-color: #4caf50; background: #161c16; }
+    .plan-top { display: flex; align-items: flex-start; gap: 10px; }
+    .plan-main { flex: 1; min-width: 0; }
+    .plan-title {
+      font-size: 0.95rem; font-weight: 700; color: #fff;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .plan-badge {
+      display: inline-block; font-size: 0.58rem; font-weight: 700; letter-spacing: 0.4px;
+      padding: 3px 8px; border-radius: 10px; margin-top: 6px; text-transform: uppercase;
+    }
+    .plan-badge.on { background: #1b3a1b; color: #4caf50; }
+    .plan-badge.off { background: #2a2a2a; color: #888; }
+    .plan-meta { font-size: 0.7rem; color: #999; margin-top: 6px; line-height: 1.5; }
+    .plan-meta .sep { color: #444; }
+    .plan-days { font-size: 0.68rem; color: #777; margin-top: 4px; }
+
+    /* Toggle */
+    .toggle-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; padding: 2px 0; }
+    .toggle-wrap .toggle-label { font-size: 0.55rem; color: #777; text-transform: uppercase; font-weight: 700; letter-spacing: 0.3px; }
+    .toggle { position: relative; display: block; width: 46px; height: 26px; flex-shrink: 0; }
+    .toggle input { display: none; }
+    .toggle-slider {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: #555; border-radius: 26px; cursor: pointer; transition: 0.2s;
+    }
+    .toggle-slider::before {
+      content: ''; position: absolute; width: 20px; height: 20px;
+      left: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: 0.2s;
+    }
+    .toggle input:checked + .toggle-slider { background: #4caf50; }
+    .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
+    .toggle input:disabled + .toggle-slider { opacity: 0.5; }
+
+    /* Ações */
+    .plan-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .action-btn {
+      flex: 1; min-width: 88px; min-height: 40px; padding: 8px 10px;
+      border: 1px solid #555; border-radius: 10px; background: none;
+      color: #ccc; font-size: 0.72rem; font-weight: 600; cursor: pointer;
+    }
+    .action-btn:active { opacity: 0.6; }
+    .action-btn.primary { border-color: #f5c518; color: #f5c518; }
+    .action-btn.danger { border-color: #f44336; color: #f44336; flex: 0 0 46px; min-width: 46px; font-size: 0.95rem; }
+
+    /* Barra fixa de criação */
+    .bottom-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; background: #1a1a1a;
+      border-top: 1px solid #333; padding: 12px; z-index: 100;
+      display: flex; gap: 8px; padding-bottom: calc(12px + env(safe-area-inset-bottom));
+    }
+    .bottom-bar button {
+      min-height: 48px; border: none; border-radius: 12px; font-weight: 700;
+      font-size: 0.85rem; cursor: pointer;
+    }
+    .bottom-bar .new-btn { flex: 1.4; background: #f5c518; color: #000; }
+    .bottom-bar .import-btn { flex: 1; background: #2a2a2a; color: #f5c518; border: 1px solid #444; }
+    .bottom-bar button:active { opacity: 0.7; }
+
+    .empty-state { text-align: center; padding: 34px 20px; color: #666; font-size: 0.85rem; line-height: 1.6; }
+
+    .toast {
+      position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+      background: #f5c518; color: #000; padding: 10px 20px; border-radius: 20px;
+      font-size: 0.85rem; font-weight: 600; display: none; z-index: 1001; max-width: 90vw; text-align: center;
+    }
+    .toast.error { background: #f44336; color: #fff; }
+    .toast.show { display: block; animation: fadeOut 2.8s forwards; }
+    @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
+
+    /* Modal visualizar treino */
+    .modal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9); z-index: 1000; align-items: flex-end; justify-content: center;
+    }
+    .modal.show { display: flex; }
+    .modal-content {
+      background: #1a1a1a; border-radius: 16px 16px 0 0; padding: 18px;
+      width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto;
+      border: 1px solid #333; padding-bottom: calc(18px + env(safe-area-inset-bottom));
+    }
+    .modal-content h3 { color: #f5c518; font-size: 0.95rem; margin-bottom: 14px; }
+    .modal-close {
+      width: 100%; min-height: 46px; border: none; border-radius: 10px;
+      background: #2a2a2a; color: #999; font-weight: 600; font-size: 0.85rem;
+      cursor: pointer; margin-top: 14px;
+    }
+    .view-day { margin-bottom: 14px; }
+    .view-day h4 { font-size: 0.78rem; color: #f5c518; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .view-ex { font-size: 0.78rem; color: #f0f0f0; padding: 5px 0; border-bottom: 1px solid #222; }
+    .view-ex .sets { color: #888; font-size: 0.7rem; }
+    .view-ex .grp { color: #f5c518; font-size: 0.6rem; font-weight: 700; }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(13,13,13,0.92); z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; transition: opacity 0.3s;
+    }
+    .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .loading-spinner {
+      width: 44px; height: 44px; border: 3px solid #333;
+      border-top-color: #f5c518; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
+  </style>
+</head>
+<body>
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Carregando...</div>
+  </div>
+
+  <div class="header">
+    <button class="nav-btn left" onclick="location.href='professor.html'">← Voltar</button>
+    <h1>Treinos</h1>
+    <div class="subtitle" id="studentName"></div>
+  </div>
+
+  <div class="section" style="padding-bottom:0;">
+    <div class="hint">O aluno vê <strong>apenas o treino ativo</strong>. Ative um treino para enviar a ficha; os demais ficam no histórico.</div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Histórico <span id="planCount"></span></div>
+    <div id="plansList"></div>
+  </div>
+
+  <div class="bottom-bar">
+    <button class="new-btn" id="newBtn">+ Novo Treino</button>
+    <button class="import-btn" id="importBtn">⬇ Importar</button>
+  </div>
+
+  <!-- Modal visualizar treino -->
+  <div class="modal" id="viewModal">
+    <div class="modal-content">
+      <h3 id="viewTitle">Treino</h3>
+      <div id="viewBody"></div>
+      <button class="modal-close" onclick="closeView()">Fechar</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-guard.js"></script>
+<script>
+const DAYS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+let studentId = null;
+let coachId = null;
+let plans = [];
+let busy = false;
+
+function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+
+const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
+
+function showToast(text, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2800);
+}
+
+function fmtDate(d) {
+  if (!d) return null;
+  const [y, m, dd] = d.split('-');
+  return `${dd}/${m}/${y}`;
+}
+function fmtShort(d) {
+  if (!d) return null;
+  const [, m, dd] = d.split('-');
+  return `${dd}/${m}`;
+}
+
+function countExercises(structure) {
+  if (!structure) return 0;
+  return DAYS.reduce((sum, d) => sum + (Array.isArray(structure[d]) ? structure[d].length : 0), 0);
+}
+function activeDays(structure) {
+  if (!structure) return [];
+  return DAYS.filter(d => Array.isArray(structure[d]) && structure[d].length > 0);
+}
+
+// === Carregar treinos do aluno ===
+async function loadPlans() {
+  const { data, error } = await _sb.from('workout_plans')
+    .select('id, title, structure, is_active, plan_start_date, plan_end_date, created_at, updated_at')
+    .eq('student_id', studentId)
+    .order('is_active', { ascending: false })
+    .order('created_at', { ascending: false });
+
+  if (error) { showToast('Erro ao carregar treinos: ' + error.message, true); return; }
+  plans = data || [];
+  renderPlans();
+}
+
+function renderPlans() {
+  const container = document.getElementById('plansList');
+  const countEl = document.getElementById('planCount');
+  countEl.textContent = plans.length ? `(${plans.length})` : '';
+
+  if (plans.length === 0) {
+    container.innerHTML = `<div class="empty-state">
+      Nenhum treino cadastrado.<br>
+      Toque em <strong>+ Novo Treino</strong> para montar do zero,<br>ou em <strong>Importar</strong> para copiar de outro aluno.
+    </div>`;
+    return;
+  }
+
+  container.innerHTML = plans.map(p => {
+    const total = countExercises(p.structure);
+    const days = activeDays(p.structure);
+    const period = (p.plan_start_date || p.plan_end_date)
+      ? `📅 ${fmtShort(p.plan_start_date) || '...'} — ${fmtShort(p.plan_end_date) || '...'}`
+      : null;
+    const created = new Date(p.created_at).toLocaleDateString('pt-BR');
+    const meta = [
+      `${total} exercício${total !== 1 ? 's' : ''}`,
+      `${days.length} dia${days.length !== 1 ? 's' : ''}`,
+      period
+    ].filter(Boolean).join(' <span class="sep">·</span> ');
+
+    return `
+      <div class="plan-card ${p.is_active ? 'active' : ''}">
+        <div class="plan-top">
+          <div class="plan-main">
+            <div class="plan-title">${esc(p.title || 'Treino')}</div>
+            <span class="plan-badge ${p.is_active ? 'on' : 'off'}">${p.is_active ? '● Ativo para o aluno' : 'Inativo'}</span>
+            <div class="plan-meta">${meta}</div>
+            <div class="plan-days">${days.length ? esc(days.join(' · ')) : 'Sem exercícios'} <span class="sep">·</span> criado ${created}</div>
+          </div>
+          <div class="toggle-wrap">
+            <span class="toggle-label">${p.is_active ? 'On' : 'Off'}</span>
+            <label class="toggle">
+              <input type="checkbox" ${p.is_active ? 'checked' : ''} data-plan="${p.id}" onchange="onToggle(this)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
+        <div class="plan-actions">
+          <button class="action-btn" onclick="viewPlan('${p.id}')">👁 Ver</button>
+          <button class="action-btn primary" onclick="location.href='editor.html?plan=${p.id}'">✏️ Editar</button>
+          <button class="action-btn" onclick="duplicatePlan('${p.id}')">📋 Duplicar</button>
+          <button class="action-btn danger" onclick="deletePlan('${p.id}')" title="Excluir">×</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// === Ativar / desativar ===
+async function onToggle(input) {
+  if (busy) { input.checked = !input.checked; return; }
+  const planId = input.dataset.plan;
+  const turnOn = input.checked;
+  busy = true;
+  document.querySelectorAll('.toggle input').forEach(i => i.disabled = true);
+
+  try {
+    if (turnOn) {
+      // Só 1 treino ativo por aluno: desativa os outros antes (índice único no banco)
+      const { error: e1 } = await _sb.from('workout_plans')
+        .update({ is_active: false })
+        .eq('student_id', studentId)
+        .eq('is_active', true)
+        .neq('id', planId);
+      if (e1) throw e1;
+
+      const { error: e2 } = await _sb.from('workout_plans')
+        .update({ is_active: true })
+        .eq('id', planId);
+      if (e2) throw e2;
+      showToast('Treino ativado — o aluno já recebeu a ficha.');
+    } else {
+      const { error } = await _sb.from('workout_plans')
+        .update({ is_active: false })
+        .eq('id', planId);
+      if (error) throw error;
+      showToast('Treino desativado — o aluno não verá nenhuma ficha.');
+    }
+    await loadPlans();
+  } catch (e) {
+    showToast('Erro: ' + e.message, true);
+    await loadPlans();
+  } finally {
+    busy = false;
+    document.querySelectorAll('.toggle input').forEach(i => i.disabled = false);
+  }
+}
+
+// === Visualizar (somente leitura) ===
+function viewPlan(planId) {
+  const p = plans.find(x => x.id === planId);
+  if (!p) return;
+  document.getElementById('viewTitle').textContent = p.title || 'Treino';
+
+  const st = p.structure || {};
+  let html = '';
+  DAYS.forEach(day => {
+    const list = Array.isArray(st[day]) ? st[day] : [];
+    if (list.length === 0) return;
+    let exHtml = '';
+    let lastGroup = null;
+    list.forEach(ex => {
+      const sets = (ex.sets || []).map(s => `${(s.type || '').toUpperCase()} ${esc(s.reps || '')}`.trim()).join(' | ');
+      const isGrp = ex.group && ex.group !== lastGroup;
+      lastGroup = ex.group || null;
+      exHtml += `<div class="view-ex">
+        ${ex.group ? `<span class="grp">🔗${isGrp ? ' GRUPO' : ''}</span> ` : ''}${esc(ex.name || '')}
+        ${sets ? `<div class="sets">${esc(sets)}</div>` : ''}
+        ${ex.note ? `<div class="sets">❗ ${esc(ex.note)}</div>` : ''}
+      </div>`;
+    });
+    html += `<div class="view-day"><h4>${day} · ${list.length} ex.</h4>${exHtml}</div>`;
+  });
+
+  const period = (p.plan_start_date || p.plan_end_date)
+    ? `<div class="plan-meta" style="margin-bottom:12px;">📅 ${fmtDate(p.plan_start_date) || '...'} — ${fmtDate(p.plan_end_date) || '...'}</div>` : '';
+
+  document.getElementById('viewBody').innerHTML = period + (html || '<div class="empty-state">Treino vazio.</div>');
+  document.getElementById('viewModal').classList.add('show');
+}
+function closeView() { document.getElementById('viewModal').classList.remove('show'); }
+
+// === Duplicar treino do próprio aluno (nova fase) ===
+async function duplicatePlan(planId) {
+  const p = plans.find(x => x.id === planId);
+  if (!p) return;
+  if (!confirm(`Criar uma cópia de "${p.title || 'Treino'}"? A cópia entra como inativa.`)) return;
+
+  showLoading();
+  const { error } = await _sb.from('workout_plans').insert({
+    student_id: studentId,
+    coach_id: coachId,
+    title: (p.title || 'Treino') + ' (cópia)',
+    structure: p.structure || {},
+    is_active: false,
+    plan_start_date: null,
+    plan_end_date: null
+  });
+  if (error) { hideLoading(); showToast('Erro: ' + error.message, true); return; }
+  await loadPlans();
+  hideLoading();
+  showToast('Cópia criada. Edite e ative quando quiser.');
+}
+
+// === Excluir treino ===
+async function deletePlan(planId) {
+  const p = plans.find(x => x.id === planId);
+  if (!p) return;
+  const warn = p.is_active
+    ? `"${p.title || 'Treino'}" está ATIVO. Excluir vai deixar o aluno sem ficha. Continuar?`
+    : `Excluir "${p.title || 'Treino'}"? O histórico de execuções do aluno é preservado.`;
+  if (!confirm(warn)) return;
+
+  showLoading();
+  const { error } = await _sb.from('workout_plans').delete().eq('id', planId);
+  if (error) { hideLoading(); showToast('Erro: ' + error.message, true); return; }
+  await loadPlans();
+  hideLoading();
+  showToast('Treino excluído.');
+}
+
+// === Inicialização ===
+guard('trainer', {
+  onReady: async (session, profile) => {
+    showLoading();
+    coachId = profile.id;
+    studentId = new URLSearchParams(location.search).get('aluno');
+
+    if (!studentId) {
+      hideLoading();
+      document.getElementById('plansList').innerHTML =
+        '<div class="empty-state">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#f5c518;">Voltar</a></div>';
+      document.querySelector('.bottom-bar').style.display = 'none';
+      return;
+    }
+
+    document.getElementById('newBtn').onclick = () => location.href = 'editor.html?aluno=' + encodeURIComponent(studentId);
+    document.getElementById('importBtn').onclick = () => location.href = 'editor.html?aluno=' + encodeURIComponent(studentId) + '&importar=1';
+
+    const { data: student } = await _sb.from('profiles')
+      .select('full_name')
+      .eq('id', studentId)
+      .maybeSingle();
+    document.getElementById('studentName').textContent = student?.full_name || '';
+
+    await loadPlans();
+    hideLoading();
+  },
+  onBlocked: () => { location.replace('login.html'); }
+});
+</script>
+</body>
+</html>

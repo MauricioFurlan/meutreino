@@ -7,8 +7,15 @@
 - **URL do treinador:** `https://mauriciofurlan.github.io/meutreino/treinador.html`
 
 ## Arquivos
+- `login.html` — login por e-mail + OTP, redireciona por papel
 - `index.html` — app do aluno (PWA, registra treino)
-- `treinador.html` — visualização do treinador (gráficos, resumo semanal/mensal, notas)
+- `professor.html` — gestão de alunos do professor
+- `treinos.html` — histórico de treinos do aluno (listar, ativar/desativar, ver, duplicar, excluir)
+- `editor.html` — montar/editar um treino (+ importar treino de outro aluno)
+- `anamnese.html` — avaliação física (formulário, histórico, gráficos, PDF)
+- `treinador.html` — acompanhamento do aluno (gráficos, resumo semanal/mensal)
+- `owner.html` — painel do dono (professores, pagamentos, limites)
+- `auth-guard.js` — guarda de sessão/papel/acesso usada por todas as páginas
 - `manifest.json` — configuração PWA
 - `sw.js` — service worker (cache network-first)
 - `icon-192.svg` / `icon-512.svg` — ícones da PWA
@@ -60,6 +67,21 @@
 - Edição de notas por exercício ou set
 - Definição de links de vídeo por exercício
 - Ordem dos exercícios igual ao treino prescrito
+
+### Treinos do aluno (treinos.html + editor.html)
+- `professor.html` → botão **🏋️ Treinos** abre `treinos.html?aluno=<id>` (histórico do aluno)
+- Histórico: um card por treino com título, período, nº de exercícios, dias e data de criação
+- **Toggle por treino** = "ativo para o aluno". Só 1 ativo por aluno (índice único no banco):
+  ao ligar um, os outros são desativados; ao desligar, o aluno fica sem ficha
+- Ações por treino: 👁 Ver (somente leitura), ✏️ Editar, 📋 Duplicar (cria cópia inativa), × Excluir
+  (excluir o plano **não** apaga `workout_logs` — o histórico de execução é preservado)
+- `editor.html?aluno=<id>` cria treino novo; `editor.html?plan=<id>` edita um existente
+  (editar faz UPDATE na mesma linha, então o histórico não enche de duplicatas)
+- Toggle "Enviar para o aluno" dentro do editor, com aviso de qual treino será substituído
+- **Importar treino de outro aluno:** botão no editor (ou `&importar=1`) abre modal em 3 passos —
+  escolher aluno (exclui o aluno alvo e quem não tem treino) → escolher treino → revisar e confirmar.
+  Copia apenas a prescrição (título, exercícios, sets, vídeos, notas, bisets); **nenhum registro
+  de execução é copiado**. O treino cai no editor para revisão antes de salvar.
 
 ## Paleta de cores
 - Fundo: `#0d0d0d`

@@ -23,6 +23,7 @@
 | 8 | `owner.html` (gestão de professores + pagamentos + histórico + limite alunos) | d0ace86 |
 | 8.5 | Hardening XSS/CSP em todas as 7 páginas | b060088 |
 | 9 | PWA (manifest, sw.js v2, cache inteligente, instalável) | 92ca2e4 |
+| 10 | `treinos.html` (histórico de treinos por aluno, toggle de ativação, duplicar) + importar treino de outro aluno no `editor.html` | — |
 
 **Configurações ativas no Supabase:**
 - Email OTP ligado, confirmação de e-mail **desligada**
