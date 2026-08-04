@@ -47,7 +47,7 @@
     .date-field input[type="date"]:focus { outline: none; border-color: #f5c518; }
 
     /* Accordion dias */
-    .day-accordion { margin: 0 12px 8px; border: 1px solid #333; border-radius: 12px; background: #1a1a1a; }
+    .day-accordion { margin: 0 12px 8px; border: 1px solid #333; border-radius: 12px; background: #1a1a1a; overflow: visible; }
     .day-header {
       padding: 14px 16px; cursor: pointer; display: flex; align-items: center;
       justify-content: space-between; user-select: none; border-radius: 12px;
@@ -56,7 +56,7 @@
     .day-header .day-count { font-size: 0.7rem; color: #888; }
     .day-header .arrow { color: #888; font-size: 0.6rem; transition: transform 0.2s; }
     .day-accordion.open .day-header .arrow { transform: rotate(180deg); }
-    .day-body { display: none; padding: 0 10px 12px; }
+    .day-body { display: none; padding: 10px 10px 12px; }
     .day-accordion.open .day-body { display: block; }
 
     /* Exercício */
@@ -125,6 +125,7 @@
       border: 2px solid #f5c518; border-radius: 14px; padding: 12px 10px 10px;
       margin-bottom: 10px; overflow: visible;
     }
+    .day-body > .group-wrapper:first-child { margin-top: 4px; }
     .group-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 0 4px 10px; min-height: 28px; gap: 8px;
