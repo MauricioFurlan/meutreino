@@ -45,14 +45,14 @@
       color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
     }
     .logout-btn:active { opacity: 0.6; }
+    .sticky-top {
+      position: sticky; top: 0; z-index: 99; background: #1a1a1a;
+    }
     .tabs {
       display: flex;
       background: #1a1a1a;
       padding: 8px;
       gap: 4px;
-      position: sticky;
-      top: 0;
-      z-index: 99;
       border-bottom: 1px solid #333;
     }
     .tabs::-webkit-scrollbar { display: none; }
@@ -164,7 +164,7 @@
     /* Timer de treino - discreto */
     .start-workout-row {
       display: flex; flex-direction: column; align-items: stretch; gap: 8px;
-      padding: 10px 16px; background: #141414; border-bottom: 1px solid #222;
+      padding: 10px 16px; background: #1a1a1a; border-bottom: 1px solid #222;
     }
     .start-workout-btn {
       width: 100%; background: none; border: 1px solid #f5c518; color: #f5c518;
@@ -277,12 +277,14 @@
   </div>
   <div class="date-display" id="dateDisplay"></div>
 
-  <div class="tabs" id="tabs"></div>
-
-  <!-- Botão iniciar treino (discreto, abaixo das tabs, só no dia atual) -->
-  <div class="start-workout-row" id="startWorkoutRow" style="display:none;">
-    <button class="start-workout-btn" id="timerStartBtn" onclick="startWorkoutSession()">▶ Iniciar Treino</button>
-    <span class="workout-timer-inline" id="timerInline" style="display:none;">⏱ <span id="timerDisplay">00:00:00</span></span>
+  <!-- Container sticky: tabs + timer acompanham o scroll -->
+  <div class="sticky-top" id="stickyTop">
+    <div class="tabs" id="tabs"></div>
+    <!-- Botão iniciar treino (discreto, abaixo das tabs, só no dia atual) -->
+    <div class="start-workout-row" id="startWorkoutRow" style="display:none;">
+      <button class="start-workout-btn" id="timerStartBtn" onclick="startWorkoutSession()">▶ Iniciar Treino</button>
+      <span class="workout-timer-inline" id="timerInline" style="display:none;">⏱ <span id="timerDisplay">00:00:00</span></span>
+    </div>
   </div>
 
   <div id="content"></div>
