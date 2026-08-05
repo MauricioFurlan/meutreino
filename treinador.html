@@ -507,6 +507,14 @@ const DAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
 const esc = (s) => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
 
+function formatDurationHM(seconds) {
+  if (!seconds || seconds <= 0) return '0min';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h${String(m).padStart(2,'0')}min`;
+  return `${m}min`;
+}
+
 // Carregados dinamicamente do plano do aluno
 let PRESCRIBED_REPS = {};
 let PRESCRIBED_ORDER = {};
@@ -534,17 +542,19 @@ async function loadDay(day, date) {
   container.innerHTML = '<div class="loading">Carregando...</div>';
 
   try {
-    const data = await supaFetch(
-      `workout_logs?student_id=eq.${studentId}&session_date=eq.${date}&order=set_number.asc`
-    );
+    // Buscar logs e sessão do dia em paralelo
+    const [data, sessionData] = await Promise.all([
+      supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=eq.${date}&order=set_number.asc`),
+      supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${date}T00:00:00&started_at=lte.${date}T23:59:59&duration_seconds=not.is.null&order=started_at.desc&limit=1`)
+    ]);
 
-    if (!data || data.length === 0) {
+    if ((!data || data.length === 0) && (!sessionData || sessionData.length === 0)) {
       container.innerHTML = '<div class="no-data">Sem dados registrados nesta data</div>';
       return;
     }
 
     const exercises = {};
-    data.forEach(r => {
+    (data || []).forEach(r => {
       if (!exercises[r.exercise_name]) exercises[r.exercise_name] = [];
       exercises[r.exercise_name].push(r);
     });
@@ -555,14 +565,18 @@ async function loadDay(day, date) {
     dayOrder.forEach(name => {
       if (exercises[name]) orderedNames.push(name);
     });
-    // Adicionar exercícios que não estão no mapa (caso extra)
     Object.keys(exercises).forEach(name => {
       if (!orderedNames.includes(name)) orderedNames.push(name);
     });
 
-    const totalSets = data.length;
+    const totalSets = (data || []).length;
     const totalExercises = orderedNames.length;
-    let html = `<div class="summary"><strong>${totalExercises}</strong> exercícios · <strong>${totalSets}</strong> sets registrados</div>`;
+
+    // Tempo de treino
+    const session = sessionData && sessionData.length > 0 ? sessionData[0] : null;
+    const durationText = session ? ` · <strong>⏱ ${formatDurationHM(session.duration_seconds)}</strong>` : '';
+
+    let html = `<div class="summary"><strong>${totalExercises}</strong> exercícios · <strong>${totalSets}</strong> sets registrados${durationText}</div>`;
 
     orderedNames.forEach((name, exIdx) => {
       const sets = exercises[name];
@@ -821,9 +835,23 @@ async function loadWeekly() {
   container.innerHTML = '<div class="loading">Carregando...</div>';
 
   try {
-    const data = await supaFetch(
-      `workout_logs?student_id=eq.${studentId}&created_at=gte.${startStr}T00:00:00&created_at=lte.${endStr}T23:59:59&order=created_at.asc`
-    );
+    // Buscar logs e sessões em paralelo
+    const [data, sessionsData] = await Promise.all([
+      supaFetch(`workout_logs?student_id=eq.${studentId}&created_at=gte.${startStr}T00:00:00&created_at=lte.${endStr}T23:59:59&order=created_at.asc`),
+      supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${startStr}T00:00:00&started_at=lte.${endStr}T23:59:59&duration_seconds=not.is.null&order=started_at.asc`)
+    ]);
+
+    // Mapa sessões por data
+    const sessionsByDate = {};
+    let totalSessionSeconds = 0;
+    if (sessionsData) {
+      sessionsData.forEach(s => {
+        const d = s.started_at.split('T')[0];
+        if (!sessionsByDate[d]) sessionsByDate[d] = 0;
+        sessionsByDate[d] += s.duration_seconds;
+        totalSessionSeconds += s.duration_seconds;
+      });
+    }
 
     // Agrupar por dia
     const byDay = {};
@@ -846,6 +874,7 @@ async function loadWeekly() {
     const today = new Date().toISOString().split('T')[0];
     let totalVolume = 0;
     const volumeByDay = [];
+    const timeByDay = [];
 
     dates.forEach((date, i) => {
       const records = byDay[date];
@@ -861,6 +890,7 @@ async function loadWeekly() {
       });
       totalVolume += dayVolume;
       volumeByDay.push({ label: dayNames[i], volume: dayVolume, trained, isSunday, isFuture });
+      timeByDay.push({ label: dayNames[i], seconds: sessionsByDate[date] || 0, isSunday, isFuture });
 
       let dotClass = 'rest';
       if (isFuture) dotClass = 'future';
@@ -892,6 +922,23 @@ async function loadWeekly() {
       html += `<span class="volume-bar-label">${d.label}</span>`;
       html += `<div class="volume-bar-track"><div class="volume-bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
       html += `<span class="volume-bar-value">${d.volume > 0 ? d.volume.toLocaleString('pt-BR') + ' kg' : 'faltou'}</span>`;
+      html += `</div>`;
+    });
+    html += `</div>`;
+
+    // Tempo de treino por dia
+    const maxTime = Math.max(...timeByDay.map(d => d.seconds), 1);
+    const totalHoursWeek = totalSessionSeconds / 3600;
+    html += `<div class="resume-card"><h3>⏱ Tempo de treino</h3>`;
+    html += `<div class="stat-row" style="margin-bottom:10px;"><span class="stat-label">Total da semana</span><span class="stat-value">${formatDurationHM(totalSessionSeconds)}</span></div>`;
+    timeByDay.forEach(d => {
+      if (d.isSunday) return;
+      const pct = (d.seconds / maxTime) * 100;
+      const color = d.seconds > 0 ? '#4caf50' : (d.isFuture ? '#333' : '#f44336');
+      html += `<div class="volume-bar-row">`;
+      html += `<span class="volume-bar-label">${d.label}</span>`;
+      html += `<div class="volume-bar-track"><div class="volume-bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
+      html += `<span class="volume-bar-value">${d.seconds > 0 ? formatDurationHM(d.seconds) : (d.isFuture ? '-' : '—')}</span>`;
       html += `</div>`;
     });
     html += `</div>`;
@@ -955,9 +1002,17 @@ async function loadMonthly() {
   try {
     const startStr = firstDay.toISOString().split('T')[0];
     const endStr = lastDay.toISOString().split('T')[0];
-    const data = await supaFetch(
-      `workout_logs?student_id=eq.${studentId}&created_at=gte.${startStr}T00:00:00&created_at=lte.${endStr}T23:59:59&order=created_at.asc`
-    );
+
+    const [data, sessionsData] = await Promise.all([
+      supaFetch(`workout_logs?student_id=eq.${studentId}&created_at=gte.${startStr}T00:00:00&created_at=lte.${endStr}T23:59:59&order=created_at.asc`),
+      supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${startStr}T00:00:00&started_at=lte.${endStr}T23:59:59&duration_seconds=not.is.null&order=started_at.asc`)
+    ]);
+
+    // Total de tempo no mês
+    let totalMonthSeconds = 0;
+    if (sessionsData) {
+      sessionsData.forEach(s => { totalMonthSeconds += s.duration_seconds; });
+    }
 
     // Dias com registro
     const trainedDates = new Set();
@@ -1038,6 +1093,7 @@ async function loadMonthly() {
 
     html += `<div class="resume-card"><h3>Destaques do mês</h3>`;
     html += `<div class="stat-row"><span class="stat-label">Volume total</span><span class="stat-value">${totalVolumeMonth.toLocaleString('pt-BR')} kg</span></div>`;
+    html += `<div class="stat-row"><span class="stat-label">⏱ Tempo total</span><span class="stat-value">${formatDurationHM(totalMonthSeconds)}</span></div>`;
     html += `<div class="stat-row"><span class="stat-label">Faltas</span><span class="stat-value${missedDays > 0 ? ' down' : ''}">${missedDays} dia${missedDays !== 1 ? 's' : ''}</span></div>`;
     if (bestWeek) {
       html += `<div class="stat-row"><span class="stat-label">Melhor semana</span><span class="stat-value">Semana ${bestWeek[0]} (${parseInt(bestWeek[1]).toLocaleString('pt-BR')} kg)</span></div>`;
