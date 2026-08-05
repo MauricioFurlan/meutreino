@@ -381,6 +381,7 @@ async function loadTodayData(day) {
       .order('set_number', { ascending: true });
     if (error) throw error;
     if (!data || data.length === 0) { await loadLastWorkout(day); return; }
+    const isToday = (sessionDate === getTodayDate());
     data.forEach(record => {
       const card = document.querySelector(`[data-exercise="${CSS.escape(record.exercise_name)}"][data-day="${day}"]`);
       if (!card) return;
@@ -390,9 +391,17 @@ async function loadTodayData(day) {
       const weightInput = row.querySelector('.weight-input');
       const repsInput = row.querySelector('.reps-input');
       const check = row.querySelector('.check-icon');
-      if (weightInput && record.weight !== null) weightInput.value = record.weight;
-      if (repsInput && record.reps !== null) repsInput.value = record.reps;
-      if (check && (record.weight !== null || record.reps !== null)) check.classList.add('done');
+      if (isToday) {
+        if (weightInput && record.weight !== null) weightInput.value = record.weight;
+        if (repsInput && record.reps !== null) repsInput.value = record.reps;
+        if (check && (record.weight !== null || record.reps !== null)) check.classList.add('done');
+      } else {
+        if (weightInput && record.weight !== null) weightInput.placeholder = record.weight + ' kg';
+        if (repsInput && record.reps !== null) {
+          const prescribed = repsInput.dataset.prescribed || '';
+          repsInput.placeholder = record.reps + (prescribed ? ' · ' + prescribed : '');
+        }
+      }
     });
   } catch (e) { console.log('Erro ao carregar dados do dia:', e); }
 }
