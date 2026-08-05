@@ -53,7 +53,16 @@
     .field input, .field textarea, .field select {
       padding: 10px 8px; border-radius: 8px; border: 1px solid #333; background: #0d0d0d; color: #fff; font-size: 16px;
       width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
+      font-family: inherit; line-height: 1.2;
     }
+    /* Safari/iOS dão ao input[type=date] largura e altura intrínsecas próprias, então
+       o campo Data ficava maior que o vizinho (Objetivo) na mesma linha do grid.
+       appearance:none tira o estilo nativo e a altura fixa iguala os dois. */
+    .field input { -webkit-appearance: none; appearance: none; }
+    .field input, .field select { height: 42px; }
+    .field textarea { height: auto; }
+    .field input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
+    .field input[type="date"]::-webkit-calendar-picker-indicator { margin: 0; padding: 0; opacity: 0.55; }
     .field input:focus, .field textarea:focus { outline: none; border-color: #f5c518; }
     .field textarea { resize: vertical; min-height: 60px; }
     .field-full { grid-column: 1 / -1; }
