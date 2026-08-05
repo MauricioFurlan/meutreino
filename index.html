@@ -163,27 +163,28 @@
     .check-icon.done svg { display: block; }
     /* Timer de treino - discreto */
     .start-workout-row {
-      display: flex; align-items: center; justify-content: center; gap: 12px;
-      padding: 8px 16px; background: #141414; border-bottom: 1px solid #222;
+      display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+      padding: 10px 16px; background: #141414; border-bottom: 1px solid #222;
     }
     .start-workout-btn {
-      background: none; border: 1px solid #f5c518; color: #f5c518;
-      font-size: 0.9rem; font-weight: 700; padding: 12px 24px;
-      border-radius: 16px; cursor: pointer; transition: opacity 0.2s;
+      width: 100%; background: none; border: 1px solid #f5c518; color: #f5c518;
+      font-size: 0.9rem; font-weight: 700; padding: 12px;
+      border-radius: 8px; cursor: pointer; transition: opacity 0.2s;
     }
     .start-workout-btn:active { opacity: 0.6; }
     .start-workout-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .workout-timer-inline {
       font-size: 0.9rem; color: #f5c518; font-weight: 700;
       font-variant-numeric: tabular-nums; letter-spacing: 0.5px;
+      text-align: center;
     }
     .end-workout-row {
-      text-align: center; padding: 16px; margin-top: 8px;
+      padding: 12px 16px; margin-top: 8px;
     }
     .end-workout-btn {
-      background: none; border: 1px solid #f5c518; color: #f5c518;
-      font-size: 0.9rem; font-weight: 700; padding: 12px 24px;
-      border-radius: 16px; cursor: pointer; transition: opacity 0.2s;
+      width: 100%; background: none; border: 1px solid #f5c518; color: #f5c518;
+      font-size: 0.9rem; font-weight: 700; padding: 12px;
+      border-radius: 8px; cursor: pointer; transition: opacity 0.2s;
     }
     .end-workout-btn:active { opacity: 0.6; }
     .workout-done-msg {
@@ -541,14 +542,35 @@ async function loadHistory(exerciseName) {
     const fourWeeksAgo = new Date();
     fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
     const since = fourWeeksAgo.toISOString().split('T')[0];
-    const { data, error } = await _sb.from('workout_logs')
-      .select('*')
-      .eq('student_id', studentId)
-      .eq('exercise_name', exerciseName)
-      .gte('session_date', since)
-      .order('created_at', { ascending: false })
-      .order('set_number', { ascending: true });
-    if (error) throw error;
+
+    // Buscar logs e sessões em paralelo
+    const [logsRes, sessionsRes] = await Promise.all([
+      _sb.from('workout_logs')
+        .select('*')
+        .eq('student_id', studentId)
+        .eq('exercise_name', exerciseName)
+        .gte('session_date', since)
+        .order('created_at', { ascending: false })
+        .order('set_number', { ascending: true }),
+      _sb.from('workout_sessions')
+        .select('started_at, duration_seconds')
+        .eq('student_id', studentId)
+        .gte('started_at', since + 'T00:00:00')
+        .not('duration_seconds', 'is', null)
+        .order('started_at', { ascending: false })
+    ]);
+
+    if (logsRes.error) throw logsRes.error;
+    const data = logsRes.data;
+    const sessions = sessionsRes.data || [];
+
+    // Mapa: data (YYYY-MM-DD) -> duração em segundos
+    const sessionsByDate = {};
+    sessions.forEach(s => {
+      const d = s.started_at.split('T')[0];
+      if (!sessionsByDate[d]) sessionsByDate[d] = s.duration_seconds;
+    });
+
     const body = document.getElementById('historyModalBody');
     document.getElementById('historyModalTitle').textContent = exerciseName;
     if (!data || data.length === 0) {
@@ -558,7 +580,13 @@ async function loadHistory(exerciseName) {
     let html = '', lastDate = '';
     data.forEach(r => {
       const date = new Date(r.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', weekday:'short' });
-      if (date !== lastDate) { html += `<div class="history-date">${esc(date)}</div>`; lastDate = date; }
+      if (date !== lastDate) {
+        // Verifica se tem sessão válida nesse dia
+        const sessionDuration = sessionsByDate[r.session_date];
+        const durationText = sessionDuration ? ` · ⏱ ${formatDuration(sessionDuration)}` : '';
+        html += `<div class="history-date">${esc(date)}${durationText}</div>`;
+        lastDate = date;
+      }
       html += `<div class="history-set">${esc(r.set_type)} ${r.set_number}: ${r.weight || '-'}kg × ${r.reps || '-'} reps</div>`;
     });
     body.innerHTML = html;
@@ -754,23 +782,83 @@ async function loadTodaySession() {
     .maybeSingle();
 
   if (data && !data.ended_at) {
-    // Sessão em andamento
-    currentSessionId = data.id;
-    sessionStartTime = new Date(data.started_at).getTime();
-    updateTimerDisplay();
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(updateTimerDisplay, 1000);
+    const elapsed = Math.floor((Date.now() - new Date(data.started_at).getTime()) / 1000);
+    const MAX_DURATION = 5 * 60 * 60; // 5 horas em segundos
+
+    if (elapsed >= MAX_DURATION) {
+      // Passou de 5h — invalida a sessão (marca como expirada)
+      await _sb.from('workout_sessions')
+        .update({ ended_at: new Date(new Date(data.started_at).getTime() + MAX_DURATION * 1000).toISOString(), duration_seconds: null })
+        .eq('id', data.id);
+      // Mostra como se não tivesse sessão válida hoje
+      showTimerExpired();
+    } else {
+      // Sessão em andamento válida
+      currentSessionId = data.id;
+      sessionStartTime = new Date(data.started_at).getTime();
+      updateTimerDisplay();
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        updateTimerDisplay();
+        // Verifica expiração em tempo real
+        const now = Math.floor((Date.now() - sessionStartTime) / 1000);
+        if (now >= MAX_DURATION) {
+          stopWorkoutExpired();
+        }
+      }, 1000);
+    }
   } else if (data && data.ended_at) {
-    // Já encerrou hoje
-    sessionEndDuration = data.duration_seconds;
-    // Marca como encerrado
-    const marker = document.createElement('span');
-    marker.className = 'session-ended';
-    marker.style.display = 'none';
-    document.body.appendChild(marker);
+    if (data.duration_seconds !== null) {
+      // Encerrou normalmente
+      sessionEndDuration = data.duration_seconds;
+      const marker = document.createElement('span');
+      marker.className = 'session-ended';
+      marker.style.display = 'none';
+      document.body.appendChild(marker);
+    } else {
+      // Expirou (duration_seconds = null)
+      showTimerExpired();
+      updateTimerVisibility();
+      return;
+    }
   }
 
   updateTimerVisibility();
+}
+
+function showTimerExpired() {
+  const row = document.getElementById('startWorkoutRow');
+  row.style.display = 'flex';
+  document.getElementById('timerStartBtn').style.display = 'none';
+  document.getElementById('timerInline').style.display = 'inline';
+  document.getElementById('timerDisplay').textContent = 'Expirado';
+  document.getElementById('timerInline').style.color = '#888';
+
+  // Mostra mensagem no final do dia
+  const dayEl = document.getElementById('day-' + getToday());
+  if (dayEl && !dayEl.querySelector('.workout-done-msg')) {
+    const div = document.createElement('div');
+    div.className = 'workout-done-msg';
+    div.style.color = '#888';
+    div.textContent = '⚠️ Sessão expirada (não encerrada em 5h)';
+    dayEl.appendChild(div);
+  }
+}
+
+async function stopWorkoutExpired() {
+  if (!currentSessionId) return;
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+  // Marca como expirada (duration_seconds = null indica sessão inválida)
+  await _sb.from('workout_sessions')
+    .update({ ended_at: new Date().toISOString(), duration_seconds: null })
+    .eq('id', currentSessionId);
+
+  currentSessionId = null;
+  sessionStartTime = null;
+  showTimerExpired();
+  updateTimerVisibility();
+  showToast('Sessão expirada — passou de 5h sem encerrar.', true);
 }
 
 async function startWorkoutSession() {
