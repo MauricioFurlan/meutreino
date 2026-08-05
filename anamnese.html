@@ -326,6 +326,7 @@
 let studentId = null, coachId = null, assessments = [];
 let chartInstance = null;
 let studentInfo = null; // dados do aluno para o PDF
+let coachInfo = null;   // dados do professor (assinatura do relatório)
 let currentAssessmentId = null; // avaliação aberta no modal
 let editingId = null; // se !== null, estamos editando ao invés de criando
 
@@ -384,7 +385,7 @@ function collectFormData() {
     objetivo: v('fObj'),
     peso: n('fPeso'), altura: n('fAltura'), imc: n('fIMC'),
     circunferencias: { cintura: n('fCintura'), abdomen: n('fAbdomen'), quadril: n('fQuadril'), torax: n('fTorax'), ombro: n('fOmbro'), braco_d_relaxado: n('fBracoDR'), braco_d_contraido: n('fBracoDC'), braco_e_relaxado: n('fBracoER'), braco_e_contraido: n('fBracoEC'), antebraco_d: n('fAntebD'), antebraco_e: n('fAntebE'), coxa_d: n('fCoxaD'), coxa_e: n('fCoxaE'), panturrilha_d: n('fPantD'), panturrilha_e: n('fPantE') },
-    dobras: { triceps: n('fDTriceps'), subescapular: n('fDSubesc'), suprailiaca: n('fDSupra'), abdominal: n('fDAbdom'), coxa: n('fDCoxa'), axilar_media: n('fDAxilar'), toracica: n('fDToracica') },
+    dobras: { triceps: n('fDTriceps'), subescapular: n('fDSubesc'), supra_iliaca: n('fDSupra'), abdominal: n('fDAbdom'), coxa: n('fDCoxa'), axilar_media: n('fDAxilar'), toracica: n('fDToracica') },
     composicao: { gordura: n('fGord'), massa_magra: n('fMagra'), massa_gorda: n('fGorda'), massa_magra_perc: n('fMagraPerc') },
     saude: { lesoes: v('fLesoes'), medicamentos: v('fMeds'), restricoes: v('fRestr'), nivel_atividade: v('fNivel') },
     observacoes: v('fObs')
@@ -472,7 +473,7 @@ function editAssessment() {
   document.getElementById('fPantE').value = c.panturrilha_e ?? '';
   document.getElementById('fDTriceps').value = db.triceps ?? '';
   document.getElementById('fDSubesc').value = db.subescapular ?? '';
-  document.getElementById('fDSupra').value = db.supra_iliaca ?? '';
+  document.getElementById('fDSupra').value = db.supra_iliaca ?? db.suprailiaca ?? '';
   document.getElementById('fDAbdom').value = db.abdominal ?? '';
   document.getElementById('fDCoxa').value = db.coxa ?? '';
   document.getElementById('fDAxilar').value = db.axilar_media ?? '';
@@ -530,7 +531,7 @@ function populatePlaceholders() {
   set('fPantE', c.panturrilha_e);
   set('fDTriceps', db.triceps);
   set('fDSubesc', db.subescapular);
-  set('fDSupra', db.supra_iliaca);
+  set('fDSupra', db.supra_iliaca ?? db.suprailiaca);
   set('fDAbdom', db.abdominal);
   set('fDCoxa', db.coxa);
   set('fDAxilar', db.axilar_media);
@@ -623,7 +624,7 @@ function viewAssessment(id) {
   html += section('Dobras cutâneas (mm)', [
     row('Tríceps', db.triceps),
     row('Subescapular', db.subescapular),
-    row('Supra-ilíaca', db.supra_iliaca),
+    row('Supra-ilíaca', db.supra_iliaca ?? db.suprailiaca),
     row('Abdominal', db.abdominal),
     row('Coxa', db.coxa),
     row('Axilar média', db.axilar_media),
@@ -723,165 +724,478 @@ function renderChart() {
   });
 }
 
-// === Gerar PDF da avaliação ===
+// ====================================================================
+// === Gerar PDF da avaliação (relatório para enviar ao aluno) ===
+// ====================================================================
+const PDF_C = {
+  gold:  [245, 197, 24],
+  dark:  [26, 26, 26],
+  ink:   [45, 45, 45],
+  soft:  [110, 110, 110],
+  head:  [238, 238, 238],
+  zebra: [249, 249, 249],
+  line:  [220, 220, 220],
+  good:  [33, 138, 80],
+  bad:   [198, 60, 55],
+  white: [255, 255, 255]
+};
+
+// Formata número no padrão brasileiro (vírgula decimal); null se inválido
+function pdfNum(v, dec = 1) {
+  if (v == null || v === '') return null;
+  const n = parseFloat(v);
+  if (isNaN(n)) return null;
+  return n.toFixed(dec).replace('.', ',');
+}
+
+function imcClass(imc) {
+  const v = parseFloat(imc);
+  if (isNaN(v)) return null;
+  if (v < 18.5) return 'Abaixo do peso';
+  if (v < 25)   return 'Peso normal';
+  if (v < 30)   return 'Sobrepeso';
+  if (v < 35)   return 'Obesidade grau I';
+  if (v < 40)   return 'Obesidade grau II';
+  return 'Obesidade grau III';
+}
+
+function fatClass(pct, sex) {
+  const v = parseFloat(pct);
+  if (isNaN(v)) return null;
+  const t = sex === 'F' ? [14, 21, 25, 32] : [6, 14, 18, 25];
+  if (v < t[0]) return 'Muito baixo';
+  if (v < t[1]) return 'Atlético';
+  if (v < t[2]) return 'Bom';
+  if (v < t[3]) return 'Aceitável';
+  return 'Acima do ideal';
+}
+
 function generatePDF() {
   const a = assessments.find(x => x.id === currentAssessmentId);
   if (!a) { showToast('Nenhuma avaliação selecionada.', true); return; }
 
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p', 'mm', 'a4');
-  const d = a.data || {};
-  const c = d.circunferencias || {};
-  const db = d.dobras || {};
-  const comp = d.composicao || {};
+  const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4', compress: true });
+
+  const idx  = assessments.findIndex(x => x.id === a.id);
+  const prev = idx > 0 ? assessments[idx - 1] : null;
+  const hasPrev = !!prev;
+
+  const d = a.data || {},                c  = d.circunferencias || {},  db  = d.dobras || {},  comp  = d.composicao || {};
+  const pd = (prev && prev.data) || {},  pc = pd.circunferencias || {}, pdb = pd.dobras || {}, pcomp = pd.composicao || {};
   const saude = d.saude || {};
-  const dateStr = new Date(a.assessment_date + 'T00:00:00').toLocaleDateString('pt-BR');
+  const supra = (o) => o.supra_iliaca ?? o.suprailiaca ?? null;
 
-  const pageW = 210;
-  const marginL = 15;
-  const marginR = 195;
-  let y = 15;
+  const W = 210, H = 297, M = 16, CW = W - M * 2; // largura útil = 178
+  const BOTTOM = 276;
+  let y = 0;
 
-  // === Cabeçalho ===
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('AVALIAÇÃO FÍSICA', pageW / 2, y, { align: 'center' });
-  y += 8;
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text('Data: ' + dateStr, marginR, y, { align: 'right' });
-  y += 6;
-
-  // Linha separadora
-  doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 6;
-
-  // === Dados pessoais ===
-  doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
-  doc.text('DADOS PESSOAIS', marginL, y); y += 6;
-  doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
-
-  const nome = studentInfo?.full_name || '-';
+  const fmt = (s) => s ? new Date(s + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+  const nome = studentInfo?.full_name || 'Aluno';
+  const dateStr = fmt(a.assessment_date);
+  const prevDateStr = hasPrev ? fmt(prev.assessment_date) : null;
   const idade = calcAge(studentInfo?.birth_date);
   const sexo = studentInfo?.sex === 'M' ? 'Masculino' : studentInfo?.sex === 'F' ? 'Feminino' : '-';
-  const nascimento = studentInfo?.birth_date ? new Date(studentInfo.birth_date + 'T00:00:00').toLocaleDateString('pt-BR') : '-';
+  const academia = studentInfo?.gym_name || '-';
+  const professor = coachInfo?.full_name || '-';
 
-  doc.text(`Nome: ${nome}`, marginL, y); y += 5;
-  doc.text(`Idade: ${idade || '-'}`, marginL, y);
-  doc.text(`Sexo: ${sexo}`, marginL + 50, y);
-  doc.text(`Nascimento: ${nascimento}`, marginL + 100, y); y += 5;
-  if (d.objetivo) { doc.text(`Objetivo: ${d.objetivo}`, marginL, y); y += 5; }
-  y += 3;
+  doc.setProperties({
+    title: 'Avaliação Física - ' + nome + ' - ' + dateStr,
+    subject: 'Relatório de avaliação física',
+    author: professor !== '-' ? professor : 'Personal Trainer',
+    creator: 'MeuTreino'
+  });
 
-  // === Antropometria ===
-  if (d.peso || d.altura || d.imc) {
-    doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 5;
-    doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
-    doc.text('ANTROPOMETRIA', marginL, y); y += 6;
-    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
-    const items = [];
-    if (d.peso) items.push('Peso: ' + d.peso + ' kg');
-    if (d.altura) items.push('Altura: ' + d.altura + ' cm');
-    if (d.imc) items.push('IMC: ' + d.imc);
-    doc.text(items.join('    |    '), marginL, y); y += 7;
+  // ---------- utilitários de layout ----------
+  function pageHeader() {
+    doc.setFillColor.apply(doc, PDF_C.dark);
+    doc.rect(0, 0, W, 15, 'F');
+    doc.setFillColor.apply(doc, PDF_C.gold);
+    doc.rect(0, 15, W, 0.8, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+    doc.setTextColor.apply(doc, PDF_C.gold);
+    doc.text('AVALIAÇÃO FÍSICA', M, 9.5);
+    doc.setFont('helvetica', 'normal'); doc.setTextColor(205, 205, 205);
+    doc.text(nome + '  ·  ' + dateStr, W - M, 9.5, { align: 'right' });
   }
 
-  // === Circunferências ===
-  function hasValues(obj) { return Object.values(obj).some(v => v != null && v !== ''); }
-  if (hasValues(c)) {
-    doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 5;
-    doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
-    doc.text('CIRCUNFERÊNCIAS (cm)', marginL, y); y += 6;
-    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
+  function newPage() { doc.addPage(); pageHeader(); y = 26; }
+  function ensure(h) { if (y + h > BOTTOM) newPage(); }
 
-    const circRows = [
-      ['Cintura', c.cintura, 'Abdômen', c.abdomen],
-      ['Quadril', c.quadril, 'Tórax', c.torax],
-      ['Ombro', c.ombro, '', ''],
-      ['Braço D relax.', c.braco_d_relaxado, 'Braço D contr.', c.braco_d_contraido],
-      ['Braço E relax.', c.braco_e_relaxado, 'Braço E contr.', c.braco_e_contraido],
-      ['Antebraço D', c.antebraco_d, 'Antebraço E', c.antebraco_e],
-      ['Coxa D', c.coxa_d, 'Coxa E', c.coxa_e],
-      ['Panturrilha D', c.panturrilha_d, 'Panturrilha E', c.panturrilha_e]
-    ];
-    circRows.forEach(row => {
-      if (row[1] == null && row[3] == null) return;
-      let line = '';
-      if (row[0] && row[1] != null) line += `${row[0]}: ${row[1]}`;
-      if (row[2] && row[3] != null) line += `    |    ${row[2]}: ${row[3]}`;
-      if (line) { doc.text(line, marginL, y); y += 4.5; }
+  function sectionTitle(txt) {
+    ensure(16);
+    doc.setFillColor.apply(doc, PDF_C.gold);
+    doc.rect(M, y - 3.4, 2.4, 5, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5);
+    doc.setTextColor.apply(doc, PDF_C.dark);
+    doc.text(txt.toUpperCase(), M + 5.5, y + 0.8);
+    y += 3.5;
+    doc.setDrawColor.apply(doc, PDF_C.line); doc.setLineWidth(0.3);
+    doc.line(M, y, M + CW, y);
+    y += 5.5;
+  }
+
+  // Tabela: rows = [label, valorAtual, valorAnterior, decimais]
+  function measureTable(rows, unit) {
+    rows = rows.filter(r => pdfNum(r[1]) !== null || pdfNum(r[2]) !== null);
+    if (!rows.length) return;
+    const showPrev = hasPrev && rows.some(r => pdfNum(r[2]) !== null);
+    const xLabel = M + 3;
+    const xAtual = showPrev ? M + 112 : M + CW - 3;
+    const xAnt   = M + 143;
+    const xVar   = M + CW - 3;
+
+    function head() {
+      doc.setFillColor.apply(doc, PDF_C.head);
+      doc.rect(M, y, CW, 6.4, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(6.6);
+      doc.setTextColor.apply(doc, PDF_C.soft);
+      doc.text('MEDIDA' + (unit ? ' (' + unit + ')' : ''), xLabel, y + 4.2);
+      doc.text('ATUAL', xAtual, y + 4.2, { align: 'right' });
+      if (showPrev) {
+        doc.text('ANTERIOR', xAnt, y + 4.2, { align: 'right' });
+        doc.text('VARIAÇÃO', xVar, y + 4.2, { align: 'right' });
+      }
+      y += 6.4;
+    }
+
+    ensure(6.4 + 6.2 * Math.min(rows.length, 3));
+    head();
+
+    rows.forEach((r, i) => {
+      if (y + 6.2 > BOTTOM) { newPage(); head(); }
+      if (i % 2 === 1) {
+        doc.setFillColor.apply(doc, PDF_C.zebra);
+        doc.rect(M, y, CW, 6.2, 'F');
+      }
+      const dec = r[3] != null ? r[3] : 1;
+      const cur = pdfNum(r[1], dec), old = pdfNum(r[2], dec);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.4);
+      doc.setTextColor.apply(doc, PDF_C.ink);
+      doc.text(String(r[0]), xLabel, y + 4.2);
+      doc.setFont('helvetica', 'bold');
+      doc.text(cur !== null ? cur : '-', xAtual, y + 4.2, { align: 'right' });
+      if (showPrev) {
+        doc.setFont('helvetica', 'normal'); doc.setTextColor.apply(doc, PDF_C.soft);
+        doc.text(old !== null ? old : '-', xAnt, y + 4.2, { align: 'right' });
+        let dTxt = '-';
+        if (cur !== null && old !== null) {
+          const diff = parseFloat(r[1]) - parseFloat(r[2]);
+          const lim = 0.5 / Math.pow(10, dec);
+          dTxt = Math.abs(diff) < lim ? '=' : (diff > 0 ? '+' : '-') + Math.abs(diff).toFixed(dec).replace('.', ',');
+        }
+        doc.setFont('helvetica', 'bold');
+        doc.text(dTxt, xVar, y + 4.2, { align: 'right' });
+      }
+      doc.setDrawColor.apply(doc, PDF_C.line); doc.setLineWidth(0.15);
+      doc.line(M, y + 6.2, M + CW, y + 6.2);
+      y += 6.2;
     });
-    y += 2;
+    y += 5;
   }
 
-  // === Dobras cutâneas ===
-  if (hasValues(db)) {
-    if (y > 250) { doc.addPage(); y = 15; }
-    doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 5;
-    doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
-    doc.text('DOBRAS CUTÂNEAS (mm)', marginL, y); y += 6;
-    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
+  function textBlock(label, value) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.6);
+    const lines = doc.splitTextToSize(String(value), CW - 8);
+    const h = lines.length * 4.1 + 10;
+    ensure(h + 3);
+    doc.setFillColor.apply(doc, PDF_C.zebra);
+    doc.setDrawColor.apply(doc, PDF_C.line); doc.setLineWidth(0.3);
+    doc.roundedRect(M, y, CW, h, 1.5, 1.5, 'FD');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.6);
+    doc.setTextColor.apply(doc, PDF_C.soft);
+    doc.text(label.toUpperCase(), M + 4, y + 5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.6);
+    doc.setTextColor.apply(doc, PDF_C.ink);
+    doc.text(lines, M + 4, y + 9.8);
+    y += h + 3;
+  }
 
-    const dobraRows = [
-      ['Tríceps', db.triceps, 'Subescapular', db.subescapular],
-      ['Supra-ilíaca', db.supra_iliaca, 'Abdominal', db.abdominal],
-      ['Coxa', db.coxa, 'Axilar média', db.axilar_media],
-      ['Torácica', db.toracica, '', '']
-    ];
-    dobraRows.forEach(row => {
-      if (row[1] == null && row[3] == null) return;
-      let line = '';
-      if (row[0] && row[1] != null) line += `${row[0]}: ${row[1]}`;
-      if (row[2] && row[3] != null) line += `    |    ${row[2]}: ${row[3]}`;
-      if (line) { doc.text(line, marginL, y); y += 4.5; }
+  // ---------- capa / cabeçalho principal ----------
+  doc.setFillColor.apply(doc, PDF_C.dark);
+  doc.rect(0, 0, W, 38, 'F');
+  doc.setFillColor.apply(doc, PDF_C.gold);
+  doc.rect(0, 38, W, 1.6, 'F');
+  doc.rect(M, 11, 2.6, 17, 'F');
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(19);
+  doc.setTextColor.apply(doc, PDF_C.gold);
+  doc.text('AVALIAÇÃO FÍSICA', M + 7, 20);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8.4);
+  doc.setTextColor(180, 180, 180);
+  doc.text('Relatório de medidas e composição corporal', M + 7, 26.5);
+
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(6.8);
+  doc.setTextColor(150, 150, 150);
+  doc.text('DATA DA AVALIAÇÃO', W - M, 17, { align: 'right' });
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(12);
+  doc.setTextColor.apply(doc, PDF_C.white);
+  doc.text(dateStr, W - M, 23.5, { align: 'right' });
+  if (prevDateStr) {
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(6.8);
+    doc.setTextColor(150, 150, 150);
+    doc.text('anterior: ' + prevDateStr, W - M, 28, { align: 'right' });
+  }
+
+  y = 48;
+
+  // ---------- ficha do aluno ----------
+  const boxH = 24;
+  doc.setFillColor.apply(doc, PDF_C.zebra);
+  doc.setDrawColor.apply(doc, PDF_C.line); doc.setLineWidth(0.3);
+  doc.roundedRect(M, y, CW, boxH, 2, 2, 'FD');
+
+  function fichaCell(label, value, x, row, maxW) {
+    const yy = y + (row === 0 ? 8 : 18);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6.2);
+    doc.setTextColor.apply(doc, PDF_C.soft);
+    doc.text(label.toUpperCase(), x, yy - 3.6);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(9);
+    doc.setTextColor.apply(doc, PDF_C.ink);
+    const t = doc.splitTextToSize(String(value || '-'), maxW)[0];
+    doc.text(t, x, yy);
+  }
+
+  const col1 = M + 5, col2 = M + 82, col3 = M + 122;
+  fichaCell('Aluno', nome, col1, 0, 72);
+  fichaCell('Idade', idade ? idade + ' anos' : '-', col2, 0, 36);
+  fichaCell('Sexo', sexo, col3, 0, 50);
+  fichaCell('Objetivo', d.objetivo || '-', col1, 1, 72);
+  fichaCell('Academia', academia, col2, 1, 36);
+  fichaCell('Professor', professor, col3, 1, 50);
+  y += boxH + 8;
+
+  // ---------- cards de destaque ----------
+  const kpis = [];
+  const dlt = (cur, old, better) => {
+    const cv = parseFloat(cur), ov = parseFloat(old);
+    if (!hasPrev || isNaN(cv) || isNaN(ov)) return null;
+    const diff = cv - ov;
+    if (Math.abs(diff) < 0.05) return { txt: 'sem alteração', color: PDF_C.soft };
+    const sign = diff > 0 ? '+' : '-';
+    const txt = sign + Math.abs(diff).toFixed(1).replace('.', ',') + ' vs anterior';
+    let color = PDF_C.soft;
+    if (better === 'down') color = diff < 0 ? PDF_C.good : PDF_C.bad;
+    if (better === 'up')   color = diff > 0 ? PDF_C.good : PDF_C.bad;
+    return { txt, color };
+  };
+
+  kpis.push({ label: 'Peso', value: pdfNum(d.peso), unit: 'kg', sub: dlt(d.peso, pd.peso, null) });
+  kpis.push({ label: 'IMC', value: pdfNum(d.imc), unit: '', sub: imcClass(d.imc) ? { txt: imcClass(d.imc), color: PDF_C.soft } : null });
+  kpis.push({ label: 'Gordura corporal', value: pdfNum(comp.gordura), unit: '%', sub: dlt(comp.gordura, pcomp.gordura, 'down') || (fatClass(comp.gordura, studentInfo?.sex) ? { txt: fatClass(comp.gordura, studentInfo?.sex), color: PDF_C.soft } : null) });
+  kpis.push({ label: 'Massa magra', value: pdfNum(comp.massa_magra), unit: 'kg', sub: dlt(comp.massa_magra, pcomp.massa_magra, 'up') });
+  kpis.forEach(k => { if (k.value === null) k.sub = { txt: 'não informado', color: PDF_C.line }; });
+
+  const gap = 3.5, cardW = (CW - gap * 3) / 4, cardH = 25;
+  ensure(cardH + 6);
+  kpis.forEach((k, i) => {
+    const x = M + i * (cardW + gap);
+    doc.setFillColor.apply(doc, PDF_C.white);
+    doc.setDrawColor.apply(doc, PDF_C.line); doc.setLineWidth(0.4);
+    doc.roundedRect(x, y, cardW, cardH, 2, 2, 'FD');
+    doc.setFillColor.apply(doc, PDF_C.gold);
+    doc.rect(x + 0.4, y + 0.4, cardW - 0.8, 1.6, 'F');
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(6);
+    doc.setTextColor.apply(doc, PDF_C.soft);
+    doc.text(doc.splitTextToSize(k.label.toUpperCase(), cardW - 6)[0], x + 3.5, y + 8);
+
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(15);
+    doc.setTextColor.apply(doc, k.value ? PDF_C.dark : PDF_C.line);
+    const val = k.value !== null ? k.value : '--';
+    doc.text(val, x + 3.5, y + 16.5);
+    const valW = doc.getTextWidth(val);
+    if (k.value !== null && k.unit) {
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5);
+      doc.setTextColor.apply(doc, PDF_C.soft);
+      doc.text(k.unit, x + 4.5 + valW, y + 16.5);
+    }
+    if (k.sub) {
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(6.2);
+      doc.setTextColor.apply(doc, k.sub.color);
+      doc.text(doc.splitTextToSize(k.sub.txt, cardW - 6)[0], x + 3.5, y + 21.5);
+    }
+  });
+  y += cardH + 10;
+
+  // ---------- medidas básicas ----------
+  if (pdfNum(d.peso) !== null || pdfNum(d.altura) !== null || pdfNum(d.imc) !== null) {
+    sectionTitle('Antropometria');
+    measureTable([
+      ['Peso (kg)', d.peso, pd.peso],
+      ['Altura (cm)', d.altura, pd.altura],
+      ['IMC', d.imc, pd.imc]
+    ]);
+  }
+
+  // ---------- composição corporal ----------
+  const rcq = (parseFloat(c.cintura) && parseFloat(c.quadril)) ? (parseFloat(c.cintura) / parseFloat(c.quadril)) : null;
+  const prcq = (parseFloat(pc.cintura) && parseFloat(pc.quadril)) ? (parseFloat(pc.cintura) / parseFloat(pc.quadril)) : null;
+  const compRows = [
+    ['Gordura corporal (%)', comp.gordura, pcomp.gordura],
+    ['Massa magra (%)', comp.massa_magra_perc ?? (comp.gordura != null ? 100 - comp.gordura : null), pcomp.massa_magra_perc ?? (pcomp.gordura != null ? 100 - pcomp.gordura : null)],
+    ['Massa magra (kg)', comp.massa_magra, pcomp.massa_magra],
+    ['Massa gorda (kg)', comp.massa_gorda, pcomp.massa_gorda],
+    ['Relação cintura/quadril', rcq, prcq, 2]
+  ];
+  if (compRows.some(r => pdfNum(r[1]) !== null)) {
+    sectionTitle('Composição corporal');
+    measureTable(compRows);
+  }
+
+  // ---------- circunferências ----------
+  const circRows = [
+    ['Cintura', c.cintura, pc.cintura],
+    ['Abdômen', c.abdomen, pc.abdomen],
+    ['Quadril', c.quadril, pc.quadril],
+    ['Tórax', c.torax, pc.torax],
+    ['Ombro', c.ombro, pc.ombro],
+    ['Braço direito relaxado', c.braco_d_relaxado, pc.braco_d_relaxado],
+    ['Braço direito contraído', c.braco_d_contraido, pc.braco_d_contraido],
+    ['Braço esquerdo relaxado', c.braco_e_relaxado, pc.braco_e_relaxado],
+    ['Braço esquerdo contraído', c.braco_e_contraido, pc.braco_e_contraido],
+    ['Antebraço direito', c.antebraco_d, pc.antebraco_d],
+    ['Antebraço esquerdo', c.antebraco_e, pc.antebraco_e],
+    ['Coxa direita', c.coxa_d, pc.coxa_d],
+    ['Coxa esquerda', c.coxa_e, pc.coxa_e],
+    ['Panturrilha direita', c.panturrilha_d, pc.panturrilha_d],
+    ['Panturrilha esquerda', c.panturrilha_e, pc.panturrilha_e]
+  ];
+  if (circRows.some(r => pdfNum(r[1]) !== null)) {
+    sectionTitle('Circunferências');
+    measureTable(circRows, 'cm');
+  }
+
+  // ---------- dobras cutâneas ----------
+  const dobraRows = [
+    ['Tríceps', db.triceps, pdb.triceps],
+    ['Subescapular', db.subescapular, pdb.subescapular],
+    ['Supra-ilíaca', supra(db), supra(pdb)],
+    ['Abdominal', db.abdominal, pdb.abdominal],
+    ['Coxa', db.coxa, pdb.coxa],
+    ['Axilar média', db.axilar_media, pdb.axilar_media],
+    ['Torácica', db.toracica, pdb.toracica]
+  ];
+  if (dobraRows.some(r => pdfNum(r[1]) !== null)) {
+    sectionTitle('Dobras cutâneas');
+    measureTable(dobraRows, 'mm');
+  }
+
+  // ---------- evolução (gráficos) ----------
+  function chartImage(metric, label) {
+    try {
+      if (typeof Chart === 'undefined') return null;
+      const pts = getMetricValues(metric).filter(p => p.date <= a.assessment_date);
+      if (pts.length < 2) return null;
+      const cv = document.createElement('canvas');
+      cv.width = 900; cv.height = 520;
+      const ctx = cv.getContext('2d');
+      const ch = new Chart(cv, {
+        type: 'line',
+        data: {
+          labels: pts.map(p => new Date(p.date + 'T00:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })),
+          datasets: [{
+            label, data: pts.map(p => p.value),
+            borderColor: '#b8901a', backgroundColor: 'rgba(245,197,24,0.20)',
+            borderWidth: 3, tension: 0.3, fill: true,
+            pointRadius: 5, pointBackgroundColor: '#b8901a', pointBorderColor: '#fff', pointBorderWidth: 2
+          }]
+        },
+        options: {
+          responsive: false, animation: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: '#666', font: { size: 18 } }, grid: { color: '#eeeeee' }, border: { color: '#cccccc' } },
+            y: { ticks: { color: '#666', font: { size: 18 } }, grid: { color: '#eeeeee' }, border: { color: '#cccccc' } }
+          }
+        }
+      });
+      // JPEG não tem transparência: pinta fundo branco atrás do gráfico
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-over';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      ctx.restore();
+      const url = cv.toDataURL('image/jpeg', 0.92);
+      ch.destroy();
+      return url;
+    } catch (e) { return null; }
+  }
+
+  const charts = [
+    { img: chartImage('peso', 'Peso (kg)'), title: 'Peso (kg)' },
+    { img: chartImage('gordura', '% Gordura'), title: 'Gordura corporal (%)' }
+  ].filter(x => x.img);
+
+  if (charts.length) {
+    sectionTitle('Evolução');
+    const gW = charts.length === 1 ? CW : (CW - 6) / 2;
+    const gH = charts.length === 1 ? 62 : 48;
+    ensure(gH + 12);
+    charts.forEach((ch, i) => {
+      const x = M + i * (gW + 6);
+      doc.setDrawColor.apply(doc, PDF_C.line); doc.setLineWidth(0.3);
+      doc.roundedRect(x, y, gW, gH + 8, 2, 2, 'S');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(6.6);
+      doc.setTextColor.apply(doc, PDF_C.soft);
+      doc.text(ch.title.toUpperCase(), x + 4, y + 5.5);
+      doc.addImage(ch.img, 'JPEG', x + 3, y + 7, gW - 6, gH - 1);
     });
+    y += gH + 14;
+  }
+
+  // ---------- saúde ----------
+  const temSaude = saude.lesoes || saude.medicamentos || saude.restricoes || saude.nivel_atividade;
+  if (temSaude) {
+    sectionTitle('Saúde e histórico');
+    if (saude.nivel_atividade) textBlock('Nível de atividade física', saude.nivel_atividade);
+    if (saude.lesoes)          textBlock('Lesões / cirurgias', saude.lesoes);
+    if (saude.medicamentos)    textBlock('Medicamentos', saude.medicamentos);
+    if (saude.restricoes)      textBlock('Restrições / limitações', saude.restricoes);
     y += 2;
   }
 
-  // === Composição corporal ===
-  if (hasValues(comp)) {
-    if (y > 260) { doc.addPage(); y = 15; }
-    doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 5;
-    doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
-    doc.text('COMPOSIÇÃO CORPORAL', marginL, y); y += 6;
-    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
-    const compItems = [];
-    if (comp.gordura != null) compItems.push('% Gordura: ' + comp.gordura);
-    if (comp.massa_magra != null) compItems.push('Massa magra: ' + comp.massa_magra + ' kg');
-    if (comp.massa_gorda != null) compItems.push('Massa gorda: ' + comp.massa_gorda + ' kg');
-    doc.text(compItems.join('    |    '), marginL, y); y += 7;
-  }
-
-  // === Saúde ===
-  if (hasValues(saude)) {
-    if (y > 250) { doc.addPage(); y = 15; }
-    doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 5;
-    doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
-    doc.text('SAÚDE', marginL, y); y += 6;
-    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
-    if (saude.lesoes) { doc.text('Lesões/Cirurgias: ' + saude.lesoes, marginL, y, { maxWidth: 170 }); y += 5; }
-    if (saude.medicamentos) { doc.text('Medicamentos: ' + saude.medicamentos, marginL, y, { maxWidth: 170 }); y += 5; }
-    if (saude.restricoes) { doc.text('Restrições: ' + saude.restricoes, marginL, y, { maxWidth: 170 }); y += 5; }
-    if (saude.nivel_atividade) { doc.text('Nível de atividade: ' + saude.nivel_atividade, marginL, y); y += 5; }
-    y += 2;
-  }
-
-  // === Observações ===
+  // ---------- observações ----------
   if (d.observacoes) {
-    if (y > 255) { doc.addPage(); y = 15; }
-    doc.setDrawColor(200); doc.line(marginL, y, marginR, y); y += 5;
-    doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(40);
-    doc.text('OBSERVAÇÕES', marginL, y); y += 6;
-    doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(60);
-    doc.text(d.observacoes, marginL, y, { maxWidth: 170 }); y += 7;
+    sectionTitle('Observações do professor');
+    textBlock('Anotações', d.observacoes);
+    y += 2;
   }
 
-  // === Rodapé ===
-  doc.setFontSize(7); doc.setTextColor(150);
-  doc.text('Gerado automaticamente pelo sistema de treino', pageW / 2, 287, { align: 'center' });
+  // ---------- assinatura (ancorada no fim da última página) ----------
+  const sigH = 13;
+  if (y + sigH > 278) newPage();
+  const sigY = Math.max(y + 1, 278 - sigH);
+  const cx = M + CW / 2;
+  doc.setDrawColor.apply(doc, PDF_C.ink); doc.setLineWidth(0.4);
+  doc.line(cx - 35, sigY + 4, cx + 35, sigY + 4);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5);
+  doc.setTextColor.apply(doc, PDF_C.ink);
+  doc.text(professor !== '-' ? professor : 'Professor responsável', cx, sigY + 8.6, { align: 'center' });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+  doc.setTextColor.apply(doc, PDF_C.soft);
+  doc.text('Professor responsável pela avaliação', cx, sigY + 12.4, { align: 'center' });
 
-  // Download
-  const fileName = `avaliacao_${(studentInfo?.full_name || 'aluno').replace(/\s+/g, '_')}_${a.assessment_date}.pdf`;
-  doc.save(fileName);
+  // ---------- rodapé em todas as páginas ----------
+  const geradoEm = new Date().toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const total = doc.getNumberOfPages();
+  for (let p = 1; p <= total; p++) {
+    doc.setPage(p);
+    doc.setDrawColor.apply(doc, PDF_C.line); doc.setLineWidth(0.3);
+    doc.line(M, 281, M + CW, 281);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+    doc.setTextColor.apply(doc, PDF_C.soft);
+    doc.text(nome + '  ·  Avaliação de ' + dateStr, M, 285.5);
+    doc.text('Página ' + p + ' de ' + total, M + CW, 285.5, { align: 'right' });
+    doc.setFontSize(6.2); doc.setTextColor(165, 165, 165);
+    doc.text('Documento de acompanhamento gerado em ' + geradoEm + ' · não substitui avaliação médica.', W / 2, 290, { align: 'center' });
+  }
+
+  // ---------- download ----------
+  const slug = (studentInfo?.full_name || 'aluno')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
+  doc.save('Avaliacao_Fisica_' + slug + '_' + a.assessment_date + '.pdf');
   showToast('PDF gerado!');
 }
 
@@ -899,6 +1213,7 @@ guard('trainer', {
       .eq('id', studentId).maybeSingle();
 
     studentInfo = student; // guardar referência global para o PDF
+    coachInfo = profile;   // professor que assina o relatório
     document.getElementById('studentName').textContent = student?.full_name || '';
     const age = calcAge(student?.birth_date);
     const infoHtml = [
