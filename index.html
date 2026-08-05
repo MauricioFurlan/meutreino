@@ -161,6 +161,31 @@
     .check-icon svg { display: none; }
     .check-icon.done { border-color: #4caf50; background: #4caf50; }
     .check-icon.done svg { display: block; }
+    /* Timer de treino */
+    .workout-timer-bar {
+      background: #1a1a1a; border: 1px solid #333; border-radius: 14px;
+      margin: 12px 16px; padding: 16px; text-align: center;
+    }
+    .workout-timer-bar.active { border-color: #4caf50; background: #161c16; }
+    .workout-timer-bar.finished { border-color: #f5c518; background: #1a1a00; }
+    .timer-display {
+      font-size: 2rem; font-weight: 700; color: #f5c518; letter-spacing: 2px;
+      font-variant-numeric: tabular-nums; margin: 8px 0;
+    }
+    .timer-label { font-size: 0.75rem; color: #999; margin-bottom: 4px; }
+    .timer-btn {
+      display: inline-block; padding: 12px 28px; border: none; border-radius: 10px;
+      font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 8px;
+      transition: opacity 0.2s;
+    }
+    .timer-btn:active { opacity: 0.7; }
+    .timer-btn.start { background: #4caf50; color: #fff; }
+    .timer-btn.stop { background: #f44336; color: #fff; }
+    .timer-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .timer-result {
+      font-size: 0.8rem; color: #4caf50; margin-top: 8px; font-weight: 600;
+    }
+
     .loading { text-align: center; padding: 40px; color: #888; }
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -245,6 +270,16 @@
     <div class="plan-dates hidden" id="planDates"></div>
   </div>
   <div class="date-display" id="dateDisplay"></div>
+
+  <!-- Timer de treino -->
+  <div class="workout-timer-bar" id="timerBar" style="display:none;">
+    <div class="timer-label" id="timerLabel">Treino de hoje</div>
+    <div class="timer-display" id="timerDisplay">00:00:00</div>
+    <button class="timer-btn start" id="timerStartBtn" onclick="startWorkoutSession()">▶ Iniciar Treino</button>
+    <button class="timer-btn stop" id="timerStopBtn" onclick="stopWorkoutSession()" style="display:none;">⏹ Encerrar Treino</button>
+    <div class="timer-result" id="timerResult" style="display:none;"></div>
+  </div>
+
   <div class="tabs" id="tabs"></div>
   <div id="content"></div>
   <div class="toast" id="toast"></div>
@@ -629,6 +664,133 @@ function renderExerciseCard(day, exIdx, ex) {
   return html;
 }
 
+// === Timer de treino ===
+let timerInterval = null;
+let sessionStartTime = null;
+let currentSessionId = null;
+
+function formatDuration(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function updateTimerDisplay() {
+  if (!sessionStartTime) return;
+  const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
+  document.getElementById('timerDisplay').textContent = formatDuration(elapsed);
+}
+
+async function loadTodaySession() {
+  const today = getTodayDate();
+  const { data, error } = await _sb.from('workout_sessions')
+    .select('*')
+    .eq('student_id', studentId)
+    .gte('started_at', today + 'T00:00:00')
+    .lte('started_at', today + 'T23:59:59')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const bar = document.getElementById('timerBar');
+  bar.style.display = 'block';
+
+  if (data && !data.ended_at) {
+    // Sessão em andamento — retomar cronômetro
+    currentSessionId = data.id;
+    sessionStartTime = new Date(data.started_at).getTime();
+    showTimerRunning();
+  } else if (data && data.ended_at) {
+    // Sessão já encerrada hoje — mostrar resultado
+    showTimerFinished(data.duration_seconds);
+  } else {
+    // Nenhuma sessão hoje — mostrar botão iniciar
+    showTimerIdle();
+  }
+}
+
+function showTimerIdle() {
+  const bar = document.getElementById('timerBar');
+  bar.className = 'workout-timer-bar';
+  document.getElementById('timerLabel').textContent = 'Pronto para treinar?';
+  document.getElementById('timerDisplay').textContent = '00:00:00';
+  document.getElementById('timerStartBtn').style.display = 'inline-block';
+  document.getElementById('timerStopBtn').style.display = 'none';
+  document.getElementById('timerResult').style.display = 'none';
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+function showTimerRunning() {
+  const bar = document.getElementById('timerBar');
+  bar.className = 'workout-timer-bar active';
+  document.getElementById('timerLabel').textContent = '🏋️ Treino em andamento';
+  document.getElementById('timerStartBtn').style.display = 'none';
+  document.getElementById('timerStopBtn').style.display = 'inline-block';
+  document.getElementById('timerResult').style.display = 'none';
+  updateTimerDisplay();
+  if (timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(updateTimerDisplay, 1000);
+}
+
+function showTimerFinished(durationSeconds) {
+  const bar = document.getElementById('timerBar');
+  bar.className = 'workout-timer-bar finished';
+  document.getElementById('timerLabel').textContent = '✅ Treino concluído hoje';
+  document.getElementById('timerDisplay').textContent = formatDuration(durationSeconds);
+  document.getElementById('timerStartBtn').style.display = 'none';
+  document.getElementById('timerStopBtn').style.display = 'none';
+  document.getElementById('timerResult').style.display = 'block';
+  document.getElementById('timerResult').textContent = `Duração: ${formatDuration(durationSeconds)}`;
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+}
+
+async function startWorkoutSession() {
+  const btn = document.getElementById('timerStartBtn');
+  btn.disabled = true;
+  const today = getToday();
+
+  const { data, error } = await _sb.from('workout_sessions')
+    .insert({ student_id: studentId, weekday: today, started_at: new Date().toISOString() })
+    .select()
+    .single();
+
+  if (error) {
+    showToast('Erro ao iniciar treino: ' + error.message, true);
+    btn.disabled = false;
+    return;
+  }
+
+  currentSessionId = data.id;
+  sessionStartTime = new Date(data.started_at).getTime();
+  showTimerRunning();
+  showToast('Treino iniciado! Bom treino 💪');
+}
+
+async function stopWorkoutSession() {
+  if (!currentSessionId) return;
+  const btn = document.getElementById('timerStopBtn');
+  btn.disabled = true;
+
+  const endedAt = new Date().toISOString();
+  const durationSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
+
+  const { error } = await _sb.from('workout_sessions')
+    .update({ ended_at: endedAt, duration_seconds: durationSeconds })
+    .eq('id', currentSessionId);
+
+  if (error) {
+    showToast('Erro ao encerrar treino: ' + error.message, true);
+    btn.disabled = false;
+    return;
+  }
+
+  showTimerFinished(durationSeconds);
+  showToast('Treino encerrado! ' + formatDuration(durationSeconds));
+  currentSessionId = null;
+  sessionStartTime = null;
+}
+
 // === Bloqueio ===
 function showBlock(state) {
   hideLoading();
@@ -719,6 +881,7 @@ guard('student', {
     });
 
     loadTodayData(today);
+    await loadTodaySession();
     hideLoading();
   },
   onBlocked: showBlock

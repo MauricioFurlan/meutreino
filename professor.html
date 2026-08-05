@@ -151,6 +151,22 @@
     .empty-state { text-align: center; padding: 30px; color: #666; font-size: 0.85rem; }
     .nav-link { display: block; text-align: center; margin-top: 12px; color: #f5c518; font-size: 0.8rem; text-decoration: underline; cursor: pointer; }
 
+    /* Info de sessão de treino */
+    .session-info {
+      display: flex; align-items: center; gap: 6px; margin-top: 6px;
+      font-size: 0.7rem; color: #4caf50; font-weight: 600;
+    }
+    .session-info.in-progress { color: #f5c518; }
+    .session-info .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #4caf50;
+      flex-shrink: 0;
+    }
+    .session-info.in-progress .dot {
+      background: #f5c518;
+      animation: pulse 1.2s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
     /* Loading overlay */
     .loading-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -291,6 +307,7 @@ let myId = null;
 let students = [];
 let pendingInvites = [];
 let maxStudents = 20;
+let sessionsMap = {}; // student_id -> { started_at, ended_at, duration_seconds }
 
 function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
@@ -322,6 +339,50 @@ async function loadPendingInvites() {
   pendingInvites = data || [];
 }
 
+// === Carregar sessões de treino de hoje ===
+async function loadTodaySessions() {
+  const today = new Date().toISOString().split('T')[0];
+  const studentIds = students.map(s => s.id);
+  if (studentIds.length === 0) { sessionsMap = {}; return; }
+
+  const { data, error } = await _sb.from('workout_sessions')
+    .select('student_id, started_at, ended_at, duration_seconds')
+    .in('student_id', studentIds)
+    .gte('started_at', today + 'T00:00:00')
+    .lte('started_at', today + 'T23:59:59')
+    .order('started_at', { ascending: false });
+
+  sessionsMap = {};
+  if (!error && data) {
+    data.forEach(s => {
+      // Pega apenas a sessão mais recente do dia de cada aluno
+      if (!sessionsMap[s.student_id]) {
+        sessionsMap[s.student_id] = s;
+      }
+    });
+  }
+}
+
+function formatSessionDuration(seconds) {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h${String(m).padStart(2,'0')}min`;
+  return `${m}min`;
+}
+
+function getSessionHtml(studentId) {
+  const session = sessionsMap[studentId];
+  if (!session) return '';
+  if (!session.ended_at) {
+    // Em andamento
+    const started = new Date(session.started_at);
+    const elapsed = Math.floor((Date.now() - started.getTime()) / 1000);
+    return `<div class="session-info in-progress"><span class="dot"></span>🏋️ Treinando agora · ${formatSessionDuration(elapsed)}</div>`;
+  }
+  // Concluído
+  return `<div class="session-info"><span class="dot"></span>✅ Treinou hoje · ${formatSessionDuration(session.duration_seconds)}</div>`;
+}
+
 // === Carregar alunos ===
 async function loadStudents() {
   await loadPendingInvites();
@@ -333,6 +394,7 @@ async function loadStudents() {
     .order('full_name', { ascending: true });
   if (error) { console.log('Erro ao carregar alunos:', error); return; }
   students = data || [];
+  await loadTodaySessions();
   renderStudents();
   renderAlerts();
   updateStudentCount();
@@ -386,6 +448,7 @@ function renderStudents() {
             ${s.gym_name ? `<span class="gym">${esc(s.gym_name)} · </span>` : ''}
             até ${expiresText}
           </div>
+          ${getSessionHtml(s.id)}
           <div class="actions">
             <button class="action-btn" onclick="openRenewModal('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')">Renovar</button>
             <button class="action-btn" onclick="location.href='treinador.html?aluno=${s.id}'">📊 Ver</button>
