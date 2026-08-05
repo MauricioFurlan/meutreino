@@ -595,7 +595,7 @@ function renderStudents() {
           ${getSessionHtml(s.id)}
           <div class="actions">
             <button class="action-btn" onclick="openRenewModal('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')">Renovar</button>
-            <button class="action-btn" onclick="location.href='treinador.html?aluno=${s.id}'">📊 Ver</button>
+            <button class="action-btn" onclick="location.href='treinador.html?aluno=${s.id}'">📊 Resultados</button>
             <button class="action-btn" onclick="location.href='treinos.html?aluno=${s.id}'">🏋️ Treinos</button>
             <button class="action-btn" onclick="location.href='anamnese.html?aluno=${s.id}'">🩺 Anamnese</button>
           </div>
