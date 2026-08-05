@@ -322,6 +322,7 @@ let pendingInvites = [];
 let maxStudents = 20;
 let sessionsMap = {}; // student_id -> { started_at, ended_at, duration_seconds }
 let streakMap = {};   // student_id -> { current, best, hitWindowEdge, lastTrained }
+let streakLoadedFor = ''; // assinatura da lista de alunos já processada
 
 // Ordem alfabética tolerante a acento/maiúscula ("Ávila" antes de "Bruno", "ana" antes de "Bruno")
 const byName = (a, b) => (a.full_name || '').localeCompare(b.full_name || '', 'pt-BR', { sensitivity: 'base' });
@@ -448,16 +449,26 @@ function computeStreak(trained, prescribed, today) {
 }
 
 async function loadStreaks() {
-  streakMap = {};
   const ids = students.map(s => s.id);
   if (ids.length === 0) return;
 
+  // loadStudents() roda de novo a cada renovar/ativar/editar. Recalcular a sequência
+  // nessas horas custaria uma consulta por aluno sem nada ter mudado no treino, então
+  // só recalcula quando o conjunto de alunos muda (ou quando a página recarrega).
+  const key = ids.slice().sort().join(',');
+  if (key === streakLoadedFor) return;
+  streakLoadedFor = key;
+  streakMap = {};
+
   // Dias prescritos vêm do plano ativo. Sem plano ativo não há como separar treino
   // de descanso, então o aluno fica sem foguinho (em vez de aparecer zerado à toa).
-  const { data: plans } = await _sb.from('workout_plans')
+  const { data: plans, error: plansError } = await _sb.from('workout_plans')
     .select('student_id, structure')
     .in('student_id', ids)
     .eq('is_active', true);
+
+  // Falhou a rede: solta o cache para a próxima chamada tentar de novo.
+  if (plansError) { streakLoadedFor = ''; console.log('Erro ao carregar planos:', plansError); return; }
 
   const prescribedBy = {};
   (plans || []).forEach(p => {
@@ -488,7 +499,7 @@ async function loadStreaks() {
 
   withPlan.forEach((id, i) => {
     const { data, error } = results[i];
-    if (error || !data) return;
+    if (error || !data) { streakLoadedFor = ''; return; }  // tenta de novo na próxima
     const trained = new Set(data.map(r => r.session_date));
     const st = computeStreak(trained, prescribedBy[id], today);
     const sorted = [...trained].sort();

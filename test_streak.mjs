@@ -11,10 +11,12 @@ function inlineScript(file) {
 function grab(source, name) {
   const i = source.indexOf(`function ${name}(`);
   if (i < 0) throw new Error(`não achei ${name}`);
+  // Preserva o `async ` na frente, senão o await do corpo vira erro de sintaxe.
+  const start = source.slice(Math.max(0, i - 6), i) === 'async ' ? i - 6 : i;
   let depth = 0, started = false;
   for (let p = i; p < source.length; p++) {
     if (source[p] === '{') { depth++; started = true; }
-    else if (source[p] === '}') { depth--; if (started && depth === 0) return source.slice(i, p + 1); }
+    else if (source[p] === '}') { depth--; if (started && depth === 0) return source.slice(start, p + 1); }
   }
   throw new Error(`fim não encontrado: ${name}`);
 }
@@ -106,6 +108,136 @@ eq('ordem alfabética ignora acento e caixa',
   ['ana','Ávila','Bruno','Zé']);
 eq('professor.html ordena students com byName', /students = \(data \|\| \[\]\)\.sort\(byName\)/.test(profJs), true);
 eq('professor.html ordena convites com byName', /pendingInvites = \(data \|\| \[\]\)\.sort\(byName\)/.test(profJs), true);
+
+// ====================================================================
+// loadStreaks(): caminho de carregamento com o cliente Supabase stubado.
+// Verifica o cache (não repetir N consultas a cada renovar/ativar) e o que
+// acontece sem plano ativo ou com erro de rede.
+// ====================================================================
+function sandbox(planRows, logsById, forceError) {
+  const state = { plansQueries: 0, logQueries: 0 };
+
+  // Stub encadeável e "thenable" no formato do supabase-js.
+  const from = (table) => {
+    const q = { table, eqs: {} };
+    const api = {
+      select: () => api,
+      in: () => api,
+      gte: () => api,
+      order: () => api,
+      eq: (k, v) => { q.eqs[k] = v; return api; },
+      then: (res, rej) => {
+        let out;
+        if (table === 'workout_plans') {
+          state.plansQueries++;
+          out = forceError === 'plans' ? { data: null, error: { message: 'falhou' } } : { data: planRows, error: null };
+        } else {
+          state.logQueries++;
+          out = forceError === 'logs'
+            ? { data: null, error: { message: 'falhou' } }
+            : { data: (logsById[q.eqs.student_id] || []).map(d => ({ session_date: d })), error: null };
+        }
+        return Promise.resolve(out).then(res, rej);
+      }
+    };
+    return api;
+  };
+
+  const fakeDiv = () => {
+    const o = { _t: '' };
+    Object.defineProperty(o, 'textContent', { get: () => o._t, set: (v) => { o._t = v; } });
+    Object.defineProperty(o, 'innerHTML', { get: () => String(o._t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'), set: (v) => { o._t = v; } });
+    return o;
+  };
+
+  const profJsSrc = inlineScript('professor.html');
+  const src = [
+    profJsSrc.match(/const DAYS = \[[^\]]*\];/)[0],
+    profJsSrc.match(/const STREAK_WINDOW_DAYS = \d+;/)[0],
+    profJsSrc.match(/const esc = \(s\) => .*;/)[0],
+    grab(profJsSrc, 'toLocalISO'),
+    grab(profJsSrc, 'isTrainingDate'),
+    grab(profJsSrc, 'computeStreak'),
+    grab(profJsSrc, 'loadStreaks'),
+    grab(profJsSrc, 'getStreakHtml'),
+    'let students = [];',
+    'let streakMap = {};',
+    'let streakLoadedFor = "";',
+    'return { load: async (list) => { students = list; await loadStreaks(); return streakMap; }, getStreakHtml, peek: () => streakMap };'
+  ].join('\n\n');
+
+  return { api: new Function('_sb', 'document', src)({ from }, { createElement: fakeDiv }), state };
+}
+
+// Plano seg/qua/sex e treinos nos 3 últimos dias prescritos, contados a partir de hoje.
+const hoje = new Date();
+const isoBack = (n) => {
+  const d = new Date(hoje);
+  d.setDate(hoje.getDate() - n);
+  const p = (x) => String(x).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+// Todos os dias da janela como dia prescrito: assim o cenário não depende do
+// dia da semana em que o teste roda.
+const TODOS_OS_DIAS = { Domingo: [1], Segunda: [1], Terça: [1], Quarta: [1], Quinta: [1], Sexta: [1], Sábado: [1] };
+const planoTodoDia = (id) => ({ student_id: id, structure: TODOS_OS_DIAS });
+
+{
+  const { api, state } = sandbox([planoTodoDia('a1')], { a1: [isoBack(0), isoBack(1), isoBack(2)] });
+  const map = await api.load([{ id: 'a1', full_name: 'Ana' }]);
+  eq('streak de 3 dias seguidos', map.a1.current, 3);
+  eq('uma consulta de planos + uma de logs', [state.plansQueries, state.logQueries], [1, 1]);
+  eq('chip mostra o número com foguinho', /🔥<\/span>3</.test(api.getStreakHtml('a1')), true);
+  eq('chip quente não leva a classe cold', /class="streak-chip "/.test(api.getStreakHtml('a1')), true);
+
+  // Segunda chamada (ex.: professor renovou o prazo) não pode refazer as consultas.
+  await api.load([{ id: 'a1', full_name: 'Ana' }]);
+  eq('cache evita repetir consultas na mesma lista', [state.plansQueries, state.logQueries], [1, 1]);
+
+  // Lista mudou (aluno novo) → recalcula.
+  await api.load([{ id: 'a1', full_name: 'Ana' }, { id: 'a2', full_name: 'Bia' }]);
+  eq('lista diferente recalcula', state.plansQueries, 2);
+}
+
+{
+  // Sem plano ativo não dá para saber o que é descanso: aluno fica sem chip.
+  const { api, state } = sandbox([], { a1: [isoBack(0)] });
+  const map = await api.load([{ id: 'a1', full_name: 'Ana' }]);
+  eq('sem plano ativo não calcula streak', map.a1, undefined);
+  eq('sem plano ativo não consulta logs', state.logQueries, 0);
+  eq('sem plano ativo o chip não é renderizado', api.getStreakHtml('a1'), '');
+}
+
+{
+  // Dia presente no plano mas sem exercício não é dia de treino.
+  const { api } = sandbox([{ student_id: 'a1', structure: { Segunda: [], Terça: [], Quarta: [], Quinta: [], Sexta: [], Sábado: [], Domingo: [] } }], { a1: [isoBack(0)] });
+  const map = await api.load([{ id: 'a1', full_name: 'Ana' }]);
+  eq('plano só com dias vazios não gera streak', map.a1, undefined);
+}
+
+{
+  // Erro de rede: não pode "congelar" o cache e nunca mais tentar.
+  const { api, state } = sandbox([planoTodoDia('a1')], {}, 'plans');
+  await api.load([{ id: 'a1', full_name: 'Ana' }]);
+  await api.load([{ id: 'a1', full_name: 'Ana' }]);
+  eq('erro nos planos libera o cache para nova tentativa', state.plansQueries, 2);
+}
+
+{
+  const { api, state } = sandbox([planoTodoDia('a1')], {}, 'logs');
+  await api.load([{ id: 'a1', full_name: 'Ana' }]);
+  await api.load([{ id: 'a1', full_name: 'Ana' }]);
+  eq('erro nos logs libera o cache para nova tentativa', state.logQueries, 2);
+}
+
+{
+  // Sem treino nenhum: chip cinza com zero, e não ausência de chip.
+  const { api } = sandbox([planoTodoDia('a1')], { a1: [] });
+  const map = await api.load([{ id: 'a1', full_name: 'Ana' }]);
+  eq('sem treino a sequência é zero', map.a1.current, 0);
+  eq('chip zerado ganha a classe cold', /streak-chip cold/.test(api.getStreakHtml('a1')), true);
+  eq('tooltip avisa que não há treino registrado', /nenhum treino registrado/.test(api.getStreakHtml('a1')), true);
+}
 
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);
