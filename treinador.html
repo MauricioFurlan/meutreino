@@ -594,7 +594,9 @@ function e1rm(weight, reps) {
 // Substitui a regra antiga "todo dia que não é domingo é dia de treino", que fazia um
 // aluno de 4x/semana aparecer com 2 faltas toda semana.
 function prescribedDaySet() {
-  return new Set(Object.keys(PRESCRIBED_ORDER));
+  // Dia presente no plano mas sem exercício nenhum NÃO é dia de treino — senão
+  // viraria falta toda semana e zeraria a sequência sem o aluno ter faltado.
+  return new Set(Object.keys(PRESCRIBED_ORDER).filter(d => (PRESCRIBED_ORDER[d] || []).length > 0));
 }
 
 // dateStr no formato 'YYYY-MM-DD' → é dia de treino prescrito?

@@ -72,9 +72,22 @@
       font-size: 0.9rem; font-weight: 700; color: #f5c518; flex-shrink: 0;
     }
     .student-info { min-width: 0; padding-right: 50px; }
-    .student-name { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .edit-icon { background: none; border: none; font-size: 0.75rem; cursor: pointer; padding: 2px 4px; vertical-align: middle; opacity: 0.7; }
+    /* Flex para o nome truncar sozinho e o lápis + foguinho nunca serem cortados */
+    .student-name { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 4px; min-width: 0; }
+    .student-name-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+    .edit-icon { background: none; border: none; font-size: 0.75rem; cursor: pointer; padding: 2px 4px; vertical-align: middle; opacity: 0.7; flex-shrink: 0; }
     .edit-icon:active { opacity: 1; }
+
+    /* Sequência (foguinho) ao lado do lápis: leitura rápida de quem está treinando */
+    .streak-chip {
+      display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;
+      font-size: 0.68rem; font-weight: 700; color: #ff9800;
+      background: #2a1a00; border: 1px solid #4a3000;
+      padding: 2px 7px; border-radius: 10px; line-height: 1.4;
+    }
+    .streak-chip .flame { font-size: 0.8rem; line-height: 1; }
+    .streak-chip.cold { color: #777; background: #1f1f1f; border-color: #333; }
+    .streak-chip.cold .flame { filter: grayscale(1) opacity(0.5); }
     .student-meta { font-size: 0.7rem; color: #999; margin-top: 2px; }
     .student-meta .gym { color: #888; }
     .student-status { font-size: 0.6rem; padding: 3px 8px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
@@ -308,6 +321,10 @@ let students = [];
 let pendingInvites = [];
 let maxStudents = 20;
 let sessionsMap = {}; // student_id -> { started_at, ended_at, duration_seconds }
+let streakMap = {};   // student_id -> { current, best, hitWindowEdge, lastTrained }
+
+// Ordem alfabética tolerante a acento/maiúscula ("Ávila" antes de "Bruno", "ana" antes de "Bruno")
+const byName = (a, b) => (a.full_name || '').localeCompare(b.full_name || '', 'pt-BR', { sensitivity: 'base' });
 
 function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
@@ -336,7 +353,7 @@ async function loadPendingInvites() {
     .eq('redeemed', false)
     .order('created_at', { ascending: false });
   if (error) { console.log('Erro ao carregar invites:', error); return; }
-  pendingInvites = data || [];
+  pendingInvites = (data || []).sort(byName);
 }
 
 // === Carregar sessões de treino de hoje ===
@@ -383,6 +400,120 @@ function getSessionHtml(studentId) {
   return `<div class="session-info"><span class="dot"></span>✅ Treinou hoje · ${formatSessionDuration(session.duration_seconds)}</div>`;
 }
 
+// =====================================================================
+// SEQUÊNCIA (foguinho) — mesma regra da tela de acompanhamento:
+// conta só os DIAS DE TREINO PRESCRITOS. Descanso não conta e não quebra.
+// Hoje sem registro fica pendente (o dia ainda não acabou).
+// =====================================================================
+const DAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
+// 120 dias cobre qualquer sequência realista e mantém o payload da lista pequeno.
+const STREAK_WINDOW_DAYS = 120;
+
+// 'YYYY-MM-DD' no fuso LOCAL. toISOString() jogaria pro dia seguinte após 21h no Brasil.
+function toLocalISO(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function isTrainingDate(dateStr, prescribed) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return prescribed.has(DAYS[d.getDay()]);
+}
+
+function computeStreak(trained, prescribed, today) {
+  let current = 0;
+  for (let i = 0; i < STREAK_WINDOW_DAYS; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const ds = toLocalISO(d);
+    if (!isTrainingDate(ds, prescribed)) continue;  // descanso: pula, não quebra
+    if (trained.has(ds)) { current++; continue; }
+    if (i === 0) continue;                          // hoje ainda pode treinar
+    break;                                          // faltou num dia prescrito
+  }
+
+  let best = 0, run = 0;
+  for (let i = STREAK_WINDOW_DAYS - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const ds = toLocalISO(d);
+    if (!isTrainingDate(ds, prescribed)) continue;
+    if (trained.has(ds)) { run++; if (run > best) best = run; }
+    else if (i > 0) run = 0;
+  }
+
+  return { current, best, hitWindowEdge: current >= STREAK_WINDOW_DAYS - 1 };
+}
+
+async function loadStreaks() {
+  streakMap = {};
+  const ids = students.map(s => s.id);
+  if (ids.length === 0) return;
+
+  // Dias prescritos vêm do plano ativo. Sem plano ativo não há como separar treino
+  // de descanso, então o aluno fica sem foguinho (em vez de aparecer zerado à toa).
+  const { data: plans } = await _sb.from('workout_plans')
+    .select('student_id, structure')
+    .in('student_id', ids)
+    .eq('is_active', true);
+
+  const prescribedBy = {};
+  (plans || []).forEach(p => {
+    const st = p.structure || {};
+    // Dia com lista vazia não é dia de treino — senão viraria falta toda semana.
+    const days = DAYS.filter(d => Array.isArray(st[d]) && st[d].length > 0);
+    if (days.length > 0) prescribedBy[p.student_id] = new Set(days);
+  });
+
+  const withPlan = ids.filter(id => prescribedBy[id]);
+  if (withPlan.length === 0) return;
+
+  const today = new Date();
+  const windowStart = new Date(today);
+  windowStart.setDate(today.getDate() - (STREAK_WINDOW_DAYS - 1));
+  const from = toLocalISO(windowStart);
+
+  // Uma consulta por aluno, filtrando set_number=1: para saber SE treinou no dia
+  // basta uma linha por exercício, o que corta o payload em ~3x numa lista de 20 alunos.
+  const results = await Promise.all(withPlan.map(id =>
+    _sb.from('workout_logs')
+      .select('session_date')
+      .eq('student_id', id)
+      .eq('set_number', 1)
+      .gte('session_date', from)
+      .order('session_date', { ascending: false })
+  ));
+
+  withPlan.forEach((id, i) => {
+    const { data, error } = results[i];
+    if (error || !data) return;
+    const trained = new Set(data.map(r => r.session_date));
+    const st = computeStreak(trained, prescribedBy[id], today);
+    const sorted = [...trained].sort();
+    st.lastTrained = sorted.length ? sorted[sorted.length - 1] : null;
+    streakMap[id] = st;
+  });
+}
+
+function getStreakHtml(studentId) {
+  const st = streakMap[studentId];
+  if (!st) return '';
+  const n = st.current + (st.hitWindowEdge ? '+' : '');
+  const parts = [];
+  if (st.current > 0) parts.push(`${st.current} treino${st.current > 1 ? 's' : ''} seguido${st.current > 1 ? 's' : ''} sem falhar`);
+  else parts.push('Sequência zerada');
+  if (st.best > st.current) parts.push(`recorde: ${st.best}`);
+  if (st.lastTrained) {
+    const q = new Date(st.lastTrained + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+    parts.push(`último treino em ${q}`);
+  } else {
+    parts.push('nenhum treino registrado');
+  }
+  return `<span class="streak-chip ${st.current > 0 ? '' : 'cold'}" title="${esc(parts.join(' · '))}"><span class="flame">🔥</span>${n}</span>`;
+}
+
 // === Carregar alunos ===
 async function loadStudents() {
   await loadPendingInvites();
@@ -393,8 +524,10 @@ async function loadStudents() {
     .eq('is_deleted', false)
     .order('full_name', { ascending: true });
   if (error) { console.log('Erro ao carregar alunos:', error); return; }
-  students = data || [];
-  await loadTodaySessions();
+  // Reordena no cliente: o ORDER BY do Postgres usa collation do banco e joga
+  // acento/maiúscula fora de ordem ("Ávila" depois de "Zé", "ana" depois de "Bruno").
+  students = (data || []).sort(byName);
+  await Promise.all([loadTodaySessions(), loadStreaks()]);
   renderStudents();
   renderAlerts();
   updateStudentCount();
@@ -415,7 +548,7 @@ function renderStudents() {
       <div class="student-card pending">
         <button class="delete-x" onclick="cancelInvite('${inv.id}','${esc(inv.full_name).replace(/'/g,"\\'")}')" title="Cancelar convite">×</button>
         <div class="student-info">
-          <div class="student-name">${esc(inv.full_name)} <span class="pending-badge">⏳ Pendente</span></div>
+          <div class="student-name"><span class="student-name-text">${esc(inv.full_name)}</span> <span class="pending-badge">⏳ Pendente</span></div>
           <div class="student-meta">
             ${inv.gym_name ? `<span class="gym">${esc(inv.gym_name)} · </span>` : ''}
             ${esc(inv.email)} · convidado em ${createdDate}
@@ -443,7 +576,7 @@ function renderStudents() {
         </div>
         <button class="delete-x" onclick="deleteStudent('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')" title="Excluir">×</button>
         <div class="student-info">
-          <div class="student-name">${esc(s.full_name)} <button class="edit-icon" onclick="openEditModal('${s.id}')">✏️</button></div>
+          <div class="student-name"><span class="student-name-text">${esc(s.full_name)}</span> <button class="edit-icon" onclick="openEditModal('${s.id}')">✏️</button>${getStreakHtml(s.id)}</div>
           <div class="student-meta">
             ${s.gym_name ? `<span class="gym">${esc(s.gym_name)} · </span>` : ''}
             até ${expiresText}
