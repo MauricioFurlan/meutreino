@@ -363,13 +363,15 @@ function viewPlan(planId) {
     let exHtml = '';
     let lastGroup = null;
     list.forEach(ex => {
-      const sets = (ex.sets || []).map(s => `${(s.type || '').toUpperCase()} ${esc(s.reps || '')}`.trim()).join(' | ');
+      const setsLine = (ex.sets || []).map(s => `${(s.type || '').toUpperCase()} ${esc(s.reps || '')}`.trim()).join(' | ');
+      const setNotes = (ex.sets || []).filter(s => s.note).map(s => `${(s.type || '').toUpperCase()}: ${esc(s.note)}`);
       const isGrp = ex.group && ex.group !== lastGroup;
       lastGroup = ex.group || null;
       exHtml += `<div class="view-ex">
         ${ex.group ? `<span class="grp">🔗${isGrp ? ' GRUPO' : ''}</span> ` : ''}${esc(ex.name || '')}
-        ${sets ? `<div class="sets">${esc(sets)}</div>` : ''}
+        ${setsLine ? `<div class="sets">${esc(setsLine)}</div>` : ''}
         ${ex.note ? `<div class="sets">❗ ${esc(ex.note)}</div>` : ''}
+        ${setNotes.length ? `<div class="sets">📝 ${setNotes.join(' · ')}</div>` : ''}
       </div>`;
     });
     html += `<div class="view-day"><h4>${day} · ${list.length} ex.</h4>${exHtml}</div>`;
