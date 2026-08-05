@@ -183,6 +183,10 @@
       border-radius: 50%;
       display: inline-block;
     }
+    /* Área de texto do gráfico (melhor set, progressão, frequência).
+       Existe para que mensagens de erro/vazio NÃO sobrescrevam o <canvas>. */
+    .chart-info { margin-top: 8px; }
+    .chart-info .stat-row { font-size: 0.72rem; }
     .frequency {
       margin-top: 10px;
       padding: 8px;
@@ -339,6 +343,44 @@
     .stat-value { color: #f0f0f0; font-weight: 600; }
     .stat-value.up { color: #4caf50; }
     .stat-value.down { color: #f44336; }
+
+    /* === Sequência (foguinho) === */
+    .streak-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin: 0 14px 12px;
+      padding: 10px 14px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 12px;
+    }
+    .streak-bar.hidden { display: none; }
+    .streak-flame {
+      font-size: 1.6rem;
+      line-height: 1;
+      filter: grayscale(1) opacity(0.4);
+    }
+    .streak-bar.on .streak-flame {
+      filter: none;
+      animation: flame-pulse 2s ease-in-out infinite;
+    }
+    @keyframes flame-pulse {
+      0%, 100% { transform: scale(1); }
+      50%      { transform: scale(1.12); }
+    }
+    .streak-count {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #f5c518;
+      line-height: 1;
+    }
+    .streak-bar:not(.on) .streak-count { color: #777; }
+    .streak-texts { display: flex; flex-direction: column; gap: 2px; }
+    .streak-label { font-size: 0.7rem; color: #999; }
+    .streak-sub { font-size: 0.62rem; color: #666; }
+    .streak-rest { color: #4caf50; }
     .weekly-days {
       display: flex;
       justify-content: space-around;
@@ -448,6 +490,14 @@
     <h1>Olá Mauricio Furlan</h1>
     <div class="subtitle">Visualização do treinador</div>
   </div>
+  <div class="streak-bar hidden" id="streakBar">
+    <span class="streak-flame" id="streakFlame">🔥</span>
+    <span class="streak-count" id="streakCount">0</span>
+    <span class="streak-texts">
+      <span class="streak-label" id="streakLabel">Sequência</span>
+      <span class="streak-sub" id="streakSub"></span>
+    </span>
+  </div>
   <div class="view-toggle">
     <button class="view-btn active" onclick="switchView('daily')">Diário</button>
     <button class="view-btn" onclick="switchView('weekly')">Semanal</button>
@@ -515,6 +565,44 @@ function formatDurationHM(seconds) {
   return `${m}min`;
 }
 
+// Converte um Date para 'YYYY-MM-DD' no fuso LOCAL.
+// NÃO usar toISOString() para datas: ele converte para UTC e, após ~21h no Brasil,
+// devolve o dia seguinte — o que deslocava a janela da semana/mês em um dia e marcava
+// o dia de amanhã como "faltou".
+function toLocalISO(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+// Fuso fixo do app (Brasil não tem horário de verão desde 2019).
+// Usado ao filtrar colunas timestamptz por um intervalo de DIAS locais — sem o offset
+// explícito o Postgres interpreta o horário no fuso do servidor (UTC) e a janela desloca.
+const TZ = '-03:00';
+
+// 1RM estimado (fórmula de Epley). Normaliza a carga pelas reps, então a curva de
+// força não oscila só porque o aluno fez 5 reps numa sessão e 10 na outra.
+function e1rm(weight, reps) {
+  const w = Number(weight) || 0;
+  const r = Number(reps) || 0;
+  if (w <= 0 || r <= 0) return 0;
+  return w * (1 + r / 30);
+}
+
+// Dias em que o aluno TEM treino prescrito, vindos do plano ativo (chaves de structure).
+// Substitui a regra antiga "todo dia que não é domingo é dia de treino", que fazia um
+// aluno de 4x/semana aparecer com 2 faltas toda semana.
+function prescribedDaySet() {
+  return new Set(Object.keys(PRESCRIBED_ORDER));
+}
+
+// dateStr no formato 'YYYY-MM-DD' → é dia de treino prescrito?
+function isTrainingDate(dateStr, prescribed) {
+  const d = new Date(dateStr + 'T12:00:00');
+  return prescribed.has(DAYS[d.getDay()]);
+}
+
 // Carregados dinamicamente do plano do aluno
 let PRESCRIBED_REPS = {};
 let PRESCRIBED_ORDER = {};
@@ -537,6 +625,107 @@ async function supaFetch(endpoint) {
   return res.json();
 }
 
+// =====================================================================
+// SEQUÊNCIA (foguinho)
+// Regra: conta apenas os DIAS DE TREINO PRESCRITOS. Dia de descanso é
+// ignorado — não conta e NÃO quebra a sequência. O dia de hoje, se ainda
+// não tem registro, fica pendente (não quebra: o dia não acabou).
+// =====================================================================
+const STREAK_WINDOW_DAYS = 180;
+
+// Cálculo puro (sem DOM, sem rede) para ser testável.
+// trained: Set de 'YYYY-MM-DD' com treino registrado
+// prescribed: Set de nomes de dia ('Segunda', ...) vindos do plano ativo
+// today: Date de referência
+function computeStreak(trained, prescribed, today) {
+  // sequência atual: caminha de hoje para trás
+  let current = 0;
+  for (let i = 0; i < STREAK_WINDOW_DAYS; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const ds = toLocalISO(d);
+
+    if (!isTrainingDate(ds, prescribed)) continue;   // descanso: pula, não quebra
+    if (trained.has(ds)) { current++; continue; }
+    if (i === 0) continue;                           // hoje ainda pode treinar
+    break;                                           // faltou num dia prescrito
+  }
+
+  // melhor sequência dentro da janela
+  let best = 0, run = 0;
+  for (let i = STREAK_WINDOW_DAYS - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const ds = toLocalISO(d);
+
+    if (!isTrainingDate(ds, prescribed)) continue;
+    if (trained.has(ds)) { run++; if (run > best) best = run; }
+    else if (i > 0) run = 0;
+  }
+
+  return { current, best, hitWindowEdge: current >= STREAK_WINDOW_DAYS - 1 };
+}
+
+async function loadStreak() {
+  const bar = document.getElementById('streakBar');
+  const prescribed = prescribedDaySet();
+
+  // Sem plano ativo não há como saber o que é treino e o que é descanso.
+  if (prescribed.size === 0) { bar.classList.add('hidden'); return; }
+
+  const today = new Date();
+  const windowStart = new Date(today);
+  windowStart.setDate(today.getDate() - (STREAK_WINDOW_DAYS - 1));
+
+  let rows;
+  try {
+    rows = await supaFetch(
+      `workout_logs?student_id=eq.${studentId}` +
+      `&session_date=gte.${toLocalISO(windowStart)}` +
+      `&select=session_date&order=session_date.desc`
+    );
+  } catch (e) {
+    bar.classList.add('hidden');
+    return;
+  }
+
+  const trained = new Set((rows || []).map(r => r.session_date));
+  const { current, best, hitWindowEdge } = computeStreak(trained, prescribed, today);
+
+  // --- última vez que treinou ---
+  const allDates = [...trained].sort();
+  const lastTrained = allDates.length ? allDates[allDates.length - 1] : null;
+
+  // --- render ---
+  const todayStr = toLocalISO(today);
+  const todayIsRest = !isTrainingDate(todayStr, prescribed);
+  const trainedToday = trained.has(todayStr);
+
+  document.getElementById('streakCount').textContent = current + (hitWindowEdge ? '+' : '');
+  bar.classList.remove('hidden');
+  bar.classList.toggle('on', current > 0);
+
+  const labelEl = document.getElementById('streakLabel');
+  const subEl = document.getElementById('streakSub');
+
+  if (current > 0) {
+    labelEl.innerHTML = `treino${current > 1 ? 's' : ''} seguido${current > 1 ? 's' : ''} sem falhar`;
+    const parts = [];
+    if (todayIsRest) parts.push('<span class="streak-rest">hoje é descanso — sequência preservada</span>');
+    else if (!trainedToday) parts.push('hoje ainda conta se treinar');
+    if (best > current) parts.push(`recorde: ${best}`);
+    subEl.innerHTML = parts.join(' · ');
+  } else {
+    labelEl.textContent = 'Sequência zerada';
+    const quando = lastTrained
+      ? new Date(lastTrained + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+      : null;
+    subEl.innerHTML = quando
+      ? `último treino em ${quando}${best > 0 ? ` · recorde: ${best}` : ''}`
+      : 'nenhum treino registrado ainda';
+  }
+}
+
 async function loadDay(day, date) {
   const container = document.getElementById('day-' + day);
   container.innerHTML = '<div class="loading">Carregando...</div>';
@@ -545,7 +734,7 @@ async function loadDay(day, date) {
     // Buscar logs e sessão do dia em paralelo
     const [data, sessionData] = await Promise.all([
       supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=eq.${date}&order=set_number.asc`),
-      supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${date}T00:00:00&started_at=lte.${date}T23:59:59&duration_seconds=not.is.null&order=started_at.desc&limit=1`)
+      supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${date}T00:00:00${TZ}&started_at=lte.${date}T23:59:59${TZ}&duration_seconds=not.is.null&order=started_at.desc&limit=1`)
     ]);
 
     if ((!data || data.length === 0) && (!sessionData || sessionData.length === 0)) {
@@ -571,22 +760,57 @@ async function loadDay(day, date) {
 
     const totalSets = (data || []).length;
     const totalExercises = orderedNames.length;
+    const hardSets = (data || []).filter(r => r.set_type === 'hard');
+    const dayVolume = hardSets.reduce((sum, r) => sum + (Number(r.weight) || 0) * (Number(r.reps) || 0), 0);
 
     // Tempo de treino
     const session = sessionData && sessionData.length > 0 ? sessionData[0] : null;
     const durationText = session ? ` · <strong>⏱ ${formatDurationHM(session.duration_seconds)}</strong>` : '';
 
-    let html = `<div class="summary"><strong>${totalExercises}</strong> exercícios · <strong>${totalSets}</strong> sets registrados${durationText}</div>`;
+    // Horário de início (dado que já existia no banco e nunca era mostrado)
+    let startedText = '';
+    if (session && session.started_at) {
+      const hora = new Date(session.started_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+      startedText = ` · início <strong>${hora}</strong>`;
+    }
+
+    // Densidade: volume por minuto de treino. Separa "treinou mais" de "treinou melhor".
+    let densityText = '';
+    if (session && session.duration_seconds > 0 && dayVolume > 0) {
+      const kgPorMin = dayVolume / (session.duration_seconds / 60);
+      densityText = ` · <strong>${kgPorMin.toFixed(1)} kg/min</strong>`;
+    }
+
+    let html = `<div class="summary"><strong>${totalExercises}</strong> exercícios · <strong>${hardSets.length}</strong> sets hard de ${totalSets}${durationText}${startedText}</div>`;
+    if (dayVolume > 0) {
+      html += `<div class="summary" style="margin-top:-6px;">Volume: <strong>${Math.round(dayVolume).toLocaleString('pt-BR')} kg</strong>${densityText}</div>`;
+    }
 
     orderedNames.forEach((name, exIdx) => {
       const sets = exercises[name];
       const chartId = `chart-${day}-${date}-${exIdx}`;
+
+      // Melhor set do dia por 1RM estimado (não pelo peso bruto: 100kg×5 vale mais
+      // que 105kg×1, e o peso máximo sozinho não mostra isso)
+      let bestSet = null, bestE1rm = 0;
+      sets.forEach(s => {
+        if (s.set_type !== 'hard') return;
+        const est = e1rm(s.weight, s.reps);
+        if (est > bestE1rm) { bestE1rm = est; bestSet = s; }
+      });
+
       html += `<div class="exercise-card">`;
       html += `<div class="exercise-name">${esc(name)}</div>`;
+      if (bestSet) {
+        html += `<div style="font-size:0.68rem;color:#888;margin-bottom:8px;">`;
+        html += `Melhor set: <strong style="color:#f0f0f0;">${bestSet.weight} kg × ${bestSet.reps}</strong>`;
+        html += ` · 1RM est. <strong style="color:#4caf50;">${Math.round(bestE1rm)} kg</strong>`;
+        html += `</div>`;
+      }
       html += `<div style="display:flex;gap:8px;margin-bottom:10px;">`;
       html += `<button class="chart-btn" onclick="toggleChart('${chartId}', '${esc(name).replace(/'/g, "\\'")}')">📈 Evolução</button>`;
       html += `</div>`;
-      html += `<div class="chart-container" id="${chartId}"><canvas></canvas><div class="chart-legend"><span><span class="dot" style="background:#f5c518"></span> Volume (kg×reps)</span><span><span class="dot" style="background:#4caf50"></span> Carga máx (kg)</span></div></div>`;
+      html += `<div class="chart-container" id="${chartId}"><canvas></canvas><div class="chart-legend"><span><span class="dot" style="background:#f5c518"></span> Volume (kg×reps)</span><span><span class="dot" style="background:#4caf50"></span> 1RM estimado (kg)</span></div><div class="chart-info"></div></div>`;
       html += `<div class="set-row"><span class="set-label">Set</span><span class="set-label" style="text-align:center">Carga</span><span class="set-label" style="text-align:center">Reps</span></div>`;
       sets.forEach(s => {
         const weight = s.weight ? s.weight + ' kg' : '-';
@@ -613,6 +837,12 @@ const chartInstances = {};
 function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
+// Janela do gráfico de evolução: 12 semanas.
+// Antes a query baixava o histórico INTEIRO do exercício, sem limite — o que deixava
+// o eixo X ilegível (50+ rótulos num gráfico de 200px) e crescia para sempre.
+const CHART_WINDOW_DAYS = 84;
+const CHART_WINDOW_WEEKS = 12;
+
 async function toggleChart(chartId, exerciseName) {
   const container = document.getElementById(chartId);
   if (container.classList.contains('show')) {
@@ -623,43 +853,64 @@ async function toggleChart(chartId, exerciseName) {
 
   if (chartInstances[chartId]) return; // já renderizado
 
+  // Escreve mensagens SEM destruir o <canvas> (antes usava container.innerHTML,
+  // o que apagava o canvas e travava qualquer nova tentativa de abrir o gráfico).
+  const infoEl = container.querySelector('.chart-info');
+  const canvas = container.querySelector('canvas');
+  const setInfo = (html) => { if (infoEl) infoEl.innerHTML = html; };
+
   try {
+    const from = new Date();
+    from.setDate(from.getDate() - (CHART_WINDOW_DAYS - 1));
+
     const data = await supaFetch(
-      `workout_logs?student_id=eq.${studentId}&exercise_name=eq.${encodeURIComponent(exerciseName)}&set_type=eq.hard&order=created_at.asc`
+      `workout_logs?student_id=eq.${studentId}` +
+      `&exercise_name=eq.${encodeURIComponent(exerciseName)}` +
+      `&set_type=eq.hard` +
+      `&session_date=gte.${toLocalISO(from)}` +
+      `&select=session_date,weight,reps` +
+      `&order=session_date.asc&limit=400`
     );
 
     if (!data || data.length === 0) {
-      container.innerHTML = '<div class="no-data">Sem histórico</div>';
+      canvas.style.display = 'none';
+      setInfo('<div class="no-data">Sem registros nas últimas 12 semanas</div>');
       return;
     }
+    canvas.style.display = '';
 
-    // Agrupar por data
+    // Agrupar por data do treino (session_date, não created_at: created_at é UTC e
+    // jogava treinos da noite para o dia seguinte)
     const byDate = {};
     data.forEach(r => {
-      const date = r.created_at.split('T')[0];
-      if (!byDate[date]) byDate[date] = [];
-      byDate[date].push(r);
+      if (!byDate[r.session_date]) byDate[r.session_date] = [];
+      byDate[r.session_date].push(r);
     });
 
     const labels = [];
     const volumeData = [];
-    const maxWeightData = [];
+    const e1rmData = [];
+    let bestE1rm = 0, bestSet = null, bestDate = null;
+    let maxWeightWindow = 0;
 
-    Object.entries(byDate).forEach(([date, sets]) => {
+    Object.keys(byDate).sort().forEach(date => {
+      const sets = byDate[date];
       labels.push(new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
       let volume = 0;
-      let maxWeight = 0;
+      let dayBestE1rm = 0;
       sets.forEach(s => {
-        const w = s.weight || 0;
-        const r = s.reps || 0;
+        const w = Number(s.weight) || 0;
+        const r = Number(s.reps) || 0;
         volume += w * r;
-        if (w > maxWeight) maxWeight = w;
+        if (w > maxWeightWindow) maxWeightWindow = w;
+        const est = e1rm(w, r);
+        if (est > dayBestE1rm) dayBestE1rm = est;
+        if (est > bestE1rm) { bestE1rm = est; bestSet = s; bestDate = date; }
       });
       volumeData.push(volume);
-      maxWeightData.push(maxWeight);
+      e1rmData.push(Math.round(dayBestE1rm));
     });
 
-    const canvas = container.querySelector('canvas');
     const ctx = canvas.getContext('2d');
 
     chartInstances[chartId] = new Chart(ctx, {
@@ -679,8 +930,8 @@ async function toggleChart(chartId, exerciseName) {
             yAxisID: 'y'
           },
           {
-            label: 'Carga máx (kg)',
-            data: maxWeightData,
+            label: '1RM estimado (kg)',
+            data: e1rmData,
             borderColor: '#4caf50',
             backgroundColor: 'rgba(76, 175, 80, 0.1)',
             borderWidth: 2,
@@ -726,40 +977,63 @@ async function toggleChart(chartId, exerciseName) {
       }
     });
 
-    // Indicador de frequência
+    // --- Melhor set da janela + progressão ---
     const dates = Object.keys(byDate).sort();
-    const firstDate = new Date(dates[0] + 'T12:00:00');
-    const lastDate = new Date(dates[dates.length - 1] + 'T12:00:00');
-    const totalWeeks = Math.ceil((lastDate - firstDate) / (7 * 24 * 60 * 60 * 1000)) + 1;
-    const trainedWeeks = new Set(dates.map(d => {
-      const dt = new Date(d + 'T12:00:00');
-      const startOfYear = new Date(dt.getFullYear(), 0, 1);
-      return Math.ceil(((dt - startOfYear) / 86400000 + startOfYear.getDay() + 1) / 7);
-    }));
-    const attended = trainedWeeks.size;
-    const percent = Math.round((attended / totalWeeks) * 100);
-
-    // Gerar bolinhas por semana
-    let dotsHtml = '';
-    let currentWeek = new Date(firstDate);
-    for (let i = 0; i < totalWeeks; i++) {
-      const weekStart = new Date(currentWeek);
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekEnd.getDate() + 6);
-      const hadTraining = dates.some(d => {
-        const dt = new Date(d + 'T12:00:00');
-        return dt >= weekStart && dt <= weekEnd;
-      });
-      dotsHtml += `<span class="freq-dot${hadTraining ? '' : ' missed'}" title="Semana ${i+1}"></span>`;
-      currentWeek.setDate(currentWeek.getDate() + 7);
+    let infoHtml = '';
+    if (bestSet) {
+      const quando = new Date(bestDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      // Rótulo honesto: é o melhor das últimas 12 semanas, não recorde histórico —
+      // a query é limitada à janela de propósito.
+      infoHtml += `<div class="stat-row"><span class="stat-label">🏆 Melhor (12 sem.)</span>`;
+      infoHtml += `<span class="stat-value">${bestSet.weight} kg × ${bestSet.reps} · 1RM ${Math.round(bestE1rm)} kg <span style="color:#666;font-weight:400;">(${quando})</span></span></div>`;
+      infoHtml += `<div class="stat-row"><span class="stat-label">Carga máx (12 sem.)</span><span class="stat-value">${maxWeightWindow} kg</span></div>`;
+    }
+    if (e1rmData.length >= 2) {
+      const ini = e1rmData[0], fim = e1rmData[e1rmData.length - 1];
+      const diff = ini > 0 ? Math.round(((fim - ini) / ini) * 100) : 0;
+      const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : '';
+      const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '=';
+      infoHtml += `<div class="stat-row"><span class="stat-label">Progressão (1RM est.)</span>`;
+      infoHtml += `<span class="stat-value ${cls}">${ini} → ${fim} kg ${arrow} ${Math.abs(diff)}%</span></div>`;
     }
 
-    const freqEl = document.createElement('div');
-    freqEl.className = 'frequency';
-    freqEl.innerHTML = `Frequência: <strong>${attended}/${totalWeeks} semanas (${percent}%)</strong><div class="freq-dots">${dotsHtml}</div><div style="margin-top:4px;font-size:0.65rem;">🟢 treinou &nbsp; 🔴 faltou</div>`;
-    container.appendChild(freqEl);
+    // --- Frequência: janela FIXA de 12 semanas terminando nesta semana ---
+    // Antes o total de semanas vinha da primeira até a última sessão registrada, então
+    // quem fez o exercício uma vez e parou aparecia como "1/1 semanas (100%)".
+    const weekStartOf = (d) => {
+      const x = new Date(d);
+      const wd = x.getDay();
+      x.setDate(x.getDate() - (wd === 0 ? 6 : wd - 1));
+      x.setHours(12, 0, 0, 0);
+      return toLocalISO(x);
+    };
+    const trainedWeeks = new Set(dates.map(ds => weekStartOf(new Date(ds + 'T12:00:00'))));
+
+    const weeks = [];
+    const cursor = new Date();
+    for (let i = 0; i < CHART_WINDOW_WEEKS; i++) {
+      const wk = new Date(cursor);
+      wk.setDate(cursor.getDate() - i * 7);
+      weeks.push(weekStartOf(wk));
+    }
+    weeks.reverse();
+
+    const attended = weeks.filter(w => trainedWeeks.has(w)).length;
+    const percent = Math.round((attended / CHART_WINDOW_WEEKS) * 100);
+    const dotsHtml = weeks.map((w, i) => {
+      const hit = trainedWeeks.has(w);
+      const rotulo = new Date(w + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+      return `<span class="freq-dot${hit ? '' : ' missed'}" title="Semana de ${rotulo}"></span>`;
+    }).join('');
+
+    infoHtml += `<div class="frequency">Feito em <strong>${attended}/${CHART_WINDOW_WEEKS} semanas (${percent}%)</strong>`;
+    infoHtml += `<div class="freq-dots">${dotsHtml}</div>`;
+    infoHtml += `<div style="margin-top:4px;font-size:0.65rem;">🟢 fez &nbsp; 🔴 não fez &nbsp;·&nbsp; mais antiga → esta semana</div></div>`;
+
+    setInfo(infoHtml);
   } catch (e) {
-    container.innerHTML = `<div class="no-data">Erro: ${e.message}</div>`;
+    if (canvas) canvas.style.display = 'none';
+    setInfo(`<div class="no-data">Erro: ${e.message}</div>`);
   }
 }
 
@@ -799,8 +1073,10 @@ function switchView(view) {
   document.getElementById('dailyView').style.display = view === 'daily' ? 'block' : 'none';
   document.getElementById('weeklyView').className = 'resume-section' + (view === 'weekly' ? ' active' : '');
   document.getElementById('monthlyView').className = 'resume-section' + (view === 'monthly' ? ' active' : '');
-  if (view === 'weekly') loadWeekly();
-  if (view === 'monthly') loadMonthly();
+  // Volta sempre para o período atual: antes o offset de navegação ficava preso
+  // (voltava 5 semanas, trocava de aba e continuava em -5 sem indicação clara).
+  if (view === 'weekly')  { currentWeekOffset = 0;  loadWeekly(); }
+  if (view === 'monthly') { currentMonthOffset = 0; loadMonthly(); }
 }
 
 // === WEEKLY ===
@@ -824,8 +1100,8 @@ function navWeek(dir) {
 
 async function loadWeekly() {
   const { start, end } = getWeekRange(currentWeekOffset);
-  const startStr = start.toISOString().split('T')[0];
-  const endStr = end.toISOString().split('T')[0];
+  const startStr = toLocalISO(start);
+  const endStr = toLocalISO(end);
 
   document.getElementById('weekLabel').textContent =
     start.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' - ' +
@@ -835,10 +1111,19 @@ async function loadWeekly() {
   container.innerHTML = '<div class="loading">Carregando...</div>';
 
   try {
-    // Buscar logs e sessões em paralelo
-    const [data, sessionsData] = await Promise.all([
-      supaFetch(`workout_logs?student_id=eq.${studentId}&created_at=gte.${startStr}T00:00:00&created_at=lte.${endStr}T23:59:59&order=created_at.asc`),
-      supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${startStr}T00:00:00&started_at=lte.${endStr}T23:59:59&duration_seconds=not.is.null&order=started_at.asc`)
+    // Semana anterior (para o comparativo)
+    const prevStart = new Date(start); prevStart.setDate(prevStart.getDate() - 7);
+    const prevEnd   = new Date(end);   prevEnd.setDate(prevEnd.getDate() - 7);
+    const prevStartStr = toLocalISO(prevStart);
+    const prevEndStr   = toLocalISO(prevEnd);
+
+    // Tudo em paralelo. Antes a query da semana anterior ficava com um await solto
+    // depois do render, custando uma ida extra ao servidor em série.
+    const [data, sessionsData, prevData, prevSessions] = await Promise.all([
+      supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=gte.${startStr}&session_date=lte.${endStr}&order=session_date.asc`),
+      supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${startStr}T00:00:00${TZ}&started_at=lte.${endStr}T23:59:59${TZ}&duration_seconds=not.is.null&order=started_at.asc`),
+      supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=gte.${prevStartStr}&session_date=lte.${prevEndStr}&select=session_date,set_type,weight,reps`),
+      supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${prevStartStr}T00:00:00${TZ}&started_at=lte.${prevEndStr}T23:59:59${TZ}&duration_seconds=not.is.null&select=duration_seconds`)
     ]);
 
     // Mapa sessões por data
@@ -846,7 +1131,7 @@ async function loadWeekly() {
     let totalSessionSeconds = 0;
     if (sessionsData) {
       sessionsData.forEach(s => {
-        const d = s.started_at.split('T')[0];
+        const d = toLocalISO(new Date(s.started_at));
         if (!sessionsByDate[d]) sessionsByDate[d] = 0;
         sessionsByDate[d] += s.duration_seconds;
         totalSessionSeconds += s.duration_seconds;
@@ -859,26 +1144,27 @@ async function loadWeekly() {
     for (let i = 0; i < 7; i++) {
       const d = new Date(start);
       d.setDate(start.getDate() + i);
-      byDay[d.toISOString().split('T')[0]] = [];
+      byDay[toLocalISO(d)] = [];
     }
     if (data) {
       data.forEach(r => {
-        const date = r.created_at.split('T')[0];
-        if (byDay[date]) byDay[date].push(r);
+        if (byDay[r.session_date]) byDay[r.session_date].push(r);
       });
     }
 
     // Presença semanal
+    const prescribed = prescribedDaySet();
     let html = '<div class="weekly-days">';
     const dates = Object.keys(byDay).sort();
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalISO(new Date());
     let totalVolume = 0;
     const volumeByDay = [];
     const timeByDay = [];
 
     dates.forEach((date, i) => {
       const records = byDay[date];
-      const isSunday = new Date(date + 'T12:00:00').getDay() === 0;
+      // Dia de treino = dia prescrito no plano ativo (antes: "tudo que não é domingo")
+      const isRest = !isTrainingDate(date, prescribed);
       const isFuture = date > today;
       const trained = records.length > 0;
 
@@ -889,50 +1175,64 @@ async function loadWeekly() {
         }
       });
       totalVolume += dayVolume;
-      volumeByDay.push({ label: dayNames[i], volume: dayVolume, trained, isSunday, isFuture });
-      timeByDay.push({ label: dayNames[i], seconds: sessionsByDate[date] || 0, isSunday, isFuture });
+      volumeByDay.push({ label: dayNames[i], volume: dayVolume, trained, isRest, isFuture });
+      timeByDay.push({ label: dayNames[i], seconds: sessionsByDate[date] || 0, isRest, isFuture });
 
-      let dotClass = 'rest';
-      if (isFuture) dotClass = 'future';
-      else if (!isSunday && trained) dotClass = 'trained';
-      else if (!isSunday && !trained) dotClass = 'missed';
+      let dotClass = 'rest', simbolo = '–';
+      if (trained)        { dotClass = 'trained'; simbolo = '✓'; }
+      else if (isFuture)  { dotClass = 'future';  simbolo = '?'; }
+      else if (isRest)    { dotClass = 'rest';    simbolo = '–'; }
+      else                { dotClass = 'missed';  simbolo = '✗'; }
 
       html += `<div class="weekly-day"><span class="weekly-day-label">${dayNames[i]}</span>`;
-      html += `<span class="weekly-day-dot ${dotClass}">${trained ? '✓' : isSunday ? '–' : isFuture ? '?' : '✗'}</span></div>`;
+      html += `<span class="weekly-day-dot ${dotClass}">${simbolo}</span></div>`;
     });
     html += '</div>';
 
-    // Frequência
-    const trainingDays = volumeByDay.filter(d => !d.isSunday && !d.isFuture);
+    // Frequência sobre os dias PRESCRITOS que já passaram
+    const trainingDays = volumeByDay.filter(d => !d.isRest && !d.isFuture);
     const attended = trainingDays.filter(d => d.trained).length;
     const totalDays = trainingDays.length;
     const percent = totalDays > 0 ? Math.round((attended / totalDays) * 100) : 0;
+    const extras = prescribed.size > 0 ? volumeByDay.filter(d => d.isRest && d.trained).length : 0;
 
     html += `<div class="resume-card"><h3>Frequência</h3>`;
-    html += `<div class="stat-row"><span class="stat-label">Presença</span><span class="stat-value">${attended}/${totalDays} dias (${percent}%)</span></div></div>`;
+    if (totalDays > 0) {
+      html += `<div class="stat-row"><span class="stat-label">Presença</span><span class="stat-value">${attended}/${totalDays} dias prescritos (${percent}%)</span></div>`;
+    } else {
+      html += `<div class="stat-row"><span class="stat-label">Presença</span><span class="stat-value">${attended} treino${attended !== 1 ? 's' : ''}</span></div>`;
+    }
+    if (extras > 0) {
+      html += `<div class="stat-row"><span class="stat-label">Treinos extras</span><span class="stat-value up">+${extras} em dia de descanso</span></div>`;
+    }
+    if (prescribed.size > 0) {
+      html += `<div style="font-size:0.62rem;color:#666;margin-top:6px;">Plano: ${[...prescribed].join(', ')}</div>`;
+    } else {
+      html += `<div style="font-size:0.62rem;color:#f5c518;margin-top:6px;">Aluno sem treino ativo — não é possível calcular faltas.</div>`;
+    }
+    html += `</div>`;
 
     // Volume por dia (barras)
     const maxVolume = Math.max(...volumeByDay.map(d => d.volume), 1);
     html += `<div class="resume-card"><h3>Volume por dia (hard sets)</h3>`;
     volumeByDay.forEach(d => {
-      if (d.isSunday) return;
+      if (d.isRest && !d.trained) return;
       const pct = (d.volume / maxVolume) * 100;
       const color = d.trained ? '#f5c518' : '#f44336';
       html += `<div class="volume-bar-row">`;
       html += `<span class="volume-bar-label">${d.label}</span>`;
       html += `<div class="volume-bar-track"><div class="volume-bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
-      html += `<span class="volume-bar-value">${d.volume > 0 ? d.volume.toLocaleString('pt-BR') + ' kg' : 'faltou'}</span>`;
+      html += `<span class="volume-bar-value">${d.volume > 0 ? d.volume.toLocaleString('pt-BR') + ' kg' : (d.isFuture ? '-' : 'faltou')}</span>`;
       html += `</div>`;
     });
     html += `</div>`;
 
     // Tempo de treino por dia
     const maxTime = Math.max(...timeByDay.map(d => d.seconds), 1);
-    const totalHoursWeek = totalSessionSeconds / 3600;
     html += `<div class="resume-card"><h3>⏱ Tempo de treino</h3>`;
     html += `<div class="stat-row" style="margin-bottom:10px;"><span class="stat-label">Total da semana</span><span class="stat-value">${formatDurationHM(totalSessionSeconds)}</span></div>`;
     timeByDay.forEach(d => {
-      if (d.isSunday) return;
+      if (d.isRest && d.seconds === 0) return;
       const pct = (d.seconds / maxTime) * 100;
       const color = d.seconds > 0 ? '#4caf50' : (d.isFuture ? '#333' : '#f44336');
       html += `<div class="volume-bar-row">`;
@@ -943,32 +1243,42 @@ async function loadWeekly() {
     });
     html += `</div>`;
 
+    // Eficiência: densidade e média por sessão (números que já existiam, só não eram cruzados)
+    const sessoesFeitas = timeByDay.filter(d => d.seconds > 0).length;
+    if (totalSessionSeconds > 0 && totalVolume > 0) {
+      const densidade = totalVolume / (totalSessionSeconds / 60);
+      const mediaSessao = totalSessionSeconds / Math.max(sessoesFeitas, 1);
+      html += `<div class="resume-card"><h3>Eficiência</h3>`;
+      html += `<div class="stat-row"><span class="stat-label">Densidade</span><span class="stat-value">${densidade.toFixed(1)} kg/min</span></div>`;
+      html += `<div class="stat-row"><span class="stat-label">Duração média</span><span class="stat-value">${formatDurationHM(Math.round(mediaSessao))} / treino</span></div>`;
+      html += `<div class="stat-row"><span class="stat-label">Volume médio</span><span class="stat-value">${Math.round(totalVolume / Math.max(sessoesFeitas, 1)).toLocaleString('pt-BR')} kg / treino</span></div>`;
+      html += `</div>`;
+    }
+
     // Comparativo com semana anterior
-    const prevStart = new Date(start);
-    prevStart.setDate(prevStart.getDate() - 7);
-    const prevEnd = new Date(end);
-    prevEnd.setDate(prevEnd.getDate() - 7);
-    const prevData = await supaFetch(
-      `workout_logs?student_id=eq.${studentId}&created_at=gte.${prevStart.toISOString().split('T')[0]}T00:00:00&created_at=lte.${prevEnd.toISOString().split('T')[0]}T23:59:59`
-    );
     let prevVolume = 0;
-    let prevAttended = 0;
     const prevDays = new Set();
     if (prevData) {
       prevData.forEach(r => {
         if (r.set_type === 'hard' && r.weight && r.reps) prevVolume += r.weight * r.reps;
-        prevDays.add(r.created_at.split('T')[0]);
+        prevDays.add(r.session_date);
       });
-      prevAttended = prevDays.size;
     }
+    const prevAttended = prevDays.size;
+    let prevSeconds = 0;
+    if (prevSessions) prevSessions.forEach(s => { prevSeconds += s.duration_seconds; });
 
     const volumeDiff = prevVolume > 0 ? Math.round(((totalVolume - prevVolume) / prevVolume) * 100) : 0;
     const volumeClass = volumeDiff > 0 ? 'up' : volumeDiff < 0 ? 'down' : '';
     const volumeArrow = volumeDiff > 0 ? '↑' : volumeDiff < 0 ? '↓' : '=';
+    const timeDiff = prevSeconds > 0 ? Math.round(((totalSessionSeconds - prevSeconds) / prevSeconds) * 100) : 0;
+    const timeClass = timeDiff > 0 ? 'up' : timeDiff < 0 ? 'down' : '';
+    const timeArrow = timeDiff > 0 ? '↑' : timeDiff < 0 ? '↓' : '=';
 
     html += `<div class="resume-card"><h3>vs. Semana anterior</h3>`;
     html += `<div class="stat-row"><span class="stat-label">Volume total</span><span class="stat-value ${volumeClass}">${totalVolume.toLocaleString('pt-BR')} kg ${volumeArrow} ${Math.abs(volumeDiff)}%</span></div>`;
     html += `<div class="stat-row"><span class="stat-label">Frequência</span><span class="stat-value">${attended} vs ${prevAttended} dias</span></div>`;
+    html += `<div class="stat-row"><span class="stat-label">⏱ Tempo</span><span class="stat-value ${timeClass}">${formatDurationHM(totalSessionSeconds)} ${timeArrow} ${Math.abs(timeDiff)}%</span></div>`;
     html += `</div>`;
 
     container.innerHTML = html;
@@ -1000,31 +1310,43 @@ async function loadMonthly() {
   container.innerHTML = '<div class="loading">Carregando...</div>';
 
   try {
-    const startStr = firstDay.toISOString().split('T')[0];
-    const endStr = lastDay.toISOString().split('T')[0];
+    const startStr = toLocalISO(firstDay);
+    const endStr = toLocalISO(lastDay);
 
-    const [data, sessionsData] = await Promise.all([
-      supaFetch(`workout_logs?student_id=eq.${studentId}&created_at=gte.${startStr}T00:00:00&created_at=lte.${endStr}T23:59:59&order=created_at.asc`),
-      supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${startStr}T00:00:00&started_at=lte.${endStr}T23:59:59&duration_seconds=not.is.null&order=started_at.asc`)
+    // Mês anterior (comparativo)
+    const prevMonth = new Date(year, month - 1, 1);
+    const prevLastDay = new Date(year, month, 0);
+    const prevStartStr = toLocalISO(prevMonth);
+    const prevEndStr = toLocalISO(prevLastDay);
+
+    // Tudo em paralelo, incluindo o comparativo (antes era um await em série no final)
+    const [data, sessionsData, prevData, prevSessions] = await Promise.all([
+      supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=gte.${startStr}&session_date=lte.${endStr}&order=session_date.asc`),
+      supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${startStr}T00:00:00${TZ}&started_at=lte.${endStr}T23:59:59${TZ}&duration_seconds=not.is.null&order=started_at.asc`),
+      supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=gte.${prevStartStr}&session_date=lte.${prevEndStr}&select=session_date,set_type,weight,reps`),
+      supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${prevStartStr}T00:00:00${TZ}&started_at=lte.${prevEndStr}T23:59:59${TZ}&duration_seconds=not.is.null&select=duration_seconds`)
     ]);
 
     // Total de tempo no mês
     let totalMonthSeconds = 0;
+    const sessionDays = new Set();
     if (sessionsData) {
-      sessionsData.forEach(s => { totalMonthSeconds += s.duration_seconds; });
+      sessionsData.forEach(s => {
+        totalMonthSeconds += s.duration_seconds;
+        sessionDays.add(toLocalISO(new Date(s.started_at)));
+      });
     }
 
-    // Dias com registro
+    // Dias com registro + volume por faixa de dias
     const trainedDates = new Set();
     const volumeByWeek = {};
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalISO(new Date());
 
     if (data) {
       data.forEach(r => {
-        const date = r.created_at.split('T')[0];
-        trainedDates.add(date);
-        // Calcular semana do mês
-        const d = new Date(date + 'T12:00:00');
+        trainedDates.add(r.session_date);
+        // Faixa de 7 dias dentro do mês (não é semana de calendário — ver rótulos abaixo)
+        const d = new Date(r.session_date + 'T12:00:00');
         const weekNum = Math.ceil(d.getDate() / 7);
         if (!volumeByWeek[weekNum]) volumeByWeek[weekNum] = 0;
         if (r.set_type === 'hard' && r.weight && r.reps) {
@@ -1032,6 +1354,8 @@ async function loadMonthly() {
         }
       });
     }
+
+    const prescribed = prescribedDaySet();
 
     // Calendário
     let html = '<div class="resume-card"><h3>Calendário de presença</h3>';
@@ -1048,41 +1372,70 @@ async function loadMonthly() {
 
     let totalTrainingDays = 0;
     let totalAttended = 0;
+    let extras = 0;
 
     for (let day = 1; day <= lastDay.getDate(); day++) {
       const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const d = new Date(date + 'T12:00:00');
-      const isSunday = d.getDay() === 0;
+      const isRest = !isTrainingDate(date, prescribed);
       const isFuture = date > today;
       const trained = trainedDates.has(date);
 
-      let cls = 'rest';
-      if (isFuture) cls = 'future';
-      else if (isSunday) cls = 'rest';
-      else if (trained) { cls = 'trained'; totalAttended++; totalTrainingDays++; }
-      else { cls = 'missed'; totalTrainingDays++; }
+      // Dia de treino = dia prescrito no plano (antes: qualquer dia que não fosse domingo,
+      // o que gerava ~8 faltas por mês para um aluno de 4x/semana)
+      let cls;
+      if (trained) {
+        cls = 'trained';
+        if (isRest && prescribed.size > 0) extras++;
+        else if (!isRest) { totalAttended++; totalTrainingDays++; }
+      } else if (isFuture) {
+        cls = 'future';
+      } else if (isRest) {
+        cls = 'rest';
+      } else {
+        cls = 'missed';
+        totalTrainingDays++;
+      }
 
       html += `<span class="cal-day ${cls}">${day}</span>`;
     }
     html += '</div>';
 
     const freqPercent = totalTrainingDays > 0 ? Math.round((totalAttended / totalTrainingDays) * 100) : 0;
-    html += `<div class="stat-row"><span class="stat-label">Frequência</span><span class="stat-value">${totalAttended}/${totalTrainingDays} dias (${freqPercent}%)</span></div>`;
+    if (totalTrainingDays > 0) {
+      html += `<div class="stat-row"><span class="stat-label">Frequência</span><span class="stat-value">${totalAttended}/${totalTrainingDays} dias prescritos (${freqPercent}%)</span></div>`;
+    } else {
+      html += `<div class="stat-row"><span class="stat-label">Treinos</span><span class="stat-value">${trainedDates.size}</span></div>`;
+    }
+    if (extras > 0) {
+      html += `<div class="stat-row"><span class="stat-label">Treinos extras</span><span class="stat-value up">+${extras} em dia de descanso</span></div>`;
+    }
     html += `<div style="font-size:0.65rem;color:#666;margin-top:6px;text-align:center;">🟢 treinou &nbsp; 🔴 faltou &nbsp; ⚫ descanso</div>`;
+    if (prescribed.size === 0) {
+      html += `<div style="font-size:0.62rem;color:#f5c518;margin-top:6px;text-align:center;">Aluno sem treino ativo — não é possível calcular faltas.</div>`;
+    }
     html += '</div>';
 
-    // Volume por semana
-    const totalWeeks = Math.ceil(lastDay.getDate() / 7);
+    // Volume por faixa de dias.
+    // Rótulo mostra o intervalo real: a última faixa costuma ter 1-3 dias, e quando era
+    // rotulada como "Sem 5" a barra curta parecia queda de volume todo fim de mês.
+    const diasNoMes = lastDay.getDate();
+    const totalWeeks = Math.ceil(diasNoMes / 7);
     const maxWeekVol = Math.max(...Object.values(volumeByWeek), 1);
-    html += `<div class="resume-card"><h3>Volume por semana</h3>`;
+    html += `<div class="resume-card"><h3>Volume por faixa de dias</h3>`;
     for (let w = 1; w <= totalWeeks; w++) {
       const vol = volumeByWeek[w] || 0;
       const pct = (vol / maxWeekVol) * 100;
+      const diaIni = (w - 1) * 7 + 1;
+      const diaFim = Math.min(w * 7, diasNoMes);
+      const qtdDias = diaFim - diaIni + 1;
       html += `<div class="volume-bar-row">`;
-      html += `<span class="volume-bar-label">Sem ${w}</span>`;
+      html += `<span class="volume-bar-label" style="min-width:52px;">${diaIni}-${diaFim}</span>`;
       html += `<div class="volume-bar-track"><div class="volume-bar-fill" style="width:${pct}%"></div></div>`;
       html += `<span class="volume-bar-value">${vol > 0 ? vol.toLocaleString('pt-BR') + ' kg' : '-'}</span>`;
       html += `</div>`;
+      if (qtdDias < 7 && vol > 0) {
+        html += `<div style="font-size:0.58rem;color:#666;margin:-4px 0 6px 60px;">faixa de ${qtdDias} dia${qtdDias > 1 ? 's' : ''} — não comparável às demais</div>`;
+      }
     }
     html += '</div>';
 
@@ -1090,39 +1443,47 @@ async function loadMonthly() {
     let totalVolumeMonth = Object.values(volumeByWeek).reduce((a, b) => a + b, 0);
     const missedDays = totalTrainingDays - totalAttended;
     const bestWeek = Object.entries(volumeByWeek).sort((a, b) => b[1] - a[1])[0];
+    const sessoesFeitas = Math.max(sessionDays.size, 1);
 
     html += `<div class="resume-card"><h3>Destaques do mês</h3>`;
     html += `<div class="stat-row"><span class="stat-label">Volume total</span><span class="stat-value">${totalVolumeMonth.toLocaleString('pt-BR')} kg</span></div>`;
     html += `<div class="stat-row"><span class="stat-label">⏱ Tempo total</span><span class="stat-value">${formatDurationHM(totalMonthSeconds)}</span></div>`;
+    if (totalMonthSeconds > 0) {
+      html += `<div class="stat-row"><span class="stat-label">Duração média</span><span class="stat-value">${formatDurationHM(Math.round(totalMonthSeconds / sessoesFeitas))} / treino</span></div>`;
+      if (totalVolumeMonth > 0) {
+        html += `<div class="stat-row"><span class="stat-label">Densidade</span><span class="stat-value">${(totalVolumeMonth / (totalMonthSeconds / 60)).toFixed(1)} kg/min</span></div>`;
+      }
+    }
     html += `<div class="stat-row"><span class="stat-label">Faltas</span><span class="stat-value${missedDays > 0 ? ' down' : ''}">${missedDays} dia${missedDays !== 1 ? 's' : ''}</span></div>`;
     if (bestWeek) {
-      html += `<div class="stat-row"><span class="stat-label">Melhor semana</span><span class="stat-value">Semana ${bestWeek[0]} (${parseInt(bestWeek[1]).toLocaleString('pt-BR')} kg)</span></div>`;
+      const bw = parseInt(bestWeek[0]);
+      html += `<div class="stat-row"><span class="stat-label">Melhor faixa</span><span class="stat-value">Dias ${(bw-1)*7+1}-${Math.min(bw*7, diasNoMes)} (${parseInt(bestWeek[1]).toLocaleString('pt-BR')} kg)</span></div>`;
     }
     html += '</div>';
 
     // Comparativo com mês anterior
-    const prevMonth = new Date(year, month - 1, 1);
-    const prevLastDay = new Date(year, month, 0);
-    const prevStartStr = prevMonth.toISOString().split('T')[0];
-    const prevEndStr = prevLastDay.toISOString().split('T')[0];
-    const prevData = await supaFetch(
-      `workout_logs?student_id=eq.${studentId}&created_at=gte.${prevStartStr}T00:00:00&created_at=lte.${prevEndStr}T23:59:59`
-    );
     let prevVolume = 0;
     const prevTrainedDates = new Set();
     if (prevData) {
       prevData.forEach(r => {
         if (r.set_type === 'hard' && r.weight && r.reps) prevVolume += r.weight * r.reps;
-        prevTrainedDates.add(r.created_at.split('T')[0]);
+        prevTrainedDates.add(r.session_date);
       });
     }
+    let prevSeconds = 0;
+    if (prevSessions) prevSessions.forEach(s => { prevSeconds += s.duration_seconds; });
+
     const volDiff = prevVolume > 0 ? Math.round(((totalVolumeMonth - prevVolume) / prevVolume) * 100) : 0;
     const volClass = volDiff > 0 ? 'up' : volDiff < 0 ? 'down' : '';
     const volArrow = volDiff > 0 ? '↑' : volDiff < 0 ? '↓' : '=';
+    const tDiff = prevSeconds > 0 ? Math.round(((totalMonthSeconds - prevSeconds) / prevSeconds) * 100) : 0;
+    const tClass = tDiff > 0 ? 'up' : tDiff < 0 ? 'down' : '';
+    const tArrow = tDiff > 0 ? '↑' : tDiff < 0 ? '↓' : '=';
 
     html += `<div class="resume-card"><h3>vs. Mês anterior</h3>`;
     html += `<div class="stat-row"><span class="stat-label">Volume</span><span class="stat-value ${volClass}">${volArrow} ${Math.abs(volDiff)}%</span></div>`;
-    html += `<div class="stat-row"><span class="stat-label">Frequência</span><span class="stat-value">${totalAttended} vs ${prevTrainedDates.size} dias</span></div>`;
+    html += `<div class="stat-row"><span class="stat-label">Frequência</span><span class="stat-value">${trainedDates.size} vs ${prevTrainedDates.size} dias</span></div>`;
+    html += `<div class="stat-row"><span class="stat-label">⏱ Tempo</span><span class="stat-value ${tClass}">${formatDurationHM(totalMonthSeconds)} ${tArrow} ${Math.abs(tDiff)}%</span></div>`;
     html += '</div>';
 
     container.innerHTML = html;
@@ -1162,7 +1523,7 @@ async function initApp() {
   }
 
   const dateInput = document.getElementById('dateFilter');
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalISO(new Date());
   dateInput.value = today;
 
   const tabsEl = document.getElementById('tabs');
@@ -1184,7 +1545,7 @@ async function initApp() {
       if (diff < 0) diff += 7;
       const targetDate = new Date(now);
       targetDate.setDate(now.getDate() - diff);
-      dateInput.value = targetDate.toISOString().split('T')[0];
+      dateInput.value = toLocalISO(targetDate);
       loadDay(day, dateInput.value);
     };
     tabsEl.appendChild(tab);
@@ -1209,6 +1570,7 @@ async function initApp() {
   });
 
   loadDay(todayDay, today);
+  loadStreak();   // não bloqueia o render do dia
 }
 
 guard('trainer', {
