@@ -187,6 +187,11 @@
        Existe para que mensagens de erro/vazio NÃO sobrescrevam o <canvas>. */
     .chart-info { margin-top: 8px; }
     .chart-info .stat-row { font-size: 0.72rem; }
+    /* Aviso de janela: o gráfico vive na aba Diária mas fala de 12 semanas */
+    .chart-caption {
+      font-size: 0.62rem; color: #777; text-align: center;
+      padding-bottom: 6px; border-bottom: 1px solid #222; margin-bottom: 4px;
+    }
     .frequency {
       margin-top: 10px;
       padding: 8px;
@@ -605,6 +610,55 @@ function cardioByDate(rows) {
   return out;
 }
 
+// Legenda dos gráficos de evolução. Eles vivem dentro da aba Diária mas NÃO
+// falam do dia selecionado — sem esse aviso o professor lê o total de 12
+// semanas como se fosse o número daquele treino.
+const CARDIO_CAPTION = 'Últimas 12 semanas · 1 coluna por treino — não é o total do dia';
+const FORCA_CAPTION  = 'Últimas 12 semanas · 1 ponto por treino — não é o dia selecionado';
+
+// Texto do gráfico de cardio + se vale desenhar o gráfico.
+// Puro de propósito: as regras de "quando um número engana" são o que precisa
+// de teste, não o desenho.
+//   1 sessão  → sem gráfico e sem média/total/máximo (seriam o mesmo número 3x)
+//   2 sessões → gráfico, sem comparação 1ª→última (é o próprio gráfico em texto)
+//   3+        → tudo
+function cardioChartInfo(dates, minutesData) {
+  const n = minutesData.length;
+  const dia = (d) => new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+  const row = (label, value, cls) =>
+    `<div class="stat-row"><span class="stat-label">${label}</span><span class="stat-value${cls ? ' ' + cls : ''}">${value}</span></div>`;
+  const caption = `<div class="chart-caption">${CARDIO_CAPTION}</div>`;
+
+  if (n === 0) {
+    return { showChart: false, html: '<div class="no-data">Sem cardio registrado nas últimas 12 semanas</div>' };
+  }
+  if (n === 1) {
+    return {
+      showChart: false,
+      html: caption +
+        row('Única sessão', `${formatMinutes(minutesData[0])} em ${dia(dates[0])}`) +
+        '<div class="no-data">Só 1 sessão na janela — o gráfico aparece a partir da 2ª.</div>'
+    };
+  }
+
+  const total = minutesData.reduce((a, b) => a + b, 0);
+  let html = caption;
+  html += row('Sessões na janela', n);
+  html += row('Total', formatMinutes(total));
+  html += row('Média por sessão', formatMinutes(total / n));
+  html += row('Maior sessão', formatMinutes(Math.max(...minutesData)));
+  if (n >= 3) {
+    const ini = minutesData[0], fim = minutesData[n - 1];
+    const diff = ini > 0 ? Math.round(((fim - ini) / ini) * 100) : 0;
+    const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : '';
+    const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '=';
+    // Rótulo explícito: são duas sessões pontuais, não a inclinação da curva.
+    html += row('1ª → última sessão',
+      `${formatMinutes(ini)} → ${formatMinutes(fim)} ${arrow} ${Math.abs(diff)}%`, cls);
+  }
+  return { showChart: true, html };
+}
+
 // Converte um Date para 'YYYY-MM-DD' no fuso LOCAL.
 // NÃO usar toISOString() para datas: ele converte para UTC e, após ~21h no Brasil,
 // devolve o dia seguinte — o que deslocava a janela da semana/mês em um dia e marcava
@@ -837,7 +891,12 @@ async function loadDay(day, date) {
     orderedNames.forEach((name, exIdx) => {
       const sets = exercises[name];
       const chartId = `chart-${day}-${date}-${exIdx}`;
-      const exIsCardio = sets.length > 0 && sets.every(s => isCardio(s.set_type));
+      const cardioMinEx = sumCardioMinutes(sets);
+      const soCardio = sets.length > 0 && sets.every(s => isCardio(s.set_type));
+      const temHard = sets.some(s => s.set_type === 'hard');
+      // Qual gráfico abrir: o de força só plota sets hard, então em exercício
+      // sem nenhum hard ele apareceria vazio — nesse caso o de cardio informa mais.
+      const chartCardio = cardioMinEx > 0 && !temHard;
 
       // Melhor set do dia por 1RM estimado (não pelo peso bruto: 100kg×5 vale mais
       // que 105kg×1, e o peso máximo sozinho não mostra isso)
@@ -850,24 +909,27 @@ async function loadDay(day, date) {
 
       html += `<div class="exercise-card">`;
       html += `<div class="exercise-name">${esc(name)}</div>`;
-      if (exIsCardio) {
+      // Minutos de cardio DESTE exercício. Aparece também em exercício misto,
+      // senão o 🏃 do resumo do dia não fecha com a soma dos cards.
+      if (cardioMinEx > 0) {
         html += `<div style="font-size:0.68rem;color:#888;margin-bottom:8px;">`;
-        html += `🏃 Tempo total: <strong style="color:#ff9800;">${formatMinutes(sumCardioMinutes(sets))}</strong>`;
+        html += `🏃 ${soCardio ? 'Tempo total' : 'Cardio neste exercício'}: <strong style="color:#ff9800;">${formatMinutes(cardioMinEx)}</strong>`;
         html += `</div>`;
-      } else if (bestSet) {
+      }
+      if (bestSet) {
         html += `<div style="font-size:0.68rem;color:#888;margin-bottom:8px;">`;
         html += `Melhor set: <strong style="color:#f0f0f0;">${bestSet.weight} kg × ${bestSet.reps}</strong>`;
         html += ` · 1RM est. <strong style="color:#4caf50;">${Math.round(bestE1rm)} kg</strong>`;
         html += `</div>`;
       }
       html += `<div style="display:flex;gap:8px;margin-bottom:10px;">`;
-      html += `<button class="chart-btn" onclick="toggleChart('${chartId}', '${esc(name).replace(/'/g, "\\'")}', ${exIsCardio})">📈 Evolução</button>`;
+      html += `<button class="chart-btn" onclick="toggleChart('${chartId}', '${esc(name).replace(/'/g, "\\'")}', ${chartCardio})">📈 ${chartCardio ? 'Evolução do cardio' : 'Evolução'}</button>`;
       html += `</div>`;
-      const legend = exIsCardio
-        ? `<div class="chart-legend"><span><span class="dot" style="background:#ff9800"></span> Minutos de cardio</span></div>`
+      const legend = chartCardio
+        ? `<div class="chart-legend"><span><span class="dot" style="background:#ff9800"></span> Minutos de cardio por treino</span></div>`
         : `<div class="chart-legend"><span><span class="dot" style="background:#f5c518"></span> Volume (kg×reps)</span><span><span class="dot" style="background:#4caf50"></span> 1RM estimado (kg)</span></div>`;
       html += `<div class="chart-container" id="${chartId}"><canvas></canvas>${legend}<div class="chart-info"></div></div>`;
-      html += `<div class="set-row"><span class="set-label">Set</span><span class="set-label" style="text-align:center">${exIsCardio ? 'Tempo' : 'Carga'}</span><span class="set-label" style="text-align:center">${exIsCardio ? '' : 'Reps'}</span></div>`;
+      html += `<div class="set-row"><span class="set-label">Set</span><span class="set-label" style="text-align:center">${soCardio ? 'Tempo' : 'Carga'}</span><span class="set-label" style="text-align:center">${soCardio ? '' : 'Reps'}</span></div>`;
       sets.forEach(s => {
         const prescribedList = PRESCRIBED_REPS[name] || [];
         const prescribed = prescribedList[s.set_number - 1] || '';
@@ -875,7 +937,8 @@ async function loadDay(day, date) {
         html += `<span class="set-label">${esc(s.set_type)} ${s.set_number}${prescribed ? ' (' + esc(prescribed) + ')' : ''}</span>`;
         if (isCardio(s.set_type)) {
           const min = Number(s.duration_minutes) > 0 ? Number(s.duration_minutes) : null;
-          html += `<span class="set-value${min ? '' : ' empty'}">${min ? min + ' min' : '-'}</span>`;
+          // ⏱ na frente porque em exercício misto a coluna se chama "Carga"
+          html += `<span class="set-value${min ? '' : ' empty'}">${min ? '⏱ ' + min + ' min' : '-'}</span>`;
           html += `<span class="set-value"></span>`;
         } else {
           const weight = s.weight ? s.weight + ' kg' : '-';
@@ -1046,7 +1109,7 @@ async function toggleChart(chartId, exerciseName, isCardioExercise) {
 
     // --- Melhor set da janela + progressão ---
     const dates = Object.keys(byDate).sort();
-    let infoHtml = '';
+    let infoHtml = `<div class="chart-caption">${FORCA_CAPTION}</div>`;
     if (bestSet) {
       const quando = new Date(bestDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
       // Rótulo honesto: é o melhor das últimas 12 semanas, não recorde histórico —
@@ -1060,7 +1123,7 @@ async function toggleChart(chartId, exerciseName, isCardioExercise) {
       const diff = ini > 0 ? Math.round(((fim - ini) / ini) * 100) : 0;
       const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : '';
       const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '=';
-      infoHtml += `<div class="stat-row"><span class="stat-label">Progressão (1RM est.)</span>`;
+      infoHtml += `<div class="stat-row"><span class="stat-label">1ª → última sessão (1RM est.)</span>`;
       infoHtml += `<span class="stat-value ${cls}">${ini} → ${fim} kg ${arrow} ${Math.abs(diff)}%</span></div>`;
     }
 
@@ -1124,10 +1187,9 @@ async function renderCardioChart(chartId, exerciseName, canvas, setInfo) {
 
     if (!data || data.length === 0) {
       canvas.style.display = 'none';
-      setInfo('<div class="no-data">Sem cardio registrado nas últimas 12 semanas</div>');
+      setInfo(cardioChartInfo([], []).html);
       return;
     }
-    canvas.style.display = '';
 
     // Mesmo dia pode ter mais de um set de cardio: soma.
     const byDate = {};
@@ -1139,6 +1201,11 @@ async function renderCardioChart(chartId, exerciseName, canvas, setInfo) {
     const dates = Object.keys(byDate).sort();
     const labels = dates.map(d => new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
     const minutesData = dates.map(d => sumCardioMinutes(byDate[d]));
+
+    const info = cardioChartInfo(dates, minutesData);
+    setInfo(info.html);
+    if (!info.showChart) { canvas.style.display = 'none'; return; }
+    canvas.style.display = '';
 
     chartInstances[chartId] = new Chart(canvas.getContext('2d'), {
       type: 'bar',
@@ -1168,23 +1235,6 @@ async function renderCardioChart(chartId, exerciseName, canvas, setInfo) {
         }
       }
     });
-
-    const total = minutesData.reduce((a, b) => a + b, 0);
-    const melhor = Math.max(...minutesData);
-    const media = total / minutesData.length;
-    let infoHtml = '';
-    infoHtml += `<div class="stat-row"><span class="stat-label">Total (12 sem.)</span><span class="stat-value">${formatMinutes(total)}</span></div>`;
-    infoHtml += `<div class="stat-row"><span class="stat-label">Média por sessão</span><span class="stat-value">${formatMinutes(media)}</span></div>`;
-    infoHtml += `<div class="stat-row"><span class="stat-label">Maior sessão</span><span class="stat-value">${formatMinutes(melhor)}</span></div>`;
-    infoHtml += `<div class="stat-row"><span class="stat-label">Sessões com este cardio</span><span class="stat-value">${dates.length}</span></div>`;
-    if (minutesData.length >= 2) {
-      const ini = minutesData[0], fim = minutesData[minutesData.length - 1];
-      const diff = ini > 0 ? Math.round(((fim - ini) / ini) * 100) : 0;
-      const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : '';
-      const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '=';
-      infoHtml += `<div class="stat-row"><span class="stat-label">Progressão</span><span class="stat-value ${cls}">${formatMinutes(ini)} → ${formatMinutes(fim)} ${arrow} ${Math.abs(diff)}%</span></div>`;
-    }
-    setInfo(infoHtml);
   } catch (e) {
     if (canvas) canvas.style.display = 'none';
     setInfo(`<div class="no-data">Erro: ${e.message}</div>`);

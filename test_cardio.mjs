@@ -335,6 +335,61 @@ eq('misto: header segue KG/REPS',   /col-title">KG/.test(misto), true);
 eq('misto: resumo cita os dois tipos',
   /HARD-60s \/ CARDIO-1min/.test(misto), true);
 
+// ---------- regras do gráfico de cardio ----------
+// O que estava confuso na tela: números que se repetem com pouca amostra e
+// comparação "1ª vs última" com cara de tendência.
+const chartApi = new vm.Script(
+  grabFrom(src['treinador.html'], 'isCardio') + '\n' +
+  grabFrom(src['treinador.html'], 'formatMinutes') + '\n' +
+  grabFrom(src['treinador.html'], 'cardioChartInfo') + '\n' +
+  src['treinador.html'].match(/const CARDIO_CAPTION = '[^']*';/)[0] + '\n' +
+  '({ cardioChartInfo })'
+).runInNewContext();
+
+const semSessao = chartApi.cardioChartInfo([], []);
+eq('0 sessões: sem gráfico',        semSessao.showChart, false);
+eq('0 sessões: diz que não há',     /Sem cardio registrado/.test(semSessao.html), true);
+
+const umaSessao = chartApi.cardioChartInfo(['2026-07-30'], [40]);
+eq('1 sessão: sem gráfico',         umaSessao.showChart, false);
+eq('1 sessão: mostra a sessão',     /40min em 30\/07/.test(umaSessao.html), true);
+eq('1 sessão: sem média redundante', /Média por sessão/.test(umaSessao.html), false);
+eq('1 sessão: sem total redundante', /Total<\/span>/.test(umaSessao.html), false);
+eq('1 sessão: explica a ausência',  /a partir da 2ª/.test(umaSessao.html), true);
+
+// Caso real do banco: 40min em 30/07 e 50min em 03/08
+const duasSessoes = chartApi.cardioChartInfo(['2026-07-30', '2026-08-03'], [40, 50]);
+eq('2 sessões: desenha o gráfico',  duasSessoes.showChart, true);
+eq('2 sessões: total 1h30',         /1h30/.test(duasSessoes.html), true);
+eq('2 sessões: média 45min',        /45min/.test(duasSessoes.html), true);
+eq('2 sessões: maior 50min',        /Maior sessão<\/span><span class="stat-value">50min/.test(duasSessoes.html), true);
+eq('2 sessões: conta as sessões',   /Sessões na janela<\/span><span class="stat-value">2/.test(duasSessoes.html), true);
+eq('2 sessões: sem 1ª→última (é o próprio gráfico)',
+  /1ª → última/.test(duasSessoes.html), false);
+
+const tresSessoes = chartApi.cardioChartInfo(
+  ['2026-07-23', '2026-07-30', '2026-08-03'], [30, 40, 45]);
+eq('3 sessões: aparece 1ª→última',  /1ª → última sessão/.test(tresSessoes.html), true);
+eq('3 sessões: 30min → 45min +50%', /30min → 45min ↑ 50%/.test(tresSessoes.html), true);
+eq('3 sessões: queda marca down',
+  /class="stat-value down"/.test(chartApi.cardioChartInfo(['a','b','c'].map((_,i)=>`2026-08-0${i+1}`), [60, 50, 30]).html), true);
+
+// A legenda de janela é o que faltava para o número não ser lido como "do dia"
+eq('gráfico avisa que a janela é de 12 semanas',
+  /12 semanas/.test(duasSessoes.html), true);
+eq('gráfico avisa que não é o total do dia',
+  /não é o total do dia/.test(duasSessoes.html), true);
+eq('gráfico de força também avisa a janela',
+  /const FORCA_CAPTION[^\n]*12 semanas/.test(src['treinador.html']), true);
+eq('força: rótulo 1ª → última em vez de "Progressão"',
+  /1ª → última sessão \(1RM est\.\)/.test(src['treinador.html']), true);
+
+// Exercício misto (o Leg press do banco: aquec + feeder + cardio)
+eq('misto mostra os minutos do exercício',
+  /Cardio neste exercício/.test(src['treinador.html']), true);
+eq('sem set hard o botão abre o gráfico de cardio',
+  /const chartCardio = cardioMinEx > 0 && !temHard;/.test(src['treinador.html']), true);
+
 // ---------- contratos entre as telas ----------
 // O aluno grava em duration_minutes; se alguém trocar por reps, o cardio
 // entra no volume e as métricas de força mentem.
