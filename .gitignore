@@ -1,2 +1,6 @@
 modelo_anaminese.pdf
 .kiro/
+venv/
+__pycache__/
+*.pyc
+output.log
