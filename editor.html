@@ -185,37 +185,36 @@
     }
     .exercise-extras input:focus { outline: none; border-color: #f5c518; }
 
-    /* Descanso entre séries (por exercício) */
-    .rest-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
-    .rest-row .ex-rest {
-      flex: 0 0 128px; width: 128px; padding: 6px 8px; border-radius: 6px;
-      border: 1px solid #333; background: #1a1a1a; color: #4fc3f7; font-size: 14px;
-      font-weight: 600; box-sizing: border-box;
-    }
-    .rest-row .ex-rest:focus { outline: none; border-color: #4fc3f7; }
-    .rest-row .ex-rest::placeholder { color: #666; font-weight: 400; }
-    .rest-chips { display: flex; gap: 4px; flex-wrap: wrap; flex: 1; min-width: 0; }
-    .chip.rest-chip { border-color: #2f4d5a; color: #4fc3f7; text-transform: none; }
-    .chip.rest-chip.on { border-color: #4fc3f7; background: #12242b; }
-    .chip.rest-chip:active { border-color: #4fc3f7; }
-
-    /* Sets */
-    .set-item {
-      display: grid; grid-template-columns: 60px 1fr 1fr 28px; gap: 4px;
+    /* Sets: tipo | reps/tempo | descanso | nota | remover.
+       O cabeçalho existe porque com 4 campos na linha o professor não tem
+       como adivinhar qual é qual só pelo placeholder truncado. */
+    .set-item, .set-head {
+      display: grid; grid-template-columns: 54px 1fr 50px 1fr 22px; gap: 4px;
       align-items: center; margin-bottom: 6px;
     }
+    .set-head { margin-bottom: 3px; }
+    .set-head span {
+      font-size: 0.55rem; color: #777; font-weight: 700;
+      letter-spacing: 0.3px; text-align: center;
+    }
+    .set-head span:first-child { text-align: left; }
     .set-item input {
-      padding: 6px 4px; border-radius: 6px; border: 1px solid #333;
+      padding: 6px 2px; border-radius: 6px; border: 1px solid #333;
       background: #1a1a1a; color: #fff; font-size: 14px; text-align: center;
       min-width: 0; box-sizing: border-box;
     }
     .set-item input:focus { outline: none; border-color: #f5c518; }
-    .set-type-input { text-transform: uppercase; font-weight: 600; color: #f5c518 !important; }
+    .set-item input::placeholder { color: #5a5a5a; }
+    /* 13px porque "FEEDER" em 14px não cabe nos 54px da coluna */
+    .set-type-input { text-transform: uppercase; font-weight: 600; font-size: 13px; color: #f5c518 !important; }
+    .set-rest { color: #4fc3f7 !important; font-weight: 600; }
+    .set-rest:focus { border-color: #4fc3f7 !important; }
     /* Cardio: o set deixa de ser carga×reps e passa a ser tempo — cor diferente
        para o professor perceber de imediato que aquela linha é minutos. */
     .set-item.is-cardio .set-type-input { color: #ff9800 !important; }
     .set-item.is-cardio .set-reps { border-color: #5a4423; color: #ffb74d; }
-    .chips { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; }
+    .chips { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
+    .chips-label { font-size: 0.6rem; color: #777; font-weight: 700; margin-right: 2px; }
     .chip {
       padding: 4px 10px; border-radius: 12px; border: 1px solid #555; background: none;
       color: #999; font-size: 0.6rem; cursor: pointer; font-weight: 600; text-transform: uppercase;
@@ -223,6 +222,10 @@
     .chip:active { border-color: #f5c518; color: #f5c518; }
     .chip.chip-cardio { border-color: #5a4423; color: #ffb74d; }
     .chip.chip-cardio:active { border-color: #ff9800; color: #ff9800; }
+    /* Chips de descanso: preenchem o campo de TODAS as séries de uma vez.
+       Tocar de novo no mesmo valor limpa. */
+    .chip.rest-chip { border-color: #2f4d5a; color: #4fc3f7; text-transform: none; }
+    .chip.rest-chip.on { border-color: #4fc3f7; background: #12242b; }
     .remove-btn {
       background: none; border: none; color: #f44336; font-size: 1.1rem; cursor: pointer;
       padding: 0; line-height: 1;
@@ -566,8 +569,11 @@ function renderExercise(day, idx, ex) {
   div.dataset.idx = idx;
 
   let setsHtml = '';
+  // Compatibilidade: a primeira versão guardava o descanso no exercício
+  // (ex.rest). Se existir, cai como padrão nas séries que não têm o seu —
+  // no próximo salvamento o plano já sai só com descanso por série.
   (ex.sets || []).forEach((set, si) => {
-    setsHtml += renderSetHtml(si, set);
+    setsHtml += renderSetHtml(si, Object.assign({}, set, { rest: set.rest || ex.rest || '' }));
   });
 
   div.innerHTML = `
@@ -578,9 +584,12 @@ function renderExercise(day, idx, ex) {
       <input type="url" class="ex-video" value="${esc(ex.video_url || '')}" placeholder="Link do vídeo (opcional)">
       <input type="text" class="ex-note" value="${esc(ex.note || '')}" placeholder="Nota (opcional)">
     </div>
-    ${renderRestRow(ex.rest)}
+    <div class="set-head">
+      <span>Tipo</span><span>Reps</span><span>Desc.</span><span>Nota</span><span></span>
+    </div>
     <div class="sets-container">${setsHtml}</div>
     ${renderChips()}
+    ${renderRestChips()}
     <button class="add-btn" onclick="addSet(this)">+ Adicionar set</button>
     <div class="ex-actions">
       <button class="ex-action-btn" onclick="moveExercise(this, -1)">↑</button>
@@ -589,15 +598,17 @@ function renderExercise(day, idx, ex) {
       <button class="ex-action-btn danger" onclick="removeExercise(this)">Remover</button>
     </div>
   `;
+  syncRestChips(div);
   return div;
 }
 
 // =====================================================================
-// Descanso entre séries
-// Fica no EXERCÍCIO, não no set: na prática o professor prescreve um
-// intervalo por exercício, e um campo por set multiplicaria o trabalho de
-// cadastro por 4-5 sem ganho de informação. Chips resolvem os valores
-// comuns em 1 toque; o campo aceita texto livre para o resto.
+// Descanso — por SÉRIE
+// Cada set tem seu próprio intervalo (aquec 2min, hard 3min...). Os chips
+// preenchem todas as séries de uma vez, então o caso comum ("mesmo
+// descanso em tudo") continua sendo 1 toque; depois o professor ajusta a
+// linha que for diferente.
+// Não entra em nenhuma métrica — é informação de execução para o aluno.
 // =====================================================================
 const REST_PRESETS = ['30s', '45s', '60s', '90s', '2min', '3min'];
 
@@ -618,41 +629,78 @@ function normalizeRest(raw) {
   return t;
 }
 
-function renderRestRow(rest) {
-  const value = normalizeRest(rest);
-  const chips = REST_PRESETS.map(p =>
-    `<button class="chip rest-chip${p === value ? ' on' : ''}" type="button" onclick="fillRest(this, '${p}')">${p}</button>`
-  ).join('');
-  return `<div class="rest-row">
-    <input type="text" class="ex-rest" value="${esc(value)}" placeholder="⏱ Descanso" oninput="syncRestChips(this)">
-    <div class="rest-chips">${chips}</div>
-  </div>`;
+// Rótulo curto do tipo, para o resumo caber em uma linha no celular.
+function restLabel(type) {
+  const t = String(type || '').trim().toLowerCase();
+  if (t === 'feeder') return 'FED';
+  if (!t) return 'SET';
+  const first = t.split(/[^0-9a-záàâãéêíóôõúç]+/i)[0] || t;
+  return first.slice(0, 6).toUpperCase();
 }
 
-// Toca no chip: preenche. Toca de novo no mesmo: limpa (sem precisar apagar à mão).
-function fillRest(btn, value) {
-  const row = btn.closest('.rest-row');
-  const input = row.querySelector('.ex-rest');
-  input.value = (input.value.trim() === value) ? '' : value;
-  syncRestChips(input);
-}
-
-function syncRestChips(input) {
-  const row = input.closest('.rest-row');
-  const current = normalizeRest(input.value);
-  row.querySelectorAll('.rest-chip').forEach(c => {
-    c.classList.toggle('on', c.textContent.trim() === current);
+// Resumo mostrado ao aluno: 'AQUEC-2min / FED-2min / HARD-3min'.
+// Quando todas as séries têm o mesmo intervalo, devolve só o valor ('2min')
+// e quem exibe usa o singular — repetir 5x o mesmo número é ruído.
+function restSummary(sets, legacyRest) {
+  const list = (sets || []).map(s => ({
+    label: restLabel(s.type),
+    rest: normalizeRest(s.rest || legacyRest || '')
+  })).filter(x => x.rest);
+  if (list.length === 0) return { text: '', uniform: false };
+  const distintos = [...new Set(list.map(x => x.rest))];
+  if (distintos.length === 1 && list.length === (sets || []).length) {
+    return { text: distintos[0], uniform: true };
+  }
+  const vistos = new Set();
+  const partes = [];
+  list.forEach(x => {
+    const chave = x.label + '|' + x.rest;
+    if (vistos.has(chave)) return;
+    vistos.add(chave);
+    partes.push(`${x.label}-${x.rest}`);
   });
+  return { text: partes.join(' / '), uniform: false };
+}
+
+function renderRestChips() {
+  const chips = REST_PRESETS.map(p =>
+    `<button class="chip rest-chip" type="button" onclick="fillAllRest(this, '${p}')">${p}</button>`
+  ).join('');
+  return `<div class="chips"><span class="chips-label">⏱ DESCANSO</span>${chips}</div>`;
+}
+
+// Preenche o descanso de todas as séries. Se já estiverem todas com esse
+// valor, limpa — evita ter que apagar campo por campo.
+function fillAllRest(btn, value) {
+  const item = btn.closest('.exercise-item');
+  const inputs = [...item.querySelectorAll('.set-rest')];
+  if (inputs.length === 0) return;
+  const todasIguais = inputs.every(i => i.value.trim() === value);
+  inputs.forEach(i => { i.value = todasIguais ? '' : value; });
+  syncRestChips(item);
+}
+
+function syncRestChips(item) {
+  const inputs = [...item.querySelectorAll('.set-rest')];
+  const valores = new Set(inputs.map(i => normalizeRest(i.value)));
+  const atual = (valores.size === 1 && inputs.length > 0) ? [...valores][0] : null;
+  item.querySelectorAll('.rest-chip').forEach(c => {
+    c.classList.toggle('on', atual !== null && c.textContent.trim() === atual);
+  });
+}
+
+function onRestInput(input) {
+  syncRestChips(input.closest('.exercise-item'));
 }
 
 // =====================================================================
 // Cardio
 // Set de cardio não tem carga×reps: tem TEMPO. O campo de prescrição é o
-// mesmo (reps), mas o hint muda para 'ex: 40min' e a linha ganha cor, para
+// mesmo (reps), mas o hint muda para '40min' e a linha ganha cor, para
 // não haver dúvida do que preencher.
 // =====================================================================
-const CARDIO_HINT = 'ex: 40min';
-const REPS_HINT = 'Reps (ex: 8-12)';
+const CARDIO_HINT = '40min';
+const REPS_HINT = '8-12';
 
 function isCardioType(type) {
   return String(type || '').trim().toLowerCase() === 'cardio';
@@ -678,8 +726,9 @@ function renderSetHtml(idx, set) {
     <div class="set-item${cardio ? ' is-cardio' : ''}">
       <input type="text" class="set-type-input" value="${esc(set.type || '')}" placeholder="Tipo" oninput="onSetTypeInput(this)">
       <input type="text" class="set-reps" value="${esc(set.reps || '')}" placeholder="${cardio ? CARDIO_HINT : REPS_HINT}">
+      <input type="text" class="set-rest" value="${esc(normalizeRest(set.rest))}" placeholder="90s" oninput="onRestInput(this)">
       <input type="text" class="set-note" value="${esc(set.note || '')}" placeholder="Nota">
-      <button class="remove-btn" onclick="this.parentElement.remove()">×</button>
+      <button class="remove-btn" onclick="removeSet(this)">×</button>
     </div>
   `;
 }
@@ -702,13 +751,26 @@ function fillLastType(btn, type) {
   syncSetRow(last.closest('.set-item'));
 }
 
+// Exercício sem nenhuma série não é executável: o card do aluno apareceria
+// vazio e não haveria o que salvar. A última série não pode ser removida.
+function removeSet(btn) {
+  const item = btn.closest('.exercise-item');
+  const container = item.querySelector('.sets-container');
+  if (container.querySelectorAll('.set-item').length <= 1) {
+    showToast('O exercício precisa de pelo menos 1 série. Remova o exercício inteiro se não for usar.', true);
+    return;
+  }
+  btn.closest('.set-item').remove();
+  syncRestChips(item);
+}
+
 // === Adicionar exercício ===
 function addExercise(day) {
   const body = document.getElementById('body-' + day);
   const items = body.querySelectorAll('.exercise-item');
   const idx = items.length;
   const addBtn = body.querySelector('.add-exercise-btn');
-  const newEx = renderExercise(day, idx, { name: '', video_url: null, note: null, rest: null, sets: [{ type: 'hard', reps: '8-12', note: null }] });
+  const newEx = renderExercise(day, idx, { name: '', video_url: null, note: null, sets: [{ type: 'hard', reps: '8-12', rest: null, note: null }] });
   body.insertBefore(newEx, addBtn);
   updateDayCount(day);
   newEx.querySelector('.ex-name').focus();
@@ -718,9 +780,14 @@ function addExercise(day) {
 function addSet(btn) {
   const exItem = btn.closest('.exercise-item');
   const container = exItem.querySelector('.sets-container');
+  // Herda o descanso da última série: quem prescreve 90s em tudo não digita
+  // de novo, e quem quer diferente só sobrescreve aquele campo.
+  const anteriores = container.querySelectorAll('.set-rest');
+  const restHerdado = anteriores.length ? anteriores[anteriores.length - 1].value.trim() : '';
   const temp = document.createElement('div');
-  temp.innerHTML = renderSetHtml(container.children.length, { type: '', reps: '', note: null });
+  temp.innerHTML = renderSetHtml(container.children.length, { type: '', reps: '', rest: restHerdado, note: null });
   container.appendChild(temp.firstElementChild);
+  syncRestChips(exItem);
   // Foca no campo de tipo do novo set
   container.lastElementChild.querySelector('.set-type-input').focus();
 }
@@ -886,14 +953,25 @@ function extractExerciseData(item) {
   const name = item.querySelector('.ex-name').value.trim();
   const video_url = item.querySelector('.ex-video').value.trim() || null;
   const note = item.querySelector('.ex-note').value.trim() || null;
-  const restEl = item.querySelector('.ex-rest');
-  const rest = restEl ? (normalizeRest(restEl.value) || null) : null;
   const sets = [...item.querySelectorAll('.set-item')].map(si => ({
     type: si.querySelector('.set-type-input').value.trim().toLowerCase(),
     reps: si.querySelector('.set-reps').value.trim(),
+    rest: normalizeRest(si.querySelector('.set-rest').value) || null,
     note: si.querySelector('.set-note').value.trim() || null
   }));
-  return { name, video_url, note, rest, sets };
+  return { name, video_url, note, sets };
+}
+
+// Exercícios sem nenhuma série — treino assim não é executável: o card do
+// aluno aparece vazio e não há o que registrar. Bloqueia o salvamento.
+function emptySetOffenders(structure) {
+  const out = [];
+  DAYS.forEach(day => {
+    (structure[day] || []).forEach(ex => {
+      if (!ex.sets || ex.sets.length === 0) out.push({ day, name: ex.name || 'sem nome' });
+    });
+  });
+  return out;
 }
 
 // === Salvar ===
@@ -907,6 +985,14 @@ async function savePlan() {
   // Validação básica
   const totalEx = Object.values(structure).reduce((sum, d) => sum + d.length, 0);
   if (totalEx === 0) { showToast('Adicione pelo menos um exercício.', true); return; }
+
+  const semSets = emptySetOffenders(structure);
+  if (semSets.length > 0) {
+    const primeiro = semSets[0];
+    const resto = semSets.length > 1 ? ` (e mais ${semSets.length - 1})` : '';
+    showToast(`"${primeiro.name}" em ${primeiro.day} está sem série${resto}. Adicione ao menos 1 ou remova o exercício.`, true);
+    return;
+  }
 
   const btn = document.getElementById('saveBtn');
   btn.disabled = true;
@@ -1122,8 +1208,8 @@ function pickImportPlan(sourcePlanId) {
     let exHtml = '';
     list.forEach(ex => {
       const sets = (ex.sets || []).map(s => `${(s.type || '').toUpperCase()} ${s.reps || ''}`.trim()).join(' | ');
-      const rest = normalizeRest(ex.rest);
-      const meta = [sets, rest ? '⏱ ' + rest : ''].filter(Boolean).join(' · ');
+      const descanso = restSummary(ex.sets, ex.rest);
+      const meta = [sets, descanso.text ? '⏱ ' + descanso.text : ''].filter(Boolean).join(' · ');
       exHtml += `<div class="preview-ex">${ex.group ? '🔗 ' : ''}${esc(ex.name || '')}${meta ? `<div class="sets">${esc(meta)}</div>` : ''}</div>`;
     });
     html += `<div class="preview-day"><h4>${day} · ${list.length} ex.</h4>${exHtml}</div>`;

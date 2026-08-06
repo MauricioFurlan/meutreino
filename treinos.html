@@ -216,6 +216,52 @@ function hideLoading() { document.getElementById('loadingOverlay').classList.add
 
 const esc = (s) => { const d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
 
+// === Descanso por série (mesmas regras de editor.html e index.html) ===
+// '90' → '90s' · '1:30' → '1min30s' · '2m' → '2min'. Texto livre passa intacto.
+function normalizeRest(raw) {
+  const t = String(raw || '').trim().toLowerCase();
+  if (!t) return '';
+  const compact = t.replace(/\s+/g, '');
+  if (/^\d+$/.test(compact)) return compact + 's';
+  const mmss = compact.match(/^(\d+):([0-5]\d)$/);
+  if (mmss) return mmss[2] === '00' ? mmss[1] + 'min' : `${mmss[1]}min${Number(mmss[2])}s`;
+  const seg = compact.match(/^(\d+)s(eg(undos?)?)?$/);
+  if (seg) return seg[1] + 's';
+  const min = compact.match(/^(\d+)m(in(uto)?s?)?$/);
+  if (min) return min[1] + 'min';
+  return t;
+}
+
+function restLabel(type) {
+  const t = String(type || '').trim().toLowerCase();
+  if (t === 'feeder') return 'FED';
+  if (!t) return 'SET';
+  const first = t.split(/[^0-9a-záàâãéêíóôõúç]+/i)[0] || t;
+  return first.slice(0, 6).toUpperCase();
+}
+
+// 'AQUEC-2min / FED-2min / HARD-3min', ou só o valor quando é igual em tudo.
+function restSummary(sets, legacyRest) {
+  const list = (sets || []).map(s => ({
+    label: restLabel(s.type),
+    rest: normalizeRest(s.rest || legacyRest || '')
+  })).filter(x => x.rest);
+  if (list.length === 0) return { text: '', uniform: false };
+  const distintos = [...new Set(list.map(x => x.rest))];
+  if (distintos.length === 1 && list.length === (sets || []).length) {
+    return { text: distintos[0], uniform: true };
+  }
+  const vistos = new Set();
+  const partes = [];
+  list.forEach(x => {
+    const chave = x.label + '|' + x.rest;
+    if (vistos.has(chave)) return;
+    vistos.add(chave);
+    partes.push(`${x.label}-${x.rest}`);
+  });
+  return { text: partes.join(' / '), uniform: false };
+}
+
 function showToast(text, isError) {
   const t = document.getElementById('toast');
   t.textContent = text;
@@ -365,13 +411,13 @@ function viewPlan(planId) {
     list.forEach(ex => {
       const setsLine = (ex.sets || []).map(s => `${(s.type || '').toUpperCase()} ${esc(s.reps || '')}`.trim()).join(' | ');
       const setNotes = (ex.sets || []).filter(s => s.note).map(s => `${(s.type || '').toUpperCase()}: ${esc(s.note)}`);
-      const rest = String(ex.rest || '').trim();
+      const descanso = restSummary(ex.sets, ex.rest);
       const isGrp = ex.group && ex.group !== lastGroup;
       lastGroup = ex.group || null;
       exHtml += `<div class="view-ex">
         ${ex.group ? `<span class="grp">🔗${isGrp ? ' GRUPO' : ''}</span> ` : ''}${esc(ex.name || '')}
         ${setsLine ? `<div class="sets">${esc(setsLine)}</div>` : ''}
-        ${rest ? `<div class="sets">⏱ Descanso ${esc(rest)}</div>` : ''}
+        ${descanso.text ? `<div class="sets">⏱ ${descanso.uniform ? 'Descanso' : 'Descansos'}: ${esc(descanso.text)}</div>` : ''}
         ${ex.note ? `<div class="sets">❗ ${esc(ex.note)}</div>` : ''}
         ${setNotes.length ? `<div class="sets">📝 ${setNotes.join(' · ')}</div>` : ''}
       </div>`;

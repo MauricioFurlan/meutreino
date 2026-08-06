@@ -41,19 +41,32 @@ FILES.forEach(f => {
   eq(`sintaxe ok: ${f}`, erro, null);
 });
 
-// ---------- normalizeRest (editor e aluno precisam concordar) ----------
+// ---------- normalizeRest (as 3 telas precisam concordar) ----------
 const editorApi = new vm.Script(
   grabFrom(src['editor.html'], 'normalizeRest') + '\n' +
+  grabFrom(src['editor.html'], 'restLabel') + '\n' +
+  grabFrom(src['editor.html'], 'restSummary') + '\n' +
   grabFrom(src['editor.html'], 'isCardioType') + '\n' +
+  grabFrom(src['editor.html'], 'emptySetOffenders') + '\n' +
   src['editor.html'].match(/const REST_PRESETS = \[[^\]]*\];/)[0] + '\n' +
-  '({ normalizeRest, isCardioType, REST_PRESETS })'
+  src['editor.html'].match(/const DAYS = \[[^\]]*\];/)[0] + '\n' +
+  '({ normalizeRest, restLabel, restSummary, isCardioType, emptySetOffenders, REST_PRESETS })'
 ).runInNewContext();
 
 const alunoApi = new vm.Script(
   grabFrom(src['index.html'], 'normalizeRest') + '\n' +
+  grabFrom(src['index.html'], 'restLabel') + '\n' +
+  grabFrom(src['index.html'], 'restSummary') + '\n' +
   grabFrom(src['index.html'], 'isCardioSet') + '\n' +
   grabFrom(src['index.html'], 'parseCardioMinutes') + '\n' +
-  '({ normalizeRest, isCardioSet, parseCardioMinutes })'
+  '({ normalizeRest, restLabel, restSummary, isCardioSet, parseCardioMinutes })'
+).runInNewContext();
+
+const viewApi = new vm.Script(
+  grabFrom(src['treinos.html'], 'normalizeRest') + '\n' +
+  grabFrom(src['treinos.html'], 'restLabel') + '\n' +
+  grabFrom(src['treinos.html'], 'restSummary') + '\n' +
+  '({ normalizeRest, restLabel, restSummary })'
 ).runInNewContext();
 
 const casosRest = [
@@ -82,6 +95,93 @@ casosRest.forEach(([entrada, esperado]) => {
 casosRest.forEach(([entrada, esperado]) => {
   eq(`aluno normalizeRest(${JSON.stringify(entrada)})`, alunoApi.normalizeRest(entrada), esperado);
 });
+casosRest.forEach(([entrada, esperado]) => {
+  eq(`treinos normalizeRest(${JSON.stringify(entrada)})`, viewApi.normalizeRest(entrada), esperado);
+});
+
+// ---------- restLabel: rótulo curto por tipo ----------
+[
+  ['aquec', 'AQUEC'], ['feeder', 'FED'], ['hard', 'HARD'], ['cardio', 'CARDIO'],
+  ['outro_treino', 'OUTRO'], ['HARD', 'HARD'], ['drop set', 'DROP'],
+  ['', 'SET'], [null, 'SET'], ['supersetlongo', 'SUPERS']
+].forEach(([entrada, esperado]) => {
+  eq(`restLabel(${JSON.stringify(entrada)})`, editorApi.restLabel(entrada), esperado);
+  eq(`restLabel paridade aluno ${JSON.stringify(entrada)}`, alunoApi.restLabel(entrada), esperado);
+  eq(`restLabel paridade treinos ${JSON.stringify(entrada)}`, viewApi.restLabel(entrada), esperado);
+});
+
+// ---------- restSummary: é o texto que o aluno lê ----------
+const somaResumo = (sets, legacy) => [
+  editorApi.restSummary(sets, legacy),
+  alunoApi.restSummary(sets, legacy),
+  viewApi.restSummary(sets, legacy)
+];
+
+const casosResumo = [
+  ['sem descanso nenhum',
+    [{ type: 'hard', rest: null }, { type: 'hard' }], undefined,
+    { text: '', uniform: false }],
+  ['descanso igual em todas vira valor único',
+    [{ type: 'aquec', rest: '2min' }, { type: 'hard', rest: '2min' }], undefined,
+    { text: '2min', uniform: true }],
+  ['descanso por tipo',
+    [{ type: 'aquec', rest: '2min' }, { type: 'feeder', rest: '2min' },
+     { type: 'hard', rest: '3min' }, { type: 'outro_treino', rest: '1min' }], undefined,
+    { text: 'AQUEC-2min / FED-2min / HARD-3min / OUTRO-1min', uniform: false }],
+  ['tipo repetido com mesmo descanso não duplica',
+    [{ type: 'hard', rest: '3min' }, { type: 'hard', rest: '3min' },
+     { type: 'aquec', rest: '1min' }], undefined,
+    { text: 'HARD-3min / AQUEC-1min', uniform: false }],
+  ['mesmo tipo com descansos diferentes mostra os dois',
+    [{ type: 'hard', rest: '2min' }, { type: 'hard', rest: '3min' }], undefined,
+    { text: 'HARD-2min / HARD-3min', uniform: false }],
+  ['preenchido em parte não é uniforme',
+    [{ type: 'aquec', rest: '2min' }, { type: 'hard', rest: null }], undefined,
+    { text: 'AQUEC-2min', uniform: false }],
+  ['normaliza dentro do resumo',
+    [{ type: 'hard', rest: '90' }, { type: 'aquec', rest: '1:30' }], undefined,
+    { text: 'HARD-90s / AQUEC-1min30s', uniform: false }],
+  ['legado no exercício vale para as séries sem descanso',
+    [{ type: 'aquec' }, { type: 'hard' }], '90s',
+    { text: '90s', uniform: true }],
+  ['descanso da série ganha do legado',
+    [{ type: 'aquec', rest: '30s' }, { type: 'hard' }], '90s',
+    { text: 'AQUEC-30s / HARD-90s', uniform: false }],
+  ['lista vazia', [], undefined, { text: '', uniform: false }],
+  ['null', null, undefined, { text: '', uniform: false }]
+];
+
+casosResumo.forEach(([nome, sets, legacy, esperado]) => {
+  const [e, a, v] = somaResumo(sets, legacy);
+  eq(`restSummary editor: ${nome}`, e, esperado);
+  eq(`restSummary aluno: ${nome}`, a, esperado);
+  eq(`restSummary treinos: ${nome}`, v, esperado);
+});
+
+// ---------- treino sem série não pode ser salvo ----------
+const estruturaOk = {
+  Segunda: [{ name: 'Supino', sets: [{ type: 'hard', reps: '8-12' }] }],
+  Terça: [], Quarta: [], Quinta: [], Sexta: [], Sábado: [], Domingo: []
+};
+const estruturaRuim = {
+  Segunda: [
+    { name: 'Supino', sets: [{ type: 'hard', reps: '8-12' }] },
+    { name: 'Crucifixo', sets: [] }
+  ],
+  Terça: [], Quarta: [{ name: 'Agachamento' }],
+  Quinta: [], Sexta: [], Sábado: [], Domingo: []
+};
+eq('estrutura válida não acusa nada', editorApi.emptySetOffenders(estruturaOk), []);
+eq('acusa exercício com sets vazio e sem a chave sets',
+  editorApi.emptySetOffenders(estruturaRuim),
+  [{ day: 'Segunda', name: 'Crucifixo' }, { day: 'Quarta', name: 'Agachamento' }]);
+eq('exercício sem nome ainda é acusado',
+  editorApi.emptySetOffenders({ Segunda: [{ sets: [] }], Terça: [], Quarta: [], Quinta: [], Sexta: [], Sábado: [], Domingo: [] }),
+  [{ day: 'Segunda', name: 'sem nome' }]);
+eq('savePlan usa a validação', /emptySetOffenders\(structure\)/.test(src['editor.html']), true);
+eq('remover a última série é bloqueado',
+  /length <= 1[\s\S]{0,200}pelo menos 1 série/.test(src['editor.html']), true);
+eq('botão × chama removeSet', /onclick="removeSet\(this\)"/.test(src['editor.html']), true);
 
 // Chips do editor têm que sobreviver ao normalize, senão o chip nunca acende
 editorApi.REST_PRESETS.forEach(p => {
@@ -169,6 +269,8 @@ const renderCtx = {
 const renderApi = new vm.Script(
   src['index.html'].match(/const esc = \(s\) => \{[\s\S]*?\};/)[0] + '\n' +
   grabFrom(src['index.html'], 'normalizeRest') + '\n' +
+  grabFrom(src['index.html'], 'restLabel') + '\n' +
+  grabFrom(src['index.html'], 'restSummary') + '\n' +
   grabFrom(src['index.html'], 'isCardioSet') + '\n' +
   grabFrom(src['index.html'], 'renderExerciseCard') + '\n' +
   '({ renderExerciseCard })'
@@ -185,29 +287,53 @@ eq('cardio: rótulo CARDIO',         /CARDIO/.test(cardCardio), true);
 eq('cardio: linha marcada',         /set-row cardio-row"/.test(cardCardio), true);
 
 const cardForca = renderApi.renderExerciseCard('Segunda', 1, {
-  name: 'Supino reto', rest: '90', sets: [
-    { type: 'aquec', reps: '12-15', note: null },
-    { type: 'hard', reps: '8-12', note: null }
+  name: 'Supino reto', sets: [
+    { type: 'aquec', reps: '12-15', rest: '2min', note: null },
+    { type: 'feeder', reps: '2-4', rest: '2min', note: null },
+    { type: 'hard', reps: '8-12', rest: '3min', note: null }
   ]
 });
-eq('força: pill de descanso',       /class="rest-pill"/.test(cardForca), true);
-eq('força: descanso normalizado',   /90s<\/span>/.test(cardForca), true);
+eq('força: descanso em linha própria', /<div class="rest-line">/.test(cardForca), true);
+eq('força: resumo por tipo',
+  /Descansos:<\/span> <span class="rest-value">AQUEC-2min \/ FED-2min \/ HARD-3min<\/span>/.test(cardForca), true);
+eq('força: descanso vem antes do histórico',
+  cardForca.indexOf('rest-line') < cardForca.indexOf('history-btn'), true);
 eq('força: mantém KG e REPS',       /KG[\s\S]*REPS/.test(cardForca), true);
 eq('força: sem input de minutos',   /minutes-input/.test(cardForca), false);
 
-const semDescanso = renderApi.renderExerciseCard('Segunda', 2, {
-  name: 'Rosca direta', sets: [{ type: 'hard', reps: '10', note: null }]
+const cardUniforme = renderApi.renderExerciseCard('Segunda', 2, {
+  name: 'Rosca direta', sets: [
+    { type: 'hard', reps: '10', rest: '90', note: null },
+    { type: 'hard', reps: '10', rest: '90s', note: null }
+  ]
+});
+eq('descanso igual: singular e valor único',
+  /Descanso:<\/span> <span class="rest-value">90s<\/span>/.test(cardUniforme), true);
+
+const semDescanso = renderApi.renderExerciseCard('Segunda', 3, {
+  name: 'Elevação lateral', sets: [{ type: 'hard', reps: '10', note: null }]
 });
 eq('sem descanso prescrito: sem pill', /rest-pill/.test(semDescanso), false);
 
-const misto = renderApi.renderExerciseCard('Segunda', 3, {
-  name: 'Circuito', rest: '60s', sets: [
-    { type: 'hard', reps: '10', note: null },
-    { type: 'cardio', reps: '10min', note: null }
+const legado = renderApi.renderExerciseCard('Segunda', 4, {
+  name: 'Remada', rest: '60s', sets: [{ type: 'hard', reps: '10', note: null }]
+});
+eq('plano no formato antigo ainda exibe o descanso', /90s|60s/.test(legado), true);
+
+const semSets = renderApi.renderExerciseCard('Segunda', 5, { name: 'Furado', sets: [] });
+eq('exercício sem série avisa em vez de card vazio', /class="no-sets"/.test(semSets), true);
+eq('exercício sem série não renderiza inputs', /input/.test(semSets), false);
+
+const misto = renderApi.renderExerciseCard('Segunda', 6, {
+  name: 'Circuito', sets: [
+    { type: 'hard', reps: '10', rest: '60s', note: null },
+    { type: 'cardio', reps: '10min', rest: '1min', note: null }
   ]
 });
 eq('misto: tem carga e minutos',    /weight-input/.test(misto) && /minutes-input/.test(misto), true);
 eq('misto: header segue KG/REPS',   /col-title">KG/.test(misto), true);
+eq('misto: resumo cita os dois tipos',
+  /HARD-60s \/ CARDIO-1min/.test(misto), true);
 
 // ---------- contratos entre as telas ----------
 // O aluno grava em duration_minutes; se alguém trocar por reps, o cardio
@@ -216,12 +342,16 @@ eq('aluno grava duration_minutes',
   /duration_minutes:\s*minutes/.test(src['index.html']), true);
 eq('linha de cardio zera weight e reps',
   /set_type:\s*'cardio'[\s\S]{0,120}weight:\s*null,\s*\n?\s*reps:\s*null/.test(src['index.html']), true);
-eq('editor salva rest no plano',
-  /rest\s*=\s*restEl\s*\?\s*\(normalizeRest/.test(src['editor.html']), true);
+eq('editor salva descanso por série',
+  /rest:\s*normalizeRest\(si\.querySelector\('\.set-rest'\)\.value\)/.test(src['editor.html']), true);
+eq('editor não grava mais descanso no exercício',
+  /return \{ name, video_url, note, sets \};/.test(src['editor.html']), true);
+eq('chips preenchem todas as séries',
+  /function fillAllRest/.test(src['editor.html']), true);
 eq('treinador lê duration_minutes no comparativo',
   (src['treinador.html'].match(/select=session_date,set_type,weight,reps,duration_minutes/g) || []).length, 2);
-eq('treinos.html mostra o descanso',
-  /Descanso \$\{esc\(rest\)\}/.test(src['treinos.html']), true);
+eq('treinos.html mostra o resumo de descanso',
+  /Descansos'\}: \$\{esc\(descanso\.text\)\}/.test(src['treinos.html']), true);
 
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);

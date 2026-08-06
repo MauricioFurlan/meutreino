@@ -130,15 +130,22 @@
     .set-row.cardio-row { grid-template-columns: auto 1fr 40px; }
     .set-row.cardio-row input { border-color: #5a4423; }
     .set-row.cardio-row input:focus { border-color: #ff9800; }
-    /* Descanso prescrito: fica sempre visível, sem precisar abrir nada */
+    /* Descanso prescrito: sempre visível, em linha PRÓPRIA — quando era
+       inline dividia a linha com o "Ver histórico" e ficava colado nele. */
+    .rest-line { display: block; margin: 2px 0 8px; }
     .rest-pill {
-      display: inline-flex; align-items: center; gap: 6px;
+      display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 5px;
       background: #12242b; border: 1px solid #2f4d5a; color: #4fc3f7;
-      font-size: 0.72rem; font-weight: 600; padding: 4px 10px;
-      border-radius: 12px; margin-bottom: 8px;
+      font-size: 0.7rem; font-weight: 600; padding: 5px 10px;
+      border-radius: 10px; line-height: 1.4; max-width: 100%;
     }
-    .rest-pill .rest-value { font-size: 0.85rem; font-weight: 700; }
-    .rest-pill .rest-hint { color: #6b8b98; font-weight: 500; }
+    .rest-pill .rest-key { color: #6b8b98; font-weight: 600; }
+    .rest-pill .rest-value { font-size: 0.76rem; font-weight: 700; word-break: break-word; }
+    .history-btn { display: block; }
+    .no-sets {
+      background: #2a2118; border: 1px solid #5a4423; color: #ffb74d;
+      font-size: 0.75rem; padding: 8px 10px; border-radius: 8px; margin-top: 4px;
+    }
     .set-row input {
       width: 100%;
       padding: 10px 8px;
@@ -744,6 +751,40 @@ function normalizeRest(raw) {
   return t;
 }
 
+// Rótulo curto do tipo, para o resumo caber em uma linha no celular.
+function restLabel(type) {
+  const t = String(type || '').trim().toLowerCase();
+  if (t === 'feeder') return 'FED';
+  if (!t) return 'SET';
+  const first = t.split(/[^0-9a-záàâãéêíóôõúç]+/i)[0] || t;
+  return first.slice(0, 6).toUpperCase();
+}
+
+// Resumo por tipo de série: 'AQUEC-2min / FED-2min / HARD-3min'.
+// Quando todas as séries têm o mesmo intervalo devolve só o valor ('2min'),
+// e quem exibe usa o singular — repetir 5x o mesmo número é ruído.
+// legacyRest: descanso da versão antiga, guardado no exercício.
+function restSummary(sets, legacyRest) {
+  const list = (sets || []).map(s => ({
+    label: restLabel(s.type),
+    rest: normalizeRest(s.rest || legacyRest || '')
+  })).filter(x => x.rest);
+  if (list.length === 0) return { text: '', uniform: false };
+  const distintos = [...new Set(list.map(x => x.rest))];
+  if (distintos.length === 1 && list.length === (sets || []).length) {
+    return { text: distintos[0], uniform: true };
+  }
+  const vistos = new Set();
+  const partes = [];
+  list.forEach(x => {
+    const chave = x.label + '|' + x.rest;
+    if (vistos.has(chave)) return;
+    vistos.add(chave);
+    partes.push(`${x.label}-${x.rest}`);
+  });
+  return { text: partes.join(' / '), uniform: false };
+}
+
 function isCardioSet(type) {
   return String(type || '').trim().toLowerCase() === 'cardio';
 }
@@ -763,8 +804,8 @@ function renderExerciseCard(day, exIdx, ex) {
   const exName = esc(ex.name);
   const videoUrl = ex.video_url || '';
   const exNote = ex.note || '';
-  const rest = normalizeRest(ex.rest);
   const sets = ex.sets || [];
+  const descanso = restSummary(sets, ex.rest);
   const allCardio = sets.length > 0 && sets.every(s => isCardioSet(s.type));
 
   let html = '';
@@ -777,14 +818,19 @@ function renderExerciseCard(day, exIdx, ex) {
   html += `</div>`;
   // Nota do exercício
   html += `<div class="note-bubble" id="nb-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span>${esc(exNote)}</span></div>`;
-  // Descanso sugerido pelo treinador (só aparece se foi prescrito)
-  if (rest && !allCardio) {
-    html += `<div class="rest-pill">⏱ <span class="rest-value">${esc(rest)}</span> <span class="rest-hint">de descanso entre séries</span></div>`;
-  } else if (rest) {
-    html += `<div class="rest-pill">⏱ <span class="rest-value">${esc(rest)}</span> <span class="rest-hint">de descanso</span></div>`;
+  // Descanso prescrito (só aparece se foi prescrito), em linha própria
+  if (descanso.text) {
+    const chave = descanso.uniform ? 'Descanso' : 'Descansos';
+    html += `<div class="rest-line"><span class="rest-pill">⏱ <span class="rest-key">${chave}:</span> <span class="rest-value">${esc(descanso.text)}</span></span></div>`;
   }
   // Histórico
   html += `<button class="history-btn" onclick="toggleHistory('${exName.replace(/'/g,"\\'")}')">Ver histórico</button>`;
+  // Exercício sem série: não há o que registrar. Aviso honesto em vez de card vazio.
+  if (sets.length === 0) {
+    html += `<div class="no-sets">Sem séries definidas — fale com seu personal.</div>`;
+    html += `</div>`;
+    return html;
+  }
   // Header colunas
   if (allCardio) {
     html += `<div class="set-row cardio-row set-header"><span class="set-label"></span><span class="col-title">MINUTOS</span><span></span></div>`;
