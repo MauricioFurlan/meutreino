@@ -1,0 +1,980 @@
+[
+  {
+    "id": "aab58b75-bef0-49fe-aac1-73d96ddb49e5",
+    "student_id": "136ff046-8577-405a-bf1f-804f887da5b1",
+    "title": "Treino",
+    "is_active": true,
+    "updated_at": "2026-08-02 03:39:04.54444+00",
+    "structure": {
+      "Sexta": [
+        {
+          "name": "Peck Deck (ativação)",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "15",
+              "type": "aquec"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Puxador frente aberto barra anatômica",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Puxada unilateral Cimerian",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Supino inclinado máquina Cimerian",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Crossover baixo pra cima",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "8-12 + drop",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12 + drop",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12 + drop",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Elevação frontal halter simultâneo",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "8-12 + parciais",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12 + parciais",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12 + parciais",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Elevação lateral unilateral Crossover",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "8-12 + parciais",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12 + parciais",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12 + parciais",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Tríceps corda + Bíceps corda",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        }
+      ],
+      "Quarta": [
+        {
+          "name": "Banco romano (ativação)",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "15",
+              "type": "aquec"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Cadeira flexora",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Elevação pélvica",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Mesa flexora",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Leg press 90° irontech",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Cadeira abdutora + adutora",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "10-15",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        }
+      ],
+      "Quinta": [
+        {
+          "name": "Panturrilha sentado",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "10-15",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Panturrilha em pé",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "10-15",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Abdômen máquina",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "10-15",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Abdômen paralela",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "10-15",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "10-15",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "10-15",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Cardio",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "40 min",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        }
+      ],
+      "Terça": [
+        {
+          "name": "Peck Deck (ativação)",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "15",
+              "type": "aquec"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Supino reto sentado cimerian",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Desenvolvimento irontech",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Supino inclinado irontech guiado",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Crossover cima pra baixo",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9 + drop",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Tríceps polia barra W",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        }
+      ],
+      "Domingo": [],
+      "Segunda": [
+        {
+          "name": "Barra fixa (ativação)",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "até falha",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Remada baixa triângulo cimerian",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Remada curvada pronada irontech",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Puxador alto aberto cimerian",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Pulldown corda",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Crucifixo inverso + Face pull (biset)",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Rosca alta máquina unilateral",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        }
+      ],
+      "Sábado": [
+        {
+          "name": "Extensora unilateral (ativação)",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Leg press 45° articulado cimerian",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Hack glutebuilder",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Cadeira extensora (pico de contração)",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "7-9",
+              "type": "hard"
+            },
+            {
+              "note": "Cada drop conta como meia série",
+              "reps": "8-12 + drop",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Stiff glutebuilder",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "12-15",
+              "type": "aquec"
+            },
+            {
+              "note": null,
+              "reps": "2-4",
+              "type": "feeder"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        },
+        {
+          "name": "Cadeira abdutora pra frente",
+          "note": null,
+          "sets": [
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            },
+            {
+              "note": null,
+              "reps": "8-12",
+              "type": "hard"
+            }
+          ],
+          "video_url": null
+        }
+      ]
+    }
+  }
+]
