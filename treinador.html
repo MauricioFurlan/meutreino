@@ -565,6 +565,46 @@ function formatDurationHM(seconds) {
   return `${m}min`;
 }
 
+// =====================================================================
+// CARDIO
+// Minutos vêm de workout_logs.duration_minutes (coluna própria, criada em
+// sql/10_add_cardio.sql). Não entram em volume nem em sets hard: cardio é
+// tempo, e somar isso à musculação inventaria progresso que não existe.
+// =====================================================================
+function isCardio(setType) {
+  return String(setType || '').trim().toLowerCase() === 'cardio';
+}
+
+// Soma os minutos de cardio de um conjunto de linhas de workout_logs.
+// Ignora linha sem minutos (aluno marcou o set mas não informou o tempo).
+function sumCardioMinutes(rows) {
+  return (rows || []).reduce((sum, r) => {
+    const min = Number(r.duration_minutes);
+    return sum + (isCardio(r.set_type) && min > 0 ? min : 0);
+  }, 0);
+}
+
+// 40 → '40min' · 95 → '1h35' · 120 → '2h'
+function formatMinutes(minutes) {
+  const m = Math.round(Number(minutes) || 0);
+  if (m <= 0) return '0min';
+  const h = Math.floor(m / 60);
+  const rest = m % 60;
+  if (h > 0) return rest > 0 ? `${h}h${String(rest).padStart(2, '0')}` : `${h}h`;
+  return `${m}min`;
+}
+
+// Minutos de cardio por data ('YYYY-MM-DD' → minutos)
+function cardioByDate(rows) {
+  const out = {};
+  (rows || []).forEach(r => {
+    const min = Number(r.duration_minutes);
+    if (!isCardio(r.set_type) || !(min > 0)) return;
+    out[r.session_date] = (out[r.session_date] || 0) + min;
+  });
+  return out;
+}
+
 // Converte um Date para 'YYYY-MM-DD' no fuso LOCAL.
 // NÃO usar toISOString() para datas: ele converte para UTC e, após ~21h no Brasil,
 // devolve o dia seguinte — o que deslocava a janela da semana/mês em um dia e marcava
@@ -760,10 +800,13 @@ async function loadDay(day, date) {
       if (!orderedNames.includes(name)) orderedNames.push(name);
     });
 
-    const totalSets = (data || []).length;
     const totalExercises = orderedNames.length;
     const hardSets = (data || []).filter(r => r.set_type === 'hard');
     const dayVolume = hardSets.reduce((sum, r) => sum + (Number(r.weight) || 0) * (Number(r.reps) || 0), 0);
+    // Cardio fica fora da contagem de sets de musculação: são coisas diferentes
+    // e misturar faria "8 sets" significar 5 de força + 3 de bike.
+    const strengthSets = (data || []).filter(r => !isCardio(r.set_type));
+    const cardioMinutes = sumCardioMinutes(data);
 
     // Tempo de treino
     const session = sessionData && sessionData.length > 0 ? sessionData[0] : null;
@@ -783,7 +826,10 @@ async function loadDay(day, date) {
       densityText = ` · <strong>${kgPorMin.toFixed(1)} kg/min</strong>`;
     }
 
-    let html = `<div class="summary"><strong>${totalExercises}</strong> exercícios · <strong>${hardSets.length}</strong> sets hard de ${totalSets}${durationText}${startedText}</div>`;
+    let html = `<div class="summary"><strong>${totalExercises}</strong> exercícios · <strong>${hardSets.length}</strong> sets hard de ${strengthSets.length}${durationText}${startedText}</div>`;
+    if (cardioMinutes > 0) {
+      html += `<div class="summary" style="margin-top:-6px;">🏃 Cardio: <strong style="color:#ff9800;">${formatMinutes(cardioMinutes)}</strong></div>`;
+    }
     if (dayVolume > 0) {
       html += `<div class="summary" style="margin-top:-6px;">Volume: <strong>${Math.round(dayVolume).toLocaleString('pt-BR')} kg</strong>${densityText}</div>`;
     }
@@ -791,6 +837,7 @@ async function loadDay(day, date) {
     orderedNames.forEach((name, exIdx) => {
       const sets = exercises[name];
       const chartId = `chart-${day}-${date}-${exIdx}`;
+      const exIsCardio = sets.length > 0 && sets.every(s => isCardio(s.set_type));
 
       // Melhor set do dia por 1RM estimado (não pelo peso bruto: 100kg×5 vale mais
       // que 105kg×1, e o peso máximo sozinho não mostra isso)
@@ -803,26 +850,39 @@ async function loadDay(day, date) {
 
       html += `<div class="exercise-card">`;
       html += `<div class="exercise-name">${esc(name)}</div>`;
-      if (bestSet) {
+      if (exIsCardio) {
+        html += `<div style="font-size:0.68rem;color:#888;margin-bottom:8px;">`;
+        html += `🏃 Tempo total: <strong style="color:#ff9800;">${formatMinutes(sumCardioMinutes(sets))}</strong>`;
+        html += `</div>`;
+      } else if (bestSet) {
         html += `<div style="font-size:0.68rem;color:#888;margin-bottom:8px;">`;
         html += `Melhor set: <strong style="color:#f0f0f0;">${bestSet.weight} kg × ${bestSet.reps}</strong>`;
         html += ` · 1RM est. <strong style="color:#4caf50;">${Math.round(bestE1rm)} kg</strong>`;
         html += `</div>`;
       }
       html += `<div style="display:flex;gap:8px;margin-bottom:10px;">`;
-      html += `<button class="chart-btn" onclick="toggleChart('${chartId}', '${esc(name).replace(/'/g, "\\'")}')">📈 Evolução</button>`;
+      html += `<button class="chart-btn" onclick="toggleChart('${chartId}', '${esc(name).replace(/'/g, "\\'")}', ${exIsCardio})">📈 Evolução</button>`;
       html += `</div>`;
-      html += `<div class="chart-container" id="${chartId}"><canvas></canvas><div class="chart-legend"><span><span class="dot" style="background:#f5c518"></span> Volume (kg×reps)</span><span><span class="dot" style="background:#4caf50"></span> 1RM estimado (kg)</span></div><div class="chart-info"></div></div>`;
-      html += `<div class="set-row"><span class="set-label">Set</span><span class="set-label" style="text-align:center">Carga</span><span class="set-label" style="text-align:center">Reps</span></div>`;
+      const legend = exIsCardio
+        ? `<div class="chart-legend"><span><span class="dot" style="background:#ff9800"></span> Minutos de cardio</span></div>`
+        : `<div class="chart-legend"><span><span class="dot" style="background:#f5c518"></span> Volume (kg×reps)</span><span><span class="dot" style="background:#4caf50"></span> 1RM estimado (kg)</span></div>`;
+      html += `<div class="chart-container" id="${chartId}"><canvas></canvas>${legend}<div class="chart-info"></div></div>`;
+      html += `<div class="set-row"><span class="set-label">Set</span><span class="set-label" style="text-align:center">${exIsCardio ? 'Tempo' : 'Carga'}</span><span class="set-label" style="text-align:center">${exIsCardio ? '' : 'Reps'}</span></div>`;
       sets.forEach(s => {
-        const weight = s.weight ? s.weight + ' kg' : '-';
-        const reps = s.notes ? s.notes : (s.reps ? s.reps + ' reps' : '-');
         const prescribedList = PRESCRIBED_REPS[name] || [];
         const prescribed = prescribedList[s.set_number - 1] || '';
         html += `<div class="set-row">`;
-        html += `<span class="set-label">${s.set_type} ${s.set_number}${prescribed ? ' (' + prescribed + ')' : ''}</span>`;
-        html += `<span class="set-value${!s.weight ? ' empty' : ''}">${weight}</span>`;
-        html += `<span class="set-value${!s.reps ? ' empty' : ''}">${reps}</span>`;
+        html += `<span class="set-label">${esc(s.set_type)} ${s.set_number}${prescribed ? ' (' + esc(prescribed) + ')' : ''}</span>`;
+        if (isCardio(s.set_type)) {
+          const min = Number(s.duration_minutes) > 0 ? Number(s.duration_minutes) : null;
+          html += `<span class="set-value${min ? '' : ' empty'}">${min ? min + ' min' : '-'}</span>`;
+          html += `<span class="set-value"></span>`;
+        } else {
+          const weight = s.weight ? s.weight + ' kg' : '-';
+          const reps = s.notes ? s.notes : (s.reps ? s.reps + ' reps' : '-');
+          html += `<span class="set-value${!s.weight ? ' empty' : ''}">${weight}</span>`;
+          html += `<span class="set-value${!s.reps ? ' empty' : ''}">${reps}</span>`;
+        }
         html += `</div>`;
       });
       html += `</div>`;
@@ -845,7 +905,7 @@ function hideLoading() { document.getElementById('loadingOverlay').classList.add
 const CHART_WINDOW_DAYS = 84;
 const CHART_WINDOW_WEEKS = 12;
 
-async function toggleChart(chartId, exerciseName) {
+async function toggleChart(chartId, exerciseName, isCardioExercise) {
   const container = document.getElementById(chartId);
   if (container.classList.contains('show')) {
     container.classList.remove('show');
@@ -860,6 +920,11 @@ async function toggleChart(chartId, exerciseName) {
   const infoEl = container.querySelector('.chart-info');
   const canvas = container.querySelector('canvas');
   const setInfo = (html) => { if (infoEl) infoEl.innerHTML = html; };
+
+  if (isCardioExercise) {
+    await renderCardioChart(chartId, exerciseName, canvas, setInfo);
+    return;
+  }
 
   try {
     const from = new Date();
@@ -1039,6 +1104,93 @@ async function toggleChart(chartId, exerciseName) {
   }
 }
 
+// Evolução de exercício de cardio: minutos por sessão, mesma janela de 12
+// semanas dos gráficos de força. Volume e 1RM não existem aqui — o que evolui
+// é tempo (e, quando o professor quiser, intensidade via nota).
+async function renderCardioChart(chartId, exerciseName, canvas, setInfo) {
+  try {
+    const from = new Date();
+    from.setDate(from.getDate() - (CHART_WINDOW_DAYS - 1));
+
+    const data = await supaFetch(
+      `workout_logs?student_id=eq.${studentId}` +
+      `&exercise_name=eq.${encodeURIComponent(exerciseName)}` +
+      `&set_type=eq.cardio` +
+      `&duration_minutes=not.is.null` +
+      `&session_date=gte.${toLocalISO(from)}` +
+      `&select=session_date,set_type,duration_minutes` +
+      `&order=session_date.asc&limit=400`
+    );
+
+    if (!data || data.length === 0) {
+      canvas.style.display = 'none';
+      setInfo('<div class="no-data">Sem cardio registrado nas últimas 12 semanas</div>');
+      return;
+    }
+    canvas.style.display = '';
+
+    // Mesmo dia pode ter mais de um set de cardio: soma.
+    const byDate = {};
+    data.forEach(r => {
+      if (!byDate[r.session_date]) byDate[r.session_date] = [];
+      byDate[r.session_date].push(r);
+    });
+
+    const dates = Object.keys(byDate).sort();
+    const labels = dates.map(d => new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }));
+    const minutesData = dates.map(d => sumCardioMinutes(byDate[d]));
+
+    chartInstances[chartId] = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Minutos',
+          data: minutesData,
+          backgroundColor: 'rgba(255, 152, 0, 0.55)',
+          borderColor: '#ff9800',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: '#1a1a1a', titleColor: '#ff9800', bodyColor: '#f0f0f0',
+            borderColor: '#333', borderWidth: 1
+          }
+        },
+        scales: {
+          x: { ticks: { color: '#666', font: { size: 9 }, maxRotation: 45 }, grid: { color: '#222' } },
+          y: { beginAtZero: true, ticks: { color: '#ff9800', font: { size: 9 } }, grid: { color: '#222' } }
+        }
+      }
+    });
+
+    const total = minutesData.reduce((a, b) => a + b, 0);
+    const melhor = Math.max(...minutesData);
+    const media = total / minutesData.length;
+    let infoHtml = '';
+    infoHtml += `<div class="stat-row"><span class="stat-label">Total (12 sem.)</span><span class="stat-value">${formatMinutes(total)}</span></div>`;
+    infoHtml += `<div class="stat-row"><span class="stat-label">Média por sessão</span><span class="stat-value">${formatMinutes(media)}</span></div>`;
+    infoHtml += `<div class="stat-row"><span class="stat-label">Maior sessão</span><span class="stat-value">${formatMinutes(melhor)}</span></div>`;
+    infoHtml += `<div class="stat-row"><span class="stat-label">Sessões com este cardio</span><span class="stat-value">${dates.length}</span></div>`;
+    if (minutesData.length >= 2) {
+      const ini = minutesData[0], fim = minutesData[minutesData.length - 1];
+      const diff = ini > 0 ? Math.round(((fim - ini) / ini) * 100) : 0;
+      const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : '';
+      const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '=';
+      infoHtml += `<div class="stat-row"><span class="stat-label">Progressão</span><span class="stat-value ${cls}">${formatMinutes(ini)} → ${formatMinutes(fim)} ${arrow} ${Math.abs(diff)}%</span></div>`;
+    }
+    setInfo(infoHtml);
+  } catch (e) {
+    if (canvas) canvas.style.display = 'none';
+    setInfo(`<div class="no-data">Erro: ${e.message}</div>`);
+  }
+}
+
 // === TRAINER NOTES (edição movida para editor.html) ===
 let currentNoteExercise = '';
 let currentNoteSet = null;
@@ -1124,7 +1276,7 @@ async function loadWeekly() {
     const [data, sessionsData, prevData, prevSessions] = await Promise.all([
       supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=gte.${startStr}&session_date=lte.${endStr}&order=session_date.asc`),
       supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${startStr}T00:00:00${TZ}&started_at=lte.${endStr}T23:59:59${TZ}&duration_seconds=not.is.null&order=started_at.asc`),
-      supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=gte.${prevStartStr}&session_date=lte.${prevEndStr}&select=session_date,set_type,weight,reps`),
+      supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=gte.${prevStartStr}&session_date=lte.${prevEndStr}&select=session_date,set_type,weight,reps,duration_minutes`),
       supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${prevStartStr}T00:00:00${TZ}&started_at=lte.${prevEndStr}T23:59:59${TZ}&duration_seconds=not.is.null&select=duration_seconds`)
     ]);
 
@@ -1156,12 +1308,14 @@ async function loadWeekly() {
 
     // Presença semanal
     const prescribed = prescribedDaySet();
+    const cardioMinByDate = cardioByDate(data);
     let html = '<div class="weekly-days">';
     const dates = Object.keys(byDay).sort();
     const today = toLocalISO(new Date());
     let totalVolume = 0;
     const volumeByDay = [];
     const timeByDay = [];
+    const cardioDay = [];
 
     dates.forEach((date, i) => {
       const records = byDay[date];
@@ -1179,6 +1333,7 @@ async function loadWeekly() {
       totalVolume += dayVolume;
       volumeByDay.push({ label: dayNames[i], volume: dayVolume, trained, isRest, isFuture });
       timeByDay.push({ label: dayNames[i], seconds: sessionsByDate[date] || 0, isRest, isFuture });
+      cardioDay.push({ label: dayNames[i], minutes: cardioMinByDate[date] || 0, isRest, isFuture });
 
       let dotClass = 'rest', simbolo = '–';
       if (trained)        { dotClass = 'trained'; simbolo = '✓'; }
@@ -1245,6 +1400,27 @@ async function loadWeekly() {
     });
     html += `</div>`;
 
+    // Cardio da semana. Só aparece quando existe cardio registrado — card vazio
+    // em aluno que não faz cardio é ruído.
+    const totalCardioMin = cardioDay.reduce((sum, d) => sum + d.minutes, 0);
+    const cardioDias = cardioDay.filter(d => d.minutes > 0).length;
+    if (totalCardioMin > 0) {
+      const maxCardio = Math.max(...cardioDay.map(d => d.minutes), 1);
+      html += `<div class="resume-card"><h3>🏃 Cardio</h3>`;
+      html += `<div class="stat-row" style="margin-bottom:10px;"><span class="stat-label">Total da semana</span><span class="stat-value">${formatMinutes(totalCardioMin)}</span></div>`;
+      html += `<div class="stat-row" style="margin-bottom:10px;"><span class="stat-label">Dias com cardio</span><span class="stat-value">${cardioDias} dia${cardioDias !== 1 ? 's' : ''} · média ${formatMinutes(totalCardioMin / cardioDias)}</span></div>`;
+      cardioDay.forEach(d => {
+        if (d.minutes === 0) return;
+        const pct = (d.minutes / maxCardio) * 100;
+        html += `<div class="volume-bar-row">`;
+        html += `<span class="volume-bar-label">${d.label}</span>`;
+        html += `<div class="volume-bar-track"><div class="volume-bar-fill" style="width:${pct}%;background:#ff9800"></div></div>`;
+        html += `<span class="volume-bar-value">${formatMinutes(d.minutes)}</span>`;
+        html += `</div>`;
+      });
+      html += `</div>`;
+    }
+
     // Eficiência: densidade e média por sessão (números que já existiam, só não eram cruzados)
     const sessoesFeitas = timeByDay.filter(d => d.seconds > 0).length;
     if (totalSessionSeconds > 0 && totalVolume > 0) {
@@ -1267,6 +1443,7 @@ async function loadWeekly() {
       });
     }
     const prevAttended = prevDays.size;
+    const prevCardioMin = sumCardioMinutes(prevData);
     let prevSeconds = 0;
     if (prevSessions) prevSessions.forEach(s => { prevSeconds += s.duration_seconds; });
 
@@ -1276,11 +1453,17 @@ async function loadWeekly() {
     const timeDiff = prevSeconds > 0 ? Math.round(((totalSessionSeconds - prevSeconds) / prevSeconds) * 100) : 0;
     const timeClass = timeDiff > 0 ? 'up' : timeDiff < 0 ? 'down' : '';
     const timeArrow = timeDiff > 0 ? '↑' : timeDiff < 0 ? '↓' : '=';
+    const cardioDiff = prevCardioMin > 0 ? Math.round(((totalCardioMin - prevCardioMin) / prevCardioMin) * 100) : 0;
+    const cardioClass = cardioDiff > 0 ? 'up' : cardioDiff < 0 ? 'down' : '';
+    const cardioArrow = cardioDiff > 0 ? '↑' : cardioDiff < 0 ? '↓' : '=';
 
     html += `<div class="resume-card"><h3>vs. Semana anterior</h3>`;
     html += `<div class="stat-row"><span class="stat-label">Volume total</span><span class="stat-value ${volumeClass}">${totalVolume.toLocaleString('pt-BR')} kg ${volumeArrow} ${Math.abs(volumeDiff)}%</span></div>`;
     html += `<div class="stat-row"><span class="stat-label">Frequência</span><span class="stat-value">${attended} vs ${prevAttended} dias</span></div>`;
     html += `<div class="stat-row"><span class="stat-label">⏱ Tempo</span><span class="stat-value ${timeClass}">${formatDurationHM(totalSessionSeconds)} ${timeArrow} ${Math.abs(timeDiff)}%</span></div>`;
+    if (totalCardioMin > 0 || prevCardioMin > 0) {
+      html += `<div class="stat-row"><span class="stat-label">🏃 Cardio</span><span class="stat-value ${cardioClass}">${formatMinutes(totalCardioMin)} vs ${formatMinutes(prevCardioMin)} ${cardioArrow} ${Math.abs(cardioDiff)}%</span></div>`;
+    }
     html += `</div>`;
 
     container.innerHTML = html;
@@ -1325,7 +1508,7 @@ async function loadMonthly() {
     const [data, sessionsData, prevData, prevSessions] = await Promise.all([
       supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=gte.${startStr}&session_date=lte.${endStr}&order=session_date.asc`),
       supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${startStr}T00:00:00${TZ}&started_at=lte.${endStr}T23:59:59${TZ}&duration_seconds=not.is.null&order=started_at.asc`),
-      supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=gte.${prevStartStr}&session_date=lte.${prevEndStr}&select=session_date,set_type,weight,reps`),
+      supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=gte.${prevStartStr}&session_date=lte.${prevEndStr}&select=session_date,set_type,weight,reps,duration_minutes`),
       supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${prevStartStr}T00:00:00${TZ}&started_at=lte.${prevEndStr}T23:59:59${TZ}&duration_seconds=not.is.null&select=duration_seconds`)
     ]);
 
@@ -1342,6 +1525,9 @@ async function loadMonthly() {
     // Dias com registro + volume por faixa de dias
     const trainedDates = new Set();
     const volumeByWeek = {};
+    const cardioByWeek = {};
+    const cardioDates = new Set();
+    let totalCardioMin = 0;
     const today = toLocalISO(new Date());
 
     if (data) {
@@ -1353,6 +1539,12 @@ async function loadMonthly() {
         if (!volumeByWeek[weekNum]) volumeByWeek[weekNum] = 0;
         if (r.set_type === 'hard' && r.weight && r.reps) {
           volumeByWeek[weekNum] += r.weight * r.reps;
+        }
+        const cardioMin = sumCardioMinutes([r]);
+        if (cardioMin > 0) {
+          cardioByWeek[weekNum] = (cardioByWeek[weekNum] || 0) + cardioMin;
+          cardioDates.add(r.session_date);
+          totalCardioMin += cardioMin;
         }
       });
     }
@@ -1441,6 +1633,24 @@ async function loadMonthly() {
     }
     html += '</div>';
 
+    // Cardio do mês (só quando existe registro)
+    if (totalCardioMin > 0) {
+      const maxCardioWeek = Math.max(...Object.values(cardioByWeek), 1);
+      html += `<div class="resume-card"><h3>🏃 Cardio por faixa de dias</h3>`;
+      for (let w = 1; w <= totalWeeks; w++) {
+        const min = cardioByWeek[w] || 0;
+        const pct = (min / maxCardioWeek) * 100;
+        const diaIni = (w - 1) * 7 + 1;
+        const diaFim = Math.min(w * 7, diasNoMes);
+        html += `<div class="volume-bar-row">`;
+        html += `<span class="volume-bar-label" style="min-width:52px;">${diaIni}-${diaFim}</span>`;
+        html += `<div class="volume-bar-track"><div class="volume-bar-fill" style="width:${pct}%;background:#ff9800"></div></div>`;
+        html += `<span class="volume-bar-value">${min > 0 ? formatMinutes(min) : '-'}</span>`;
+        html += `</div>`;
+      }
+      html += `</div>`;
+    }
+
     // Destaques
     let totalVolumeMonth = Object.values(volumeByWeek).reduce((a, b) => a + b, 0);
     const missedDays = totalTrainingDays - totalAttended;
@@ -1450,6 +1660,10 @@ async function loadMonthly() {
     html += `<div class="resume-card"><h3>Destaques do mês</h3>`;
     html += `<div class="stat-row"><span class="stat-label">Volume total</span><span class="stat-value">${totalVolumeMonth.toLocaleString('pt-BR')} kg</span></div>`;
     html += `<div class="stat-row"><span class="stat-label">⏱ Tempo total</span><span class="stat-value">${formatDurationHM(totalMonthSeconds)}</span></div>`;
+    if (totalCardioMin > 0) {
+      html += `<div class="stat-row"><span class="stat-label">🏃 Cardio total</span><span class="stat-value">${formatMinutes(totalCardioMin)}</span></div>`;
+      html += `<div class="stat-row"><span class="stat-label">🏃 Dias com cardio</span><span class="stat-value">${cardioDates.size} dia${cardioDates.size !== 1 ? 's' : ''} · média ${formatMinutes(totalCardioMin / cardioDates.size)}</span></div>`;
+    }
     if (totalMonthSeconds > 0) {
       html += `<div class="stat-row"><span class="stat-label">Duração média</span><span class="stat-value">${formatDurationHM(Math.round(totalMonthSeconds / sessoesFeitas))} / treino</span></div>`;
       if (totalVolumeMonth > 0) {
@@ -1474,6 +1688,7 @@ async function loadMonthly() {
     }
     let prevSeconds = 0;
     if (prevSessions) prevSessions.forEach(s => { prevSeconds += s.duration_seconds; });
+    const prevCardioMin = sumCardioMinutes(prevData);
 
     const volDiff = prevVolume > 0 ? Math.round(((totalVolumeMonth - prevVolume) / prevVolume) * 100) : 0;
     const volClass = volDiff > 0 ? 'up' : volDiff < 0 ? 'down' : '';
@@ -1481,11 +1696,17 @@ async function loadMonthly() {
     const tDiff = prevSeconds > 0 ? Math.round(((totalMonthSeconds - prevSeconds) / prevSeconds) * 100) : 0;
     const tClass = tDiff > 0 ? 'up' : tDiff < 0 ? 'down' : '';
     const tArrow = tDiff > 0 ? '↑' : tDiff < 0 ? '↓' : '=';
+    const cDiff = prevCardioMin > 0 ? Math.round(((totalCardioMin - prevCardioMin) / prevCardioMin) * 100) : 0;
+    const cClass = cDiff > 0 ? 'up' : cDiff < 0 ? 'down' : '';
+    const cArrow = cDiff > 0 ? '↑' : cDiff < 0 ? '↓' : '=';
 
     html += `<div class="resume-card"><h3>vs. Mês anterior</h3>`;
     html += `<div class="stat-row"><span class="stat-label">Volume</span><span class="stat-value ${volClass}">${volArrow} ${Math.abs(volDiff)}%</span></div>`;
     html += `<div class="stat-row"><span class="stat-label">Frequência</span><span class="stat-value">${trainedDates.size} vs ${prevTrainedDates.size} dias</span></div>`;
     html += `<div class="stat-row"><span class="stat-label">⏱ Tempo</span><span class="stat-value ${tClass}">${formatDurationHM(totalMonthSeconds)} ${tArrow} ${Math.abs(tDiff)}%</span></div>`;
+    if (totalCardioMin > 0 || prevCardioMin > 0) {
+      html += `<div class="stat-row"><span class="stat-label">🏃 Cardio</span><span class="stat-value ${cClass}">${formatMinutes(totalCardioMin)} vs ${formatMinutes(prevCardioMin)} ${cArrow} ${Math.abs(cDiff)}%</span></div>`;
+    }
     html += '</div>';
 
     container.innerHTML = html;

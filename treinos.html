@@ -365,11 +365,13 @@ function viewPlan(planId) {
     list.forEach(ex => {
       const setsLine = (ex.sets || []).map(s => `${(s.type || '').toUpperCase()} ${esc(s.reps || '')}`.trim()).join(' | ');
       const setNotes = (ex.sets || []).filter(s => s.note).map(s => `${(s.type || '').toUpperCase()}: ${esc(s.note)}`);
+      const rest = String(ex.rest || '').trim();
       const isGrp = ex.group && ex.group !== lastGroup;
       lastGroup = ex.group || null;
       exHtml += `<div class="view-ex">
         ${ex.group ? `<span class="grp">🔗${isGrp ? ' GRUPO' : ''}</span> ` : ''}${esc(ex.name || '')}
         ${setsLine ? `<div class="sets">${esc(setsLine)}</div>` : ''}
+        ${rest ? `<div class="sets">⏱ Descanso ${esc(rest)}</div>` : ''}
         ${ex.note ? `<div class="sets">❗ ${esc(ex.note)}</div>` : ''}
         ${setNotes.length ? `<div class="sets">📝 ${setNotes.join(' · ')}</div>` : ''}
       </div>`;

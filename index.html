@@ -125,6 +125,20 @@
     .set-label.type-aquec { color: #4caf50; }
     .set-label.type-feeder { color: #42a5f5; }
     .set-label.type-hard { color: #ff5252; }
+    .set-label.type-cardio { color: #ff9800; }
+    /* Cardio: uma coluna só (minutos) em vez de KG × REPS */
+    .set-row.cardio-row { grid-template-columns: auto 1fr 40px; }
+    .set-row.cardio-row input { border-color: #5a4423; }
+    .set-row.cardio-row input:focus { border-color: #ff9800; }
+    /* Descanso prescrito: fica sempre visível, sem precisar abrir nada */
+    .rest-pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #12242b; border: 1px solid #2f4d5a; color: #4fc3f7;
+      font-size: 0.72rem; font-weight: 600; padding: 4px 10px;
+      border-radius: 12px; margin-bottom: 8px;
+    }
+    .rest-pill .rest-value { font-size: 0.85rem; font-weight: 700; }
+    .rest-pill .rest-hint { color: #6b8b98; font-weight: 500; }
     .set-row input {
       width: 100%;
       padding: 10px 8px;
@@ -361,11 +375,44 @@ function resetDayInputs(day) {
   dayEl.querySelectorAll('.set-row:not(.set-header)').forEach(row => {
     const wi = row.querySelector('.weight-input');
     const ri = row.querySelector('.reps-input');
+    const mi = row.querySelector('.minutes-input');
     const check = row.querySelector('.check-icon');
     if (wi) { wi.value = ''; wi.placeholder = '-'; }
     if (ri) { ri.value = ''; ri.placeholder = ri.dataset.prescribed || ''; }
+    if (mi) { mi.value = ''; mi.placeholder = mi.dataset.prescribed || 'minutos'; }
     if (check) check.classList.remove('done');
   });
+}
+
+// Preenche uma linha com o que foi registrado.
+// isToday: valor de verdade (editável). Passado: só placeholder, como referência.
+function applyRecordToRow(row, record, isToday) {
+  const minutesInput = row.querySelector('.minutes-input');
+  if (minutesInput) {
+    if (record.duration_minutes === null || record.duration_minutes === undefined) return;
+    if (isToday) {
+      minutesInput.value = record.duration_minutes;
+      const check = row.querySelector('.check-icon');
+      if (check) check.classList.add('done');
+    } else {
+      minutesInput.placeholder = record.duration_minutes + ' min';
+    }
+    return;
+  }
+  const weightInput = row.querySelector('.weight-input');
+  const repsInput = row.querySelector('.reps-input');
+  if (isToday) {
+    if (weightInput && record.weight !== null) weightInput.value = record.weight;
+    if (repsInput && record.reps !== null) repsInput.value = record.reps;
+    const check = row.querySelector('.check-icon');
+    if (check && (record.weight !== null || record.reps !== null)) check.classList.add('done');
+  } else {
+    if (weightInput && record.weight !== null) weightInput.placeholder = record.weight + ' kg';
+    if (repsInput && record.reps !== null) {
+      const prescribed = repsInput.dataset.prescribed || '';
+      repsInput.placeholder = record.reps + (prescribed ? ' · ' + prescribed : '');
+    }
+  }
 }
 
 // === Carregamento de dados do dia ===
@@ -388,20 +435,7 @@ async function loadTodayData(day) {
       const rows = card.querySelectorAll('.set-row:not(.set-header)');
       const row = rows[record.set_number - 1];
       if (!row) return;
-      const weightInput = row.querySelector('.weight-input');
-      const repsInput = row.querySelector('.reps-input');
-      const check = row.querySelector('.check-icon');
-      if (isToday) {
-        if (weightInput && record.weight !== null) weightInput.value = record.weight;
-        if (repsInput && record.reps !== null) repsInput.value = record.reps;
-        if (check && (record.weight !== null || record.reps !== null)) check.classList.add('done');
-      } else {
-        if (weightInput && record.weight !== null) weightInput.placeholder = record.weight + ' kg';
-        if (repsInput && record.reps !== null) {
-          const prescribed = repsInput.dataset.prescribed || '';
-          repsInput.placeholder = record.reps + (prescribed ? ' · ' + prescribed : '');
-        }
-      }
+      applyRecordToRow(row, record, isToday);
     });
   } catch (e) { console.log('Erro ao carregar dados do dia:', e); }
 }
@@ -423,15 +457,47 @@ async function loadLastWorkout(day) {
       const rows = card.querySelectorAll('.set-row:not(.set-header)');
       const row = rows[record.set_number - 1];
       if (!row) return;
-      const weightInput = row.querySelector('.weight-input');
-      const repsInput = row.querySelector('.reps-input');
-      if (weightInput && record.weight !== null) weightInput.placeholder = record.weight + ' kg';
-      if (repsInput && record.reps !== null) {
-        const prescribed = repsInput.dataset.prescribed || '';
-        repsInput.placeholder = record.reps + (prescribed ? ' · ' + prescribed : '');
-      }
+      applyRecordToRow(row, record, false);
     });
   } catch (e) { console.log('Erro ao carregar último treino:', e); }
+}
+
+// === Leitura de uma linha de set (musculação ou cardio) ===
+// Devolve o registro a inserir ou null quando a linha está vazia.
+// Centralizado porque saveExercise e saveGroup precisam da MESMA regra —
+// duplicar isso é como cardio entraria em um fluxo e não no outro.
+function readSetRow(row, setNumber, base) {
+  if (row.classList.contains('cardio-row')) {
+    const minutes = parseCardioMinutes(row.querySelector('.minutes-input')?.value);
+    if (minutes === null) return null;
+    return Object.assign({}, base, {
+      set_type: 'cardio',
+      set_number: setNumber,
+      weight: null,
+      reps: null,
+      duration_minutes: minutes,
+      notes: row.dataset.notes || null
+    });
+  }
+  const weight = row.querySelector('.weight-input')?.value || '';
+  const reps = row.querySelector('.reps-input')?.value || '';
+  if (weight === '' && reps === '') return null;
+  return Object.assign({}, base, {
+    set_type: row.dataset.setType,
+    set_number: setNumber,
+    weight: weight ? parseFloat(weight) : null,
+    reps: reps ? parseInt(reps) : null,
+    duration_minutes: null,
+    notes: row.dataset.notes || null
+  });
+}
+
+// Linha preenchida? (usado para marcar o ✓ depois de salvar)
+function rowHasValue(row) {
+  if (row.classList.contains('cardio-row')) {
+    return parseCardioMinutes(row.querySelector('.minutes-input')?.value) !== null;
+  }
+  return !!(row.querySelector('.weight-input')?.value || row.querySelector('.reps-input')?.value);
 }
 
 // === Salvar ===
@@ -447,21 +513,13 @@ async function saveExercise(day, exerciseName, cardId) {
   const records = [];
   const sessionDate = getDateForDay(day);
   rows.forEach((row, i) => {
-    const weight = row.querySelector('.weight-input')?.value;
-    const reps = row.querySelector('.reps-input')?.value;
-    if (weight !== '' || reps !== '') {
-      records.push({
-        student_id: studentId,
-        session_date: sessionDate,
-        weekday: day,
-        exercise_name: exerciseName,
-        set_type: row.dataset.setType,
-        set_number: i + 1,
-        weight: weight ? parseFloat(weight) : null,
-        reps: reps ? parseInt(reps) : null,
-        notes: row.dataset.notes || null
-      });
-    }
+    const rec = readSetRow(row, i + 1, {
+      student_id: studentId,
+      session_date: sessionDate,
+      weekday: day,
+      exercise_name: exerciseName
+    });
+    if (rec) records.push(rec);
   });
   if (records.length === 0) { showToast('Preencha ao menos um set', true); btn.disabled = false; btn.textContent = 'Salvar'; return; }
   try {
@@ -477,11 +535,9 @@ async function saveExercise(day, exerciseName, cardId) {
     if (insErr) throw insErr;
     btn.textContent = '✓ Salvo!'; btn.classList.add('saved');
     rows.forEach(row => {
-      const weight = row.querySelector('.weight-input')?.value;
-      const reps = row.querySelector('.reps-input')?.value;
       const check = row.querySelector('.check-icon');
-      if ((weight || reps) && check) check.classList.add('done');
-      else if (check) check.classList.remove('done');
+      if (!check) return;
+      check.classList.toggle('done', rowHasValue(row));
     });
     setTimeout(() => { btn.textContent = 'Salvar'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
     showToast('Salvo com sucesso!');
@@ -506,21 +562,13 @@ async function saveGroup(day, cardIds) {
     exerciseNames.push(exerciseName);
     const rows = card.querySelectorAll('.set-row:not(.set-header)');
     rows.forEach((row, i) => {
-      const weight = row.querySelector('.weight-input')?.value;
-      const reps = row.querySelector('.reps-input')?.value;
-      if (weight !== '' || reps !== '') {
-        allRecords.push({
-          student_id: studentId,
-          session_date: sessionDate,
-          weekday: day,
-          exercise_name: exerciseName,
-          set_type: row.dataset.setType,
-          set_number: i + 1,
-          weight: weight ? parseFloat(weight) : null,
-          reps: reps ? parseInt(reps) : null,
-          notes: row.dataset.notes || null
-        });
-      }
+      const rec = readSetRow(row, i + 1, {
+        student_id: studentId,
+        session_date: sessionDate,
+        weekday: day,
+        exercise_name: exerciseName
+      });
+      if (rec) allRecords.push(rec);
     });
   }
 
@@ -545,11 +593,8 @@ async function saveGroup(day, cardIds) {
     for (const cardId of cardIds) {
       const card = document.getElementById(cardId);
       card.querySelectorAll('.set-row:not(.set-header)').forEach(row => {
-        const weight = row.querySelector('.weight-input')?.value;
-        const reps = row.querySelector('.reps-input')?.value;
         const check = row.querySelector('.check-icon');
-        if ((weight || reps) && check) check.classList.add('done');
-        else if (check) check.classList.remove('done');
+        if (check) check.classList.toggle('done', rowHasValue(row));
       });
     }
     setTimeout(() => { btn.textContent = 'Salvar'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
@@ -608,7 +653,10 @@ async function loadHistory(exerciseName) {
         html += `<div class="history-date">${esc(date)}${durationText}</div>`;
         lastDate = date;
       }
-      html += `<div class="history-set">${esc(r.set_type)} ${r.set_number}: ${r.weight || '-'}kg × ${r.reps || '-'} reps</div>`;
+      const detalhe = (r.duration_minutes !== null && r.duration_minutes !== undefined)
+        ? `${r.duration_minutes} min`
+        : `${r.weight || '-'}kg × ${r.reps || '-'} reps`;
+      html += `<div class="history-set">${esc(r.set_type)} ${r.set_number}: ${detalhe}</div>`;
     });
     body.innerHTML = html;
   } catch (e) {
@@ -672,11 +720,52 @@ function renderDay(day) {
   return html;
 }
 
+// =====================================================================
+// Descanso prescrito e cardio
+// O descanso vem do exercício (ex.rest) e é só leitura para o aluno.
+// Cardio é set de TEMPO: o aluno registra minutos, que vão para a coluna
+// duration_minutes — não para reps, senão contaminaria o volume.
+// =====================================================================
+
+// '90' → '90s' · '1:30' → '1min30s' · '2m'/'2minutos' → '2min' · '90seg' → '90s'.
+// Mesma regra do editor.html (o professor pode digitar de várias formas).
+// Texto livre ('até recuperar', '60-90s') passa intacto.
+function normalizeRest(raw) {
+  const t = String(raw || '').trim().toLowerCase();
+  if (!t) return '';
+  const compact = t.replace(/\s+/g, '');
+  if (/^\d+$/.test(compact)) return compact + 's';
+  const mmss = compact.match(/^(\d+):([0-5]\d)$/);
+  if (mmss) return mmss[2] === '00' ? mmss[1] + 'min' : `${mmss[1]}min${Number(mmss[2])}s`;
+  const seg = compact.match(/^(\d+)s(eg(undos?)?)?$/);
+  if (seg) return seg[1] + 's';
+  const min = compact.match(/^(\d+)m(in(uto)?s?)?$/);
+  if (min) return min[1] + 'min';
+  return t;
+}
+
+function isCardioSet(type) {
+  return String(type || '').trim().toLowerCase() === 'cardio';
+}
+
+// Aceita "40", "40min", "40 min" → 40. Vazio/zero → null (não salva).
+// Teto de 600 min é o mesmo check do banco: acima disso é erro de digitação.
+function parseCardioMinutes(raw) {
+  const digits = String(raw == null ? '' : raw).replace(/[^\d]/g, '');
+  if (!digits) return null;
+  const n = parseInt(digits, 10);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.min(n, 600);
+}
+
 function renderExerciseCard(day, exIdx, ex) {
   const cardId = `card-${day}-${exIdx}`;
   const exName = esc(ex.name);
   const videoUrl = ex.video_url || '';
   const exNote = ex.note || '';
+  const rest = normalizeRest(ex.rest);
+  const sets = ex.sets || [];
+  const allCardio = sets.length > 0 && sets.every(s => isCardioSet(s.type));
 
   let html = '';
   html += `<div class="exercise-card" id="${cardId}" data-exercise="${exName}" data-day="${day}">`;
@@ -688,22 +777,39 @@ function renderExerciseCard(day, exIdx, ex) {
   html += `</div>`;
   // Nota do exercício
   html += `<div class="note-bubble" id="nb-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span>${esc(exNote)}</span></div>`;
+  // Descanso sugerido pelo treinador (só aparece se foi prescrito)
+  if (rest && !allCardio) {
+    html += `<div class="rest-pill">⏱ <span class="rest-value">${esc(rest)}</span> <span class="rest-hint">de descanso entre séries</span></div>`;
+  } else if (rest) {
+    html += `<div class="rest-pill">⏱ <span class="rest-value">${esc(rest)}</span> <span class="rest-hint">de descanso</span></div>`;
+  }
   // Histórico
   html += `<button class="history-btn" onclick="toggleHistory('${exName.replace(/'/g,"\\'")}')">Ver histórico</button>`;
   // Header colunas
-  html += `<div class="set-row set-header"><span class="set-label"></span><span class="col-title">KG</span><span class="col-title">REPS</span><span></span></div>`;
+  if (allCardio) {
+    html += `<div class="set-row cardio-row set-header"><span class="set-label"></span><span class="col-title">MINUTOS</span><span></span></div>`;
+  } else {
+    html += `<div class="set-row set-header"><span class="set-label"></span><span class="col-title">KG</span><span class="col-title">REPS</span><span></span></div>`;
+  }
   // Sets
-  ex.sets.forEach((set, setIdx) => {
-    const typeLabel = set.type === 'aquec' ? 'AQUEC' : set.type === 'feeder' ? 'FEEDER' : set.type === 'hard' ? 'HARD' : (set.type || 'SET').toUpperCase();
-    const typeClass = (set.type === 'aquec' || set.type === 'feeder' || set.type === 'hard') ? 'type-' + set.type : '';
+  sets.forEach((set, setIdx) => {
+    const cardio = isCardioSet(set.type);
+    const typeLabel = set.type === 'aquec' ? 'AQUEC' : set.type === 'feeder' ? 'FEEDER' : set.type === 'hard' ? 'HARD' : cardio ? 'CARDIO' : (set.type || 'SET').toUpperCase();
+    const typeClass = (set.type === 'aquec' || set.type === 'feeder' || set.type === 'hard' || cardio) ? 'type-' + (cardio ? 'cardio' : set.type) : '';
     const setNote = set.note || '';
     const repsText = set.reps || '';
     const notes = repsText.includes('+') ? repsText.split('+')[1].trim() : '';
-    html += `<div class="set-row" data-set-type="${set.type}" data-notes="${esc(notes)}">`;
-    html += `<span class="set-label ${typeClass}">${typeLabel} ${setIdx+1} <button class="note-icon ${setNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}-${setIdx}')">!</button></span>`;
-    html += `<input type="number" class="weight-input" placeholder="-" inputmode="decimal">`;
-    html += `<input type="number" class="reps-input" placeholder="${esc(repsText)}" data-prescribed="${esc(repsText)}" inputmode="numeric">`;
-    html += `<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
+    const checkHtml = `<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
+    html += `<div class="set-row${cardio ? ' cardio-row' : ''}" data-set-type="${esc(set.type)}" data-notes="${esc(notes)}">`;
+    html += `<span class="set-label ${typeClass}">${typeLabel}${cardio && sets.length === 1 ? '' : ' ' + (setIdx+1)} <button class="note-icon ${setNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}-${setIdx}')">!</button></span>`;
+    if (cardio) {
+      // Um campo só: minutos feitos. O placeholder mostra o que foi prescrito (ex: 40min).
+      html += `<input type="number" class="minutes-input" placeholder="${esc(repsText || 'minutos')}" data-prescribed="${esc(repsText)}" inputmode="numeric">`;
+    } else {
+      html += `<input type="number" class="weight-input" placeholder="-" inputmode="decimal">`;
+      html += `<input type="number" class="reps-input" placeholder="${esc(repsText)}" data-prescribed="${esc(repsText)}" inputmode="numeric">`;
+    }
+    html += checkHtml;
     html += `</div>`;
     // Nota do set
     html += `<div class="note-bubble" id="nb-${day}-${exIdx}-${setIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span>${esc(setNote)}</span></div>`;
