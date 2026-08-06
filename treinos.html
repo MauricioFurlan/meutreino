@@ -143,11 +143,80 @@
       background: #2a2a2a; color: #999; font-weight: 600; font-size: 0.85rem;
       cursor: pointer; margin-top: 14px;
     }
-    .view-day { margin-bottom: 14px; }
-    .view-day h4 { font-size: 0.78rem; color: #f5c518; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-    .view-ex { font-size: 0.78rem; color: #f0f0f0; padding: 5px 0; border-bottom: 1px solid #222; }
-    .view-ex .sets { color: #888; font-size: 0.7rem; }
-    .view-ex .grp { color: #f5c518; font-size: 0.6rem; font-weight: 700; }
+    /* === Visualização da ficha ===
+       Antes era uma lista corrida de texto: dia, nome e séries em linhas
+       quase iguais, sem hierarquia. Agora cada exercício é um card com
+       número, séries em pills e descanso/notas separados — o professor
+       confere a ficha batendo o olho, sem ler tudo. */
+    .v-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .v-chip {
+      font-size: 0.62rem; color: #aaa; background: #222; border: 1px solid #333;
+      padding: 4px 9px; border-radius: 10px; white-space: nowrap;
+    }
+    .v-chip.on { color: #4caf50; border-color: #2c5c2c; background: #142014; font-weight: 700; }
+    .v-chip.off { color: #888; }
+
+    .v-day { margin-bottom: 16px; }
+    .v-day-head {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+      padding-bottom: 6px; border-bottom: 1px solid #2a2a2a;
+    }
+    .v-day-name {
+      font-size: 0.8rem; color: #f5c518; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.6px;
+    }
+    .v-day-count { font-size: 0.62rem; color: #777; }
+
+    .v-ex { background: #141414; border: 1px solid #262626; border-radius: 10px; padding: 10px; margin-bottom: 8px; }
+    .v-ex-head { display: flex; align-items: center; gap: 8px; }
+    .v-ex-num {
+      flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+      background: #2a2a2a; color: #999; font-size: 0.6rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .v-ex-name {
+      flex: 1; min-width: 0; font-size: 0.82rem; font-weight: 600; color: #fff; line-height: 1.3;
+    }
+    .v-tag {
+      flex-shrink: 0; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.3px;
+      padding: 3px 7px; border-radius: 8px; text-transform: uppercase;
+    }
+    .v-tag.cardio { color: #ffb74d; background: #2a1f10; border: 1px solid #5a4423; }
+
+    /* Séries: pill TIPO + valor. Cardio em laranja porque o valor é tempo,
+       não repetição — a cor evita ler "40min" como carga. */
+    .v-sets { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 0 28px; }
+    .v-set {
+      display: inline-flex; align-items: center; gap: 5px; background: #1e1e1e;
+      border: 1px solid #333; border-radius: 8px; padding: 3px 7px; font-size: 0.66rem;
+    }
+    .v-set-type { color: #f5c518; font-weight: 700; letter-spacing: 0.3px; }
+    .v-set-val { color: #ddd; font-weight: 600; }
+    .v-set.cardio { border-color: #5a4423; background: #201a12; }
+    .v-set.cardio .v-set-type { color: #ff9800; }
+    .v-set.cardio .v-set-val { color: #ffb74d; }
+
+    .v-metas { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 0 28px; }
+    .v-pill {
+      font-size: 0.62rem; padding: 3px 8px; border-radius: 8px;
+      border: 1px solid #2f4d5a; color: #4fc3f7; background: #12242b; white-space: nowrap;
+    }
+    .v-pill.link { border-color: #3b3b3b; color: #bbb; background: #1e1e1e; text-decoration: none; }
+    .v-note { font-size: 0.68rem; color: #bbb; line-height: 1.45; margin: 7px 0 0 28px; }
+    .v-note.sub { color: #888; }
+    .v-empty { font-size: 0.66rem; color: #f44336; margin: 8px 0 0 28px; font-style: italic; }
+
+    /* Biset/triset: mesma moldura amarela que o aluno vê no app */
+    .v-group {
+      border: 1px solid #5a4b10; border-left: 3px solid #f5c518;
+      border-radius: 10px; padding: 8px; margin-bottom: 8px; background: #131109;
+    }
+    .v-group-label {
+      display: block; font-size: 0.58rem; color: #f5c518; font-weight: 700;
+      letter-spacing: 0.5px; margin-bottom: 6px;
+    }
+    .v-group .v-ex { background: #171614; margin-bottom: 6px; }
+    .v-group .v-ex:last-child { margin-bottom: 0; }
 
     /* Loading overlay */
     .loading-overlay {
@@ -396,39 +465,124 @@ async function onToggle(input) {
 }
 
 // === Visualizar (somente leitura) ===
+
+// Cardio usa o campo de prescrição como TEMPO ('40min'), não reps.
+// Mesma regra do editor e do app do aluno.
+function isCardioType(type) {
+  return String(type || '').trim().toLowerCase() === 'cardio';
+}
+
+function groupLabel(count) {
+  return count === 2 ? 'BISET' : count === 3 ? 'TRISET' : 'GIANT SET';
+}
+
+// Só link http(s) vira <a>: 'javascript:...' salvo no campo de vídeo não pode
+// virar clique executável dentro da ficha.
+function safeVideoUrl(url) {
+  const u = String(url || '').trim();
+  return /^https?:\/\//i.test(u) ? u : null;
+}
+
+// Um exercício = um card: número, nome, séries em pills, descanso/vídeo e notas.
+function renderViewExercise(ex, num) {
+  const sets = Array.isArray(ex.sets) ? ex.sets : [];
+  const soCardio = sets.length > 0 && sets.every(s => isCardioType(s.type));
+
+  const pills = sets.map(s => {
+    const cardio = isCardioType(s.type);
+    const tipo = String(s.type || 'set').toUpperCase();
+    const valor = String(s.reps == null ? '' : s.reps).trim();
+    return `<span class="v-set${cardio ? ' cardio' : ''}">` +
+      `<span class="v-set-type">${esc(tipo)}</span>` +
+      (valor ? `<span class="v-set-val">${esc(valor)}</span>` : '') +
+      `</span>`;
+  }).join('');
+
+  const descanso = restSummary(sets, ex.rest);
+  const notasSet = sets.filter(s => s.note).map(s => `${String(s.type || 'set').toUpperCase()}: ${s.note}`);
+  const video = safeVideoUrl(ex.video_url);
+
+  const metas = [];
+  if (descanso.text) {
+    metas.push(`<span class="v-pill">⏱ ${descanso.uniform ? 'Descanso' : 'Descansos'}: ${esc(descanso.text)}</span>`);
+  }
+  if (video) {
+    metas.push(`<a class="v-pill link" href="${esc(video)}" target="_blank" rel="noopener">🎥 Vídeo</a>`);
+  }
+
+  let h = `<div class="v-ex">`;
+  h += `<div class="v-ex-head">`;
+  h += `<span class="v-ex-num">${num}</span>`;
+  h += `<span class="v-ex-name">${esc(ex.name || 'Sem nome')}</span>`;
+  if (soCardio) h += `<span class="v-tag cardio">🏃 Cardio</span>`;
+  h += `</div>`;
+  h += sets.length
+    ? `<div class="v-sets">${pills}</div>`
+    : `<div class="v-empty">Sem séries definidas</div>`;
+  if (metas.length) h += `<div class="v-metas">${metas.join('')}</div>`;
+  if (ex.note) h += `<div class="v-note">❗ ${esc(ex.note)}</div>`;
+  if (notasSet.length) h += `<div class="v-note sub">📝 ${notasSet.map(esc).join(' · ')}</div>`;
+  h += `</div>`;
+  return h;
+}
+
+// Monta um dia inteiro: exercícios soltos e grupos (biset/triset) na ordem
+// do plano, com numeração contínua — é a ordem que o aluno executa.
+function renderViewDay(day, list) {
+  let html = `<div class="v-day">
+      <div class="v-day-head">
+        <span class="v-day-name">${day}</span>
+        <span class="v-day-count">${list.length} exercício${list.length !== 1 ? 's' : ''}</span>
+      </div>`;
+
+  let i = 0, num = 0;
+  while (i < list.length) {
+    const grupo = list[i].group;
+    if (grupo) {
+      const bloco = [];
+      while (i < list.length && list[i].group === grupo) bloco.push(list[i++]);
+      if (bloco.length >= 2) {
+        html += `<div class="v-group"><span class="v-group-label">🔗 ${groupLabel(bloco.length)}</span>`;
+        bloco.forEach(ex => { html += renderViewExercise(ex, ++num); });
+        html += `</div>`;
+      } else {
+        bloco.forEach(ex => { html += renderViewExercise(ex, ++num); });
+      }
+    } else {
+      html += renderViewExercise(list[i++], ++num);
+    }
+  }
+  return html + `</div>`;
+}
+
 function viewPlan(planId) {
   const p = plans.find(x => x.id === planId);
   if (!p) return;
   document.getElementById('viewTitle').textContent = p.title || 'Treino';
 
   const st = p.structure || {};
+  const total = countExercises(st);
+  const dias = activeDays(st);
+
+  const chips = [
+    `<span class="v-chip ${p.is_active ? 'on' : 'off'}">${p.is_active ? '● Ativo para o aluno' : 'Inativo'}</span>`,
+    `<span class="v-chip">${total} exercício${total !== 1 ? 's' : ''}</span>`,
+    `<span class="v-chip">${dias.length} dia${dias.length !== 1 ? 's' : ''} de treino</span>`
+  ];
+  if (p.plan_start_date || p.plan_end_date) {
+    chips.push(`<span class="v-chip">📅 ${fmtDate(p.plan_start_date) || '...'} — ${fmtDate(p.plan_end_date) || '...'}</span>`);
+  }
+
   let html = '';
   DAYS.forEach(day => {
     const list = Array.isArray(st[day]) ? st[day] : [];
     if (list.length === 0) return;
-    let exHtml = '';
-    let lastGroup = null;
-    list.forEach(ex => {
-      const setsLine = (ex.sets || []).map(s => `${(s.type || '').toUpperCase()} ${esc(s.reps || '')}`.trim()).join(' | ');
-      const setNotes = (ex.sets || []).filter(s => s.note).map(s => `${(s.type || '').toUpperCase()}: ${esc(s.note)}`);
-      const descanso = restSummary(ex.sets, ex.rest);
-      const isGrp = ex.group && ex.group !== lastGroup;
-      lastGroup = ex.group || null;
-      exHtml += `<div class="view-ex">
-        ${ex.group ? `<span class="grp">🔗${isGrp ? ' GRUPO' : ''}</span> ` : ''}${esc(ex.name || '')}
-        ${setsLine ? `<div class="sets">${esc(setsLine)}</div>` : ''}
-        ${descanso.text ? `<div class="sets">⏱ ${descanso.uniform ? 'Descanso' : 'Descansos'}: ${esc(descanso.text)}</div>` : ''}
-        ${ex.note ? `<div class="sets">❗ ${esc(ex.note)}</div>` : ''}
-        ${setNotes.length ? `<div class="sets">📝 ${setNotes.join(' · ')}</div>` : ''}
-      </div>`;
-    });
-    html += `<div class="view-day"><h4>${day} · ${list.length} ex.</h4>${exHtml}</div>`;
+    html += renderViewDay(day, list);
   });
 
-  const period = (p.plan_start_date || p.plan_end_date)
-    ? `<div class="plan-meta" style="margin-bottom:12px;">📅 ${fmtDate(p.plan_start_date) || '...'} — ${fmtDate(p.plan_end_date) || '...'}</div>` : '';
-
-  document.getElementById('viewBody').innerHTML = period + (html || '<div class="empty-state">Treino vazio.</div>');
+  document.getElementById('viewBody').innerHTML =
+    `<div class="v-chips">${chips.join('')}</div>` +
+    (html || '<div class="empty-state">Treino vazio.</div>');
   document.getElementById('viewModal').classList.add('show');
 }
 function closeView() { document.getElementById('viewModal').classList.remove('show'); }

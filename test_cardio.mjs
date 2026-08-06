@@ -401,12 +401,196 @@ eq('editor salva descanso por série',
   /rest:\s*normalizeRest\(si\.querySelector\('\.set-rest'\)\.value\)/.test(src['editor.html']), true);
 eq('editor não grava mais descanso no exercício',
   /return \{ name, video_url, note, sets \};/.test(src['editor.html']), true);
-eq('chips preenchem todas as séries',
-  /function fillAllRest/.test(src['editor.html']), true);
+eq('descanso é escolhido por série, não em bloco',
+  /function fillAllRest/.test(src['editor.html']), false);
+eq('campo de descanso abre o seletor',
+  /class="set-rest"[^>]*onfocus="openRestPicker\(this\)"/.test(src['editor.html']), true);
+eq('pickRest altera só o campo aberto',
+  /function pickRest\(value\) \{[\s\S]{0,200}restPickerInput\.value = value;/.test(src['editor.html']), true);
+eq('"usar em todas" existe como ação explícita',
+  /function applyRestToAll/.test(src['editor.html']), true);
+eq('a fileira de chips de descanso saiu do card',
+  /renderRestChips/.test(src['editor.html']), false);
+
+// Markup real do seletor, com ensureRestPicker trocado por um stub.
+const pickerApi = new vm.Script(
+  grabFrom(src['editor.html'], 'normalizeRest') + '\n' +
+  src['editor.html'].match(/const REST_PRESETS = \[[^\]]*\];/)[0] + '\n' +
+  'let restPickerInput = null; let __html = "";\n' +
+  'function ensureRestPicker() { return { set innerHTML(v) { __html = v; } }; }\n' +
+  grabFrom(src['editor.html'], 'renderRestPicker') + '\n' +
+  '({ render: (v) => { restPickerInput = { value: v }; renderRestPicker(); return __html; } })'
+).runInNewContext();
+
+const pickerVazio = pickerApi.render('');
+eq('seletor: uma opção por preset',
+  (pickerVazio.match(/class="rest-opt/g) || []).length, editorApi.REST_PRESETS.length);
+eq('seletor: título deixa claro que é só desta série',
+  /Descanso desta série/.test(pickerVazio), true);
+eq('seletor: campo vazio não acende nenhuma opção', /rest-opt on/.test(pickerVazio), false);
+eq('seletor: tem Limpar', /onclick="pickRest\(''\)">Limpar/.test(pickerVazio), true);
+eq('seletor: "usar em todas" é opt-in', /applyRestToAll\(\)">Usar em todas/.test(pickerVazio), true);
+eq('seletor: avisa que dá para digitar', /digite direto no campo/.test(pickerVazio), true);
+
+eq('seletor: acende a opção do valor atual',
+  /class="rest-opt on" onclick="pickRest\('90s'\)">90s</.test(pickerApi.render('90s')), true);
+eq('seletor: acende mesmo com valor não normalizado (90)',
+  /class="rest-opt on" onclick="pickRest\('90s'\)"/.test(pickerApi.render('90')), true);
+eq('seletor: valor livre não acende nada',
+  /rest-opt on/.test(pickerApi.render('até recuperar')), false);
 eq('treinador lê duration_minutes no comparativo',
   (src['treinador.html'].match(/select=session_date,set_type,weight,reps,duration_minutes/g) || []).length, 2);
 eq('treinos.html mostra o resumo de descanso',
   /Descansos'\}: \$\{esc\(descanso\.text\)\}/.test(src['treinos.html']), true);
+
+// ---------- comparativo do card do dia (hoje vs. último treino) ----------
+// É a pergunta diária: o cardio de hoje foi maior que o do treino anterior?
+const cmpApi = new vm.Script(
+  grabFrom(src['treinador.html'], 'isCardio') + '\n' +
+  grabFrom(src['treinador.html'], 'formatMinutes') + '\n' +
+  grabFrom(src['treinador.html'], 'cardioByDate') + '\n' +
+  grabFrom(src['treinador.html'], 'formatDayMonth') + '\n' +
+  grabFrom(src['treinador.html'], 'previousCardioSession') + '\n' +
+  grabFrom(src['treinador.html'], 'cardioComparison') + '\n' +
+  '({ previousCardioSession, cardioComparison, formatDayMonth })'
+).runInNewContext();
+
+const historico = [
+  { session_date: '2026-07-30', exercise_name: 'Bike', set_type: 'cardio', duration_minutes: 40 },
+  { session_date: '2026-07-30', exercise_name: 'Esteira', set_type: 'cardio', duration_minutes: 10 },
+  { session_date: '2026-07-23', exercise_name: 'Bike', set_type: 'cardio', duration_minutes: 30 },
+  { session_date: '2026-07-23', exercise_name: 'Supino', set_type: 'hard', duration_minutes: null }
+];
+
+eq('sessão anterior é a mais recente antes da data',
+  cmpApi.previousCardioSession(historico, '2026-08-05'), { date: '2026-07-30', minutes: 50 });
+eq('sessão anterior ignora a própria data',
+  cmpApi.previousCardioSession(historico, '2026-07-30'), { date: '2026-07-23', minutes: 30 });
+eq('sem histórico anterior devolve null',
+  cmpApi.previousCardioSession(historico, '2026-07-01'), null);
+eq('previousCardioSession tolera null', cmpApi.previousCardioSession(null, '2026-08-05'), null);
+eq('só o mesmo exercício entra na comparação do card',
+  cmpApi.previousCardioSession(historico.filter(r => r.exercise_name === 'Bike'), '2026-08-05'),
+  { date: '2026-07-30', minutes: 40 });
+eq('musculação não vira sessão de cardio',
+  cmpApi.previousCardioSession(historico.filter(r => r.exercise_name === 'Supino'), '2026-08-05'), null);
+
+const subiu = cmpApi.cardioComparison(50, { date: '2026-07-30', minutes: 40 }, 'hoje');
+eq('subiu: direção up', subiu.dir, 'up');
+eq('subiu: +25%', subiu.diff, 25);
+eq('subiu: texto do card', /hoje <strong class="cmp-now">50min<\/strong> · último <strong class="cmp-prev">40min<\/strong> <span class="cmp-up">↑25%<\/span> <span class="cmp-when">em 30\/07<\/span>/.test(subiu.html), true);
+
+const caiu = cmpApi.cardioComparison(30, { date: '2026-08-03', minutes: 40 }, 'hoje');
+eq('caiu: direção down', caiu.dir, 'down');
+eq('caiu: -25%', caiu.diff, -25);
+eq('caiu: seta para baixo', /cmp-down">↓25%/.test(caiu.html), true);
+
+const igual = cmpApi.cardioComparison(40, { date: '2026-08-03', minutes: 40 }, 'hoje');
+eq('igual: sem seta enganosa', igual.dir, 'flat');
+eq('igual: diz "igual"', /= igual/.test(igual.html), true);
+
+const primeiro = cmpApi.cardioComparison(50, null, 'hoje');
+eq('primeiro registro: sem porcentagem', primeiro.diff, null);
+eq('primeiro registro: avisa que é o 1º', /1º cardio registrado/.test(primeiro.html), true);
+eq('primeiro registro: não inventa 100%', /%/.test(primeiro.html), false);
+eq('anterior zerado é tratado como primeiro',
+  cmpApi.cardioComparison(50, { date: '2026-07-30', minutes: 0 }, 'hoje').dir, 'first');
+eq('sem cardio no dia não gera comparativo', cmpApi.cardioComparison(0, null, 'hoje'), null);
+eq('data passada usa a data no lugar de "hoje"',
+  /^03\/08 <strong/.test(cmpApi.cardioComparison(50, null, '03/08').html), true);
+eq('formatDayMonth', cmpApi.formatDayMonth('2026-08-05'), '05/08');
+
+// Contratos de tela do comparativo
+eq('card do dia usa o comparativo',
+  /🏃 Cardio: \$\{cmpDia\.html\}/.test(src['treinador.html']), true);
+eq('card do exercício usa o comparativo',
+  /cardioComparison\(cardioMinEx, prevEx, cmpLabel\)/.test(src['treinador.html']), true);
+eq('"hoje" só quando a data é hoje',
+  /date === toLocalISO\(new Date\(\)\) \? 'hoje'/.test(src['treinador.html']), true);
+eq('busca o cardio anterior na mesma leva de queries',
+  /session_date=lt\.\$\{date\}&duration_minutes=not\.is\.null/.test(src['treinador.html']), true);
+
+// ---------- ficha formatada (treinos.html) ----------
+// Sandbox próprio: reaproveitar o do renderExerciseCard reusaria o mesmo
+// contexto e o `const esc` colidiria.
+const fichaCtx = {
+  document: {
+    createElement: () => ({
+      textContent: '',
+      get innerHTML() { return escapeHtml(this.textContent); }
+    })
+  },
+  escapeHtml
+};
+
+const fichaApi = new vm.Script(
+  src['treinos.html'].match(/const esc = \(s\) => \{[\s\S]*?\};/)[0] + '\n' +
+  grabFrom(src['treinos.html'], 'normalizeRest') + '\n' +
+  grabFrom(src['treinos.html'], 'restLabel') + '\n' +
+  grabFrom(src['treinos.html'], 'restSummary') + '\n' +
+  grabFrom(src['treinos.html'], 'isCardioType') + '\n' +
+  grabFrom(src['treinos.html'], 'groupLabel') + '\n' +
+  grabFrom(src['treinos.html'], 'safeVideoUrl') + '\n' +
+  grabFrom(src['treinos.html'], 'renderViewExercise') + '\n' +
+  grabFrom(src['treinos.html'], 'renderViewDay') + '\n' +
+  '({ renderViewExercise, renderViewDay, safeVideoUrl, groupLabel })'
+).runInNewContext(fichaCtx);
+
+const fichaForca = fichaApi.renderViewExercise({
+  name: 'Supino reto', video_url: 'https://youtu.be/abc', note: 'Pegada média',
+  sets: [
+    { type: 'aquec', reps: '12-15', rest: '2min' },
+    { type: 'hard', reps: '8-12', rest: '3min', note: 'até a falha' }
+  ]
+}, 1);
+eq('ficha: exercício é um card',        /class="v-ex"/.test(fichaForca), true);
+eq('ficha: número do exercício',        /class="v-ex-num">1</.test(fichaForca), true);
+eq('ficha: nome destacado',             /class="v-ex-name">Supino reto</.test(fichaForca), true);
+eq('ficha: séries em pills',            (fichaForca.match(/class="v-set"/g) || []).length, 2);
+eq('ficha: tipo e valor separados',
+  /class="v-set-type">AQUEC<\/span><span class="v-set-val">12-15</.test(fichaForca), true);
+eq('ficha: descanso em pill própria',   /class="v-pill">⏱ Descansos: AQUEC-2min \/ HARD-3min</.test(fichaForca), true);
+eq('ficha: vídeo vira link',            /<a class="v-pill link" href="https:\/\/youtu.be\/abc"/.test(fichaForca), true);
+eq('ficha: link não abre no mesmo app', /rel="noopener"/.test(fichaForca), true);
+eq('ficha: nota do exercício',          /class="v-note">❗ Pegada média</.test(fichaForca), true);
+eq('ficha: nota de série',              /class="v-note sub">📝 HARD: até a falha</.test(fichaForca), true);
+eq('ficha: sem tag de cardio em força', /v-tag cardio/.test(fichaForca), false);
+
+const fichaCardio = fichaApi.renderViewExercise({
+  name: 'Bike ergométrica', sets: [{ type: 'cardio', reps: '40min' }]
+}, 3);
+eq('ficha: cardio ganha tag',           /class="v-tag cardio">🏃 Cardio</.test(fichaCardio), true);
+eq('ficha: pill de cardio marcada',     /class="v-set cardio"/.test(fichaCardio), true);
+eq('ficha: tempo aparece como valor',   /v-set-val">40min</.test(fichaCardio), true);
+
+const fichaVazia = fichaApi.renderViewExercise({ name: 'Furado', sets: [] }, 2);
+eq('ficha: exercício sem série avisa',  /class="v-empty">Sem séries definidas</.test(fichaVazia), true);
+eq('ficha: sem nome não quebra',
+  /v-ex-name">Sem nome</.test(fichaApi.renderViewExercise({ sets: [] }, 1)), true);
+
+eq('ficha: url perigosa não vira link', fichaApi.safeVideoUrl('javascript:alert(1)'), null);
+eq('ficha: url http passa',             fichaApi.safeVideoUrl('http://x.com/v'), 'http://x.com/v');
+eq('ficha: campo vazio não vira link',  fichaApi.safeVideoUrl(''), null);
+eq('ficha: exercício com url inválida não renderiza <a>',
+  /<a /.test(fichaApi.renderViewExercise({ name: 'X', video_url: 'javascript:alert(1)', sets: [] }, 1)), false);
+
+eq('ficha: rótulo de grupo por tamanho',
+  [2, 3, 4].map(fichaApi.groupLabel), ['BISET', 'TRISET', 'GIANT SET']);
+
+const diaFicha = fichaApi.renderViewDay('Segunda', [
+  { name: 'Supino', group: 'g1', sets: [{ type: 'hard', reps: '10' }] },
+  { name: 'Crucifixo', group: 'g1', sets: [{ type: 'hard', reps: '12' }] },
+  { name: 'Rosca', sets: [{ type: 'hard', reps: '10' }] }
+]);
+eq('dia: cabeçalho com contagem',   /v-day-name">Segunda<\/span>\s*<span class="v-day-count">3 exercícios</.test(diaFicha), true);
+eq('dia: grupo tem moldura',        /class="v-group"><span class="v-group-label">🔗 BISET</.test(diaFicha), true);
+eq('dia: numeração é contínua',     (diaFicha.match(/v-ex-num">(\d)</g) || []).join(','), 'v-ex-num">1<,v-ex-num">2<,v-ex-num">3<');
+eq('dia: grupo de 1 não vira moldura',
+  /v-group/.test(fichaApi.renderViewDay('Terça', [{ name: 'Solto', group: 'g9', sets: [] }])), false);
+eq('dia: singular quando é 1 exercício',
+  /1 exercício</.test(fichaApi.renderViewDay('Terça', [{ name: 'Solto', sets: [] }])), true);
+eq('viewPlan usa o novo render',    /renderViewDay\(day, list\)/.test(src['treinos.html']), true);
+eq('ficha: chips de resumo no topo', /class="v-chips"/.test(src['treinos.html']), true);
 
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);

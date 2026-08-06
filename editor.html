@@ -222,10 +222,36 @@
     .chip:active { border-color: #f5c518; color: #f5c518; }
     .chip.chip-cardio { border-color: #5a4423; color: #ffb74d; }
     .chip.chip-cardio:active { border-color: #ff9800; color: #ff9800; }
-    /* Chips de descanso: preenchem o campo de TODAS as séries de uma vez.
-       Tocar de novo no mesmo valor limpa. */
-    .chip.rest-chip { border-color: #2f4d5a; color: #4fc3f7; text-transform: none; }
-    .chip.rest-chip.on { border-color: #4fc3f7; background: #12242b; }
+    /* Descanso: o campo abre um seletor com os valores usuais e altera SÓ
+       aquela série. Os chips antigos preenchiam todas as séries de uma vez,
+       o que mudava linhas que já estavam certas. */
+    .set-rest { cursor: pointer; }
+    .set-rest.picking { border-color: #4fc3f7 !important; }
+    .rest-picker {
+      display: none; position: fixed; z-index: 1200; width: 216px;
+      background: #16202a; border: 1px solid #2f4d5a; border-radius: 12px;
+      padding: 10px; box-shadow: 0 10px 28px rgba(0,0,0,0.6);
+    }
+    .rest-picker.show { display: block; }
+    .rest-picker-title {
+      font-size: 0.6rem; color: #4fc3f7; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.4px; margin-bottom: 8px;
+    }
+    .rest-picker-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .rest-opt {
+      padding: 9px 0; border: 1px solid #2f4d5a; border-radius: 8px; background: #0f1a21;
+      color: #9fd9f5; font-size: 0.72rem; font-weight: 600; cursor: pointer;
+    }
+    .rest-opt.on { background: #4fc3f7; border-color: #4fc3f7; color: #06222e; }
+    .rest-opt:active { opacity: 0.6; }
+    .rest-picker-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .rest-picker-actions button {
+      flex: 1; padding: 8px 4px; border-radius: 8px; background: none;
+      font-size: 0.6rem; font-weight: 600; cursor: pointer; border: 1px solid #3a3a3a; color: #999;
+    }
+    .rest-picker-actions .all-btn { border-color: #4a4a2a; color: #d6c46a; }
+    .rest-picker-actions button:active { opacity: 0.6; }
+    .rest-picker-hint { font-size: 0.55rem; color: #6d7f88; margin-top: 7px; line-height: 1.4; }
     .remove-btn {
       background: none; border: none; color: #f44336; font-size: 1.1rem; cursor: pointer;
       padding: 0; line-height: 1;
@@ -479,6 +505,9 @@ function renderEditor(structure) {
 // artefatos de repaint do WebKit/iOS ao mover nós entre containers.
 function renderDayBody(day, exercises) {
   const body = document.getElementById('body-' + day);
+  // O seletor de descanso aponta para um input desta subtree: reconstruir
+  // sem fechar deixaria ele preso a um campo que não existe mais.
+  closeRestPicker();
   body.innerHTML = '';
 
   let i = 0;
@@ -585,11 +614,10 @@ function renderExercise(day, idx, ex) {
       <input type="text" class="ex-note" value="${esc(ex.note || '')}" placeholder="Nota (opcional)">
     </div>
     <div class="set-head">
-      <span>Tipo</span><span>Reps</span><span>Desc.</span><span>Nota</span><span></span>
+      <span>Tipo</span><span>Reps</span><span>Desc. ▾</span><span>Nota</span><span></span>
     </div>
     <div class="sets-container">${setsHtml}</div>
     ${renderChips()}
-    ${renderRestChips()}
     <button class="add-btn" onclick="addSet(this)">+ Adicionar set</button>
     <div class="ex-actions">
       <button class="ex-action-btn" onclick="moveExercise(this, -1)">↑</button>
@@ -598,19 +626,134 @@ function renderExercise(day, idx, ex) {
       <button class="ex-action-btn danger" onclick="removeExercise(this)">Remover</button>
     </div>
   `;
-  syncRestChips(div);
   return div;
 }
 
 // =====================================================================
-// Descanso — por SÉRIE
-// Cada set tem seu próprio intervalo (aquec 2min, hard 3min...). Os chips
-// preenchem todas as séries de uma vez, então o caso comum ("mesmo
-// descanso em tudo") continua sendo 1 toque; depois o professor ajusta a
-// linha que for diferente.
+// Descanso — por SÉRIE, escolhido em um seletor por campo
+// Cada set tem seu próprio intervalo (aquec 2min, hard 3min...). Antes havia
+// uma fileira de chips que preenchia TODAS as séries de uma vez: tocar em
+// "2min" para ajustar a última linha reescrevia as anteriores, que já estavam
+// certas. Agora o próprio campo abre um seletor com os valores usuais e
+// altera só aquela série; "todas as séries" continua existindo, mas como
+// ação explícita dentro do seletor.
 // Não entra em nenhuma métrica — é informação de execução para o aluno.
 // =====================================================================
 const REST_PRESETS = ['30s', '45s', '60s', '90s', '2min', '3min'];
+
+// Campo que abriu o seletor. Fica guardado porque o seletor vive fora da
+// linha (position: fixed) — dentro da coluna de 50px ele seria cortado.
+let restPickerInput = null;
+
+function ensureRestPicker() {
+  let picker = document.getElementById('restPicker');
+  if (picker) return picker;
+  picker = document.createElement('div');
+  picker.className = 'rest-picker';
+  picker.id = 'restPicker';
+  document.body.appendChild(picker);
+  return picker;
+}
+
+function renderRestPicker() {
+  const picker = ensureRestPicker();
+  const atual = normalizeRest(restPickerInput ? restPickerInput.value : '');
+  const opts = REST_PRESETS.map(p =>
+    `<button type="button" class="rest-opt${p === atual ? ' on' : ''}" onclick="pickRest('${p}')">${p}</button>`
+  ).join('');
+  picker.innerHTML = `
+    <div class="rest-picker-title">⏱ Descanso desta série</div>
+    <div class="rest-picker-grid">${opts}</div>
+    <div class="rest-picker-actions">
+      <button type="button" onclick="pickRest('')">Limpar</button>
+      <button type="button" class="all-btn" onclick="applyRestToAll()">Usar em todas</button>
+    </div>
+    <div class="rest-picker-hint">Ou digite direto no campo (ex: 60-90s, até recuperar).</div>
+  `;
+}
+
+// Encaixa o seletor perto do campo. Prefere ACIMA: no celular o teclado
+// abre por baixo e cobriria a lista.
+function positionRestPicker() {
+  const picker = ensureRestPicker();
+  if (!restPickerInput) return;
+  const r = restPickerInput.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
+  const h = picker.offsetHeight || 190;
+  const w = picker.offsetWidth || 216;
+
+  let top = r.top - h - 8;
+  if (top < 8) top = Math.min(r.bottom + 8, vh - h - 8);
+  if (top < 8) top = 8;
+
+  let left = r.left + r.width / 2 - w / 2;
+  left = Math.max(8, Math.min(left, vw - w - 8));
+
+  picker.style.top = top + 'px';
+  picker.style.left = left + 'px';
+}
+
+function openRestPicker(input) {
+  if (restPickerInput && restPickerInput !== input) restPickerInput.classList.remove('picking');
+  restPickerInput = input;
+  input.classList.add('picking');
+  renderRestPicker();
+  const picker = ensureRestPicker();
+  picker.classList.add('show');
+  positionRestPicker();
+}
+
+function closeRestPicker() {
+  const picker = document.getElementById('restPicker');
+  if (picker) picker.classList.remove('show');
+  if (restPickerInput) restPickerInput.classList.remove('picking');
+  restPickerInput = null;
+}
+
+// Preenche SÓ a série do campo aberto.
+function pickRest(value) {
+  if (!restPickerInput) return;
+  restPickerInput.value = value;
+  closeRestPicker();
+}
+
+// Atalho explícito para o caso comum ("mesmo descanso em tudo"): 1 toque
+// preenche as séries do exercício. Diferente dos chips antigos, o professor
+// pediu por isso — não acontece ao escolher um valor.
+function applyRestToAll() {
+  if (!restPickerInput) return;
+  const value = restPickerInput.value.trim();
+  if (!value) {
+    showToast('Escolha um descanso antes de aplicar em todas as séries.', true);
+    return;
+  }
+  const item = restPickerInput.closest('.exercise-item');
+  if (item) item.querySelectorAll('.set-rest').forEach(i => { i.value = value; });
+  closeRestPicker();
+}
+
+// Digitar no campo mantém o seletor aberto, só reacende a opção equivalente.
+function onRestInput(input) {
+  if (restPickerInput === input) renderRestPicker();
+}
+
+document.addEventListener('pointerdown', (e) => {
+  if (!restPickerInput) return;
+  const t = e.target;
+  if (t === restPickerInput) return;
+  if (t && t.closest && t.closest('.rest-picker')) return;
+  closeRestPicker();
+}, true);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && restPickerInput) closeRestPicker();
+});
+
+// O seletor é fixed: sem reposicionar ele "descola" do campo ao rolar
+// (e no celular focar o input já rola a página).
+window.addEventListener('scroll', () => { if (restPickerInput) positionRestPicker(); }, true);
+window.addEventListener('resize', () => { if (restPickerInput) positionRestPicker(); });
 
 // '90' → '90s' · '1:30' → '1min30s' · '2m'/'2minutos' → '2min' · '90seg' → '90s'.
 // Número puro é lido como SEGUNDOS (é como o professor fala: "descansa 90").
@@ -662,37 +805,6 @@ function restSummary(sets, legacyRest) {
   return { text: partes.join(' / '), uniform: false };
 }
 
-function renderRestChips() {
-  const chips = REST_PRESETS.map(p =>
-    `<button class="chip rest-chip" type="button" onclick="fillAllRest(this, '${p}')">${p}</button>`
-  ).join('');
-  return `<div class="chips"><span class="chips-label">⏱ DESCANSO</span>${chips}</div>`;
-}
-
-// Preenche o descanso de todas as séries. Se já estiverem todas com esse
-// valor, limpa — evita ter que apagar campo por campo.
-function fillAllRest(btn, value) {
-  const item = btn.closest('.exercise-item');
-  const inputs = [...item.querySelectorAll('.set-rest')];
-  if (inputs.length === 0) return;
-  const todasIguais = inputs.every(i => i.value.trim() === value);
-  inputs.forEach(i => { i.value = todasIguais ? '' : value; });
-  syncRestChips(item);
-}
-
-function syncRestChips(item) {
-  const inputs = [...item.querySelectorAll('.set-rest')];
-  const valores = new Set(inputs.map(i => normalizeRest(i.value)));
-  const atual = (valores.size === 1 && inputs.length > 0) ? [...valores][0] : null;
-  item.querySelectorAll('.rest-chip').forEach(c => {
-    c.classList.toggle('on', atual !== null && c.textContent.trim() === atual);
-  });
-}
-
-function onRestInput(input) {
-  syncRestChips(input.closest('.exercise-item'));
-}
-
 // =====================================================================
 // Cardio
 // Set de cardio não tem carga×reps: tem TEMPO. O campo de prescrição é o
@@ -726,7 +838,7 @@ function renderSetHtml(idx, set) {
     <div class="set-item${cardio ? ' is-cardio' : ''}">
       <input type="text" class="set-type-input" value="${esc(set.type || '')}" placeholder="Tipo" oninput="onSetTypeInput(this)">
       <input type="text" class="set-reps" value="${esc(set.reps || '')}" placeholder="${cardio ? CARDIO_HINT : REPS_HINT}">
-      <input type="text" class="set-rest" value="${esc(normalizeRest(set.rest))}" placeholder="90s" oninput="onRestInput(this)">
+      <input type="text" class="set-rest" value="${esc(normalizeRest(set.rest))}" placeholder="90s" oninput="onRestInput(this)" onfocus="openRestPicker(this)" onclick="openRestPicker(this)">
       <input type="text" class="set-note" value="${esc(set.note || '')}" placeholder="Nota">
       <button class="remove-btn" onclick="removeSet(this)">×</button>
     </div>
@@ -761,7 +873,7 @@ function removeSet(btn) {
     return;
   }
   btn.closest('.set-item').remove();
-  syncRestChips(item);
+  closeRestPicker();
 }
 
 // === Adicionar exercício ===
@@ -787,7 +899,6 @@ function addSet(btn) {
   const temp = document.createElement('div');
   temp.innerHTML = renderSetHtml(container.children.length, { type: '', reps: '', rest: restHerdado, note: null });
   container.appendChild(temp.firstElementChild);
-  syncRestChips(exItem);
   // Foca no campo de tipo do novo set
   container.lastElementChild.querySelector('.set-type-input').focus();
 }

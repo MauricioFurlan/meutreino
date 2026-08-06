@@ -349,6 +349,15 @@
     .stat-value.up { color: #4caf50; }
     .stat-value.down { color: #f44336; }
 
+    /* Comparativo de cardio no card do dia: hoje vs. último treino.
+       Vem antes de qualquer gráfico porque é a leitura imediata. */
+    strong.cmp-now { color: #ff9800; }
+    strong.cmp-prev { color: #ddd; font-weight: 600; }
+    .cmp-up { color: #4caf50; font-weight: 700; }
+    .cmp-down { color: #f44336; font-weight: 700; }
+    .cmp-flat { color: #999; }
+    .cmp-when { color: #777; font-size: 0.92em; }
+
     /* === Sequência (foguinho) === */
     .streak-bar {
       display: flex;
@@ -610,6 +619,48 @@ function cardioByDate(rows) {
   return out;
 }
 
+// '2026-08-05' → '05/08'
+function formatDayMonth(date) {
+  if (!date) return '';
+  return new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
+// Último treino COM cardio antes de uma data. rows são linhas de workout_logs
+// (qualquer data anterior); agrupa por dia porque o aluno pode registrar
+// cardio em dois exercícios no mesmo treino.
+function previousCardioSession(rows, beforeDate) {
+  const porData = cardioByDate((rows || []).filter(r => r.session_date && r.session_date < beforeDate));
+  const datas = Object.keys(porData).filter(d => porData[d] > 0).sort();
+  if (datas.length === 0) return null;
+  const date = datas[datas.length - 1];
+  return { date, minutes: porData[date] };
+}
+
+// Comparativo do card do dia: "hoje 50min · último 40min ↑25% (30/07)".
+// É a pergunta diária de verdade — o total de 12 semanas do gráfico não
+// responde se o cardio de HOJE foi maior que o do treino anterior.
+// Sem base anterior não inventa ↑100%: diz que é o primeiro registro.
+function cardioComparison(currentMinutes, prev, label) {
+  const cur = Math.round(Number(currentMinutes) || 0);
+  if (cur <= 0) return null;
+  const quando = label || 'hoje';
+  const agora = `${quando} <strong class="cmp-now">${formatMinutes(cur)}</strong>`;
+
+  if (!prev || !(prev.minutes > 0)) {
+    return { dir: 'first', diff: null, html: `${agora} · <span class="cmp-flat">1º cardio registrado</span>` };
+  }
+
+  const diff = Math.round(((cur - prev.minutes) / prev.minutes) * 100);
+  const dir = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+  const delta = diff === 0 ? '= igual' : `${diff > 0 ? '↑' : '↓'}${Math.abs(diff)}%`;
+  return {
+    dir,
+    diff,
+    html: `${agora} · último <strong class="cmp-prev">${formatMinutes(prev.minutes)}</strong>` +
+      ` <span class="cmp-${dir}">${delta}</span> <span class="cmp-when">em ${formatDayMonth(prev.date)}</span>`
+  };
+}
+
 // Legenda dos gráficos de evolução. Eles vivem dentro da aba Diária mas NÃO
 // falam do dia selecionado — sem esse aviso o professor lê o total de 12
 // semanas como se fosse o número daquele treino.
@@ -827,10 +878,13 @@ async function loadDay(day, date) {
   container.innerHTML = '<div class="loading">Carregando...</div>';
 
   try {
-    // Buscar logs e sessão do dia em paralelo
-    const [data, sessionData] = await Promise.all([
+    // Buscar logs do dia, sessão do dia e o cardio anterior em paralelo.
+    // O cardio anterior é o que permite responder "melhorou ou piorou?" sem
+    // abrir gráfico: 1 query só, filtrando quem tem minutos preenchidos.
+    const [data, sessionData, prevCardio] = await Promise.all([
       supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=eq.${date}&order=set_number.asc`),
-      supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${date}T00:00:00${TZ}&started_at=lte.${date}T23:59:59${TZ}&duration_seconds=not.is.null&order=started_at.desc&limit=1`)
+      supaFetch(`workout_sessions?student_id=eq.${studentId}&started_at=gte.${date}T00:00:00${TZ}&started_at=lte.${date}T23:59:59${TZ}&duration_seconds=not.is.null&order=started_at.desc&limit=1`),
+      supaFetch(`workout_logs?student_id=eq.${studentId}&session_date=lt.${date}&duration_minutes=not.is.null&select=session_date,exercise_name,set_type,duration_minutes&order=session_date.desc&limit=500`)
     ]);
 
     if ((!data || data.length === 0) && (!sessionData || sessionData.length === 0)) {
@@ -881,8 +935,12 @@ async function loadDay(day, date) {
     }
 
     let html = `<div class="summary"><strong>${totalExercises}</strong> exercícios · <strong>${hardSets.length}</strong> sets hard de ${strengthSets.length}${durationText}${startedText}</div>`;
+    // Rótulo do "agora": 'hoje' só quando a data selecionada é realmente hoje —
+    // o professor navega em datas passadas e ler "hoje 50min" ali seria mentira.
+    const cmpLabel = date === toLocalISO(new Date()) ? 'hoje' : formatDayMonth(date);
     if (cardioMinutes > 0) {
-      html += `<div class="summary" style="margin-top:-6px;">🏃 Cardio: <strong style="color:#ff9800;">${formatMinutes(cardioMinutes)}</strong></div>`;
+      const cmpDia = cardioComparison(cardioMinutes, previousCardioSession(prevCardio, date), cmpLabel);
+      html += `<div class="summary" style="margin-top:-6px;">🏃 Cardio: ${cmpDia.html}</div>`;
     }
     if (dayVolume > 0) {
       html += `<div class="summary" style="margin-top:-6px;">Volume: <strong>${Math.round(dayVolume).toLocaleString('pt-BR')} kg</strong>${densityText}</div>`;
@@ -909,11 +967,15 @@ async function loadDay(day, date) {
 
       html += `<div class="exercise-card">`;
       html += `<div class="exercise-name">${esc(name)}</div>`;
-      // Minutos de cardio DESTE exercício. Aparece também em exercício misto,
-      // senão o 🏃 do resumo do dia não fecha com a soma dos cards.
+      // Minutos de cardio DESTE exercício, comparados com a última vez que o
+      // aluno fez ESTE exercício. Aparece também em exercício misto, senão o
+      // 🏃 do resumo do dia não fecha com a soma dos cards.
       if (cardioMinEx > 0) {
-        html += `<div style="font-size:0.68rem;color:#888;margin-bottom:8px;">`;
-        html += `🏃 ${soCardio ? 'Tempo total' : 'Cardio neste exercício'}: <strong style="color:#ff9800;">${formatMinutes(cardioMinEx)}</strong>`;
+        const prevEx = previousCardioSession(
+          (prevCardio || []).filter(r => r.exercise_name === name), date);
+        const cmpEx = cardioComparison(cardioMinEx, prevEx, cmpLabel);
+        html += `<div style="font-size:0.68rem;color:#888;margin-bottom:8px;line-height:1.5;">`;
+        html += `🏃 ${soCardio ? 'Tempo' : 'Cardio neste exercício'}: ${cmpEx.html}`;
         html += `</div>`;
       }
       if (bestSet) {
