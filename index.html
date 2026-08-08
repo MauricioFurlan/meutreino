@@ -285,7 +285,7 @@
 
     /* ── Botão de anotações do professor (header) ─────────────── */
     .notes-btn {
-      position: absolute; bottom: 10px; right: 14px;
+      position: absolute; bottom: 10px; left: 14px;
       background: #2a1e00; border: 1px solid #f5c518; color: #f5c518;
       font-size: 0.65rem; font-weight: 700; padding: 5px 10px;
       border-radius: 12px; cursor: pointer; display: none;
@@ -357,7 +357,7 @@
     <div class="subtitle" id="gymName"></div>
     <div class="plan-title" id="planTitle"></div>
     <div class="plan-dates hidden" id="planDates"></div>
-    <button class="notes-btn" id="notesBtn" onclick="openNotesModal()">📋 Ver orientações</button>
+    <button class="notes-btn" id="notesBtn" onclick="openNotesModal()">Orientações</button>
   </div>
   <div class="date-display" id="dateDisplay"></div>
 
@@ -390,7 +390,7 @@
   <div class="notes-modal" id="notesModal" onclick="handleNotesModalClick(event)">
     <div class="notes-modal-sheet">
       <div class="notes-modal-header">
-        <h3>📋 Orientações do Professor</h3>
+        <h3>Orientações</h3>
         <button class="notes-modal-close" onclick="closeNotesModal()">✕</button>
       </div>
       <div class="notes-modal-body" id="notesModalBody">
