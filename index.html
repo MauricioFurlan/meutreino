@@ -1310,11 +1310,11 @@ guard('student', {
       const fmt = (d) => { const [y,m,dd] = d.split('-'); return `${dd}/${m}`; };
       let datesText = '';
       if (plan.plan_start_date && plan.plan_end_date) {
-        datesText = `📅 ${fmt(plan.plan_start_date)} — ${fmt(plan.plan_end_date)}`;
+        datesText = `${fmt(plan.plan_start_date)} — ${fmt(plan.plan_end_date)}`;
       } else if (plan.plan_start_date) {
-        datesText = `📅 Início: ${fmt(plan.plan_start_date)}`;
+        datesText = `Início: ${fmt(plan.plan_start_date)}`;
       } else {
-        datesText = `📅 Até: ${fmt(plan.plan_end_date)}`;
+        datesText = `Até: ${fmt(plan.plan_end_date)}`;
       }
       const datesEl = document.getElementById('planDates');
       datesEl.textContent = datesText;
