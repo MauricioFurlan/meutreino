@@ -34,14 +34,6 @@
     .header h1 { font-size: 1.2rem; color: #f5c518; letter-spacing: 1px; }
     .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
     .header .plan-title { font-size: 0.75rem; color: #666; margin-top: 2px; }
-    .header .plan-dates {
-      position: absolute; bottom: 10px; right: 14px;
-      font-size: 0.62rem; color: #888;
-      background: #2a2a2a; padding: 3px 9px;
-      border-radius: 10px; border: 1px solid #333;
-      white-space: nowrap;
-    }
-    .header .plan-dates.hidden { display: none; }
     .logout-btn {
       position: absolute; top: 14px; right: 14px; background: none; border: 1px solid #555;
       color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
@@ -358,7 +350,6 @@
     <h1 id="greeting">Carregando...</h1>
     <div class="subtitle" id="gymName"></div>
     <div class="plan-title" id="planTitle"></div>
-    <div class="plan-dates hidden" id="planDates"></div>
     <button class="notes-btn" id="notesBtn" onclick="openNotesModal()">Orientações</button>
   </div>
   <div class="date-display" id="dateDisplay"></div>
@@ -1293,7 +1284,7 @@ guard('student', {
 
     // Carrega plano ativo
     const { data: plan, error } = await _sb.from('workout_plans')
-      .select('title, structure, plan_start_date, plan_end_date')
+      .select('title, structure')
       .eq('student_id', studentId)
       .eq('is_active', true)
       .maybeSingle();
@@ -1305,21 +1296,6 @@ guard('student', {
 
     if (plan.title) document.getElementById('planTitle').textContent = plan.title;
 
-    // Exibe datas do plano no header (se existirem)
-    if (plan.plan_start_date || plan.plan_end_date) {
-      const fmt = (d) => { const [y,m,dd] = d.split('-'); return `${dd}/${m}`; };
-      let datesText = '';
-      if (plan.plan_start_date && plan.plan_end_date) {
-        datesText = `${fmt(plan.plan_start_date)} — ${fmt(plan.plan_end_date)}`;
-      } else if (plan.plan_start_date) {
-        datesText = `Início: ${fmt(plan.plan_start_date)}`;
-      } else {
-        datesText = `Até: ${fmt(plan.plan_end_date)}`;
-      }
-      const datesEl = document.getElementById('planDates');
-      datesEl.textContent = datesText;
-      datesEl.classList.remove('hidden');
-    }
     WORKOUT = plan.structure || {};
 
     // Renderiza tabs e dias
