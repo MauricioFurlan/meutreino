@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Anotações</title>
+  <meta name="theme-color" content="#f5c518">
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Treino">
+  <link rel="apple-touch-icon" href="icon-192.svg">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://qslvwyhpamazoqhcmqan.supabase.co; img-src 'self' data:;">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body::-webkit-scrollbar, *::-webkit-scrollbar { display: none; }
+    body, * { scrollbar-width: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0d0d0d; color: #f0f0f0; min-height: 100vh; padding-bottom: 60px;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    .header {
+      background: #1a1a1a; padding: 16px; text-align: center;
+      border-bottom: 1px solid #333; position: relative;
+    }
+    .header h1 { font-size: 1.1rem; color: #f5c518; letter-spacing: 1px; }
+    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .nav-btn {
+      position: absolute; top: 14px; background: none; border: 1px solid #555;
+      color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+    }
+    .nav-btn.left { left: 14px; }
+    .nav-btn:active { opacity: 0.6; }
+
+    /* ── Loading overlay ─────────────────────────────────────────── */
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(13,13,13,0.92); z-index: 9999;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; transition: opacity 0.3s;
+    }
+    .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .loading-spinner {
+      width: 44px; height: 44px; border: 3px solid #333;
+      border-top-color: #f5c518; border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
+
+    /* ── Toast ───────────────────────────────────────────────────── */
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #f5c518; color: #000; padding: 10px 20px;
+      border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+      display: none; z-index: 1001; white-space: nowrap;
+    }
+    .toast.error { background: #f44336; color: #fff; }
+    .toast.show { display: block; animation: fadeOut 2.5s forwards; }
+    @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
+
+    /* ── Abas (editor / pré-visualização) ───────────────────────── */
+    .tabs {
+      display: flex; gap: 4px; padding: 10px 16px;
+      background: #1a1a1a; border-bottom: 1px solid #333;
+    }
+    .tab {
+      flex: 1; padding: 9px 4px; border-radius: 20px; background: #2a2a2a;
+      color: #888; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+      border: none; text-align: center;
+    }
+    .tab.active { background: #f5c518; color: #000; }
+
+    /* ── Painel editor ───────────────────────────────────────────── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* Atalhos de formatação */
+    .toolbar {
+      display: flex; gap: 6px; padding: 10px 16px;
+      flex-wrap: wrap; background: #111; border-bottom: 1px solid #222;
+    }
+    .tb-btn {
+      background: #2a2a2a; border: 1px solid #444; color: #ccc;
+      font-size: 0.7rem; padding: 6px 10px; border-radius: 8px;
+      cursor: pointer; font-weight: 600; white-space: nowrap;
+    }
+    .tb-btn:active { background: #f5c518; color: #000; border-color: #f5c518; }
+
+    .editor-wrap { padding: 12px 16px; }
+    #noteEditor {
+      width: 100%; min-height: 420px;
+      background: #111; color: #f0f0f0;
+      border: 1px solid #333; border-radius: 10px;
+      padding: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 15px; line-height: 1.7; resize: none;
+    }
+    #noteEditor:focus { outline: none; border-color: #f5c518; }
+
+    .editor-hint {
+      font-size: 0.7rem; color: #555; margin-top: 8px; line-height: 1.5;
+    }
+
+    .save-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      padding: 10px 16px; background: #0d0d0d; border-top: 1px solid #222;
+      display: flex; gap: 10px; align-items: center;
+    }
+    .save-btn {
+      flex: 1; padding: 13px; border: none; border-radius: 10px;
+      background: #f5c518; color: #000; font-weight: 700; font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .save-btn:active:not(:disabled) { opacity: 0.7; }
+    .clear-btn {
+      padding: 13px 16px; border: 1px solid #444; border-radius: 10px;
+      background: none; color: #888; font-size: 0.8rem; cursor: pointer;
+    }
+    .clear-btn:active { border-color: #f44336; color: #f44336; }
+
+    .last-saved {
+      font-size: 0.65rem; color: #555; text-align: center;
+      padding: 4px 16px 0;
+    }
+
+    /* ── Painel pré-visualização ─────────────────────────────────── */
+    .preview-wrap {
+      padding: 14px 16px;
+    }
+
+    /* mesmo estilo que o modal do aluno vai usar */
+    .note-render { line-height: 1.7; font-size: 0.92rem; }
+    .note-render .note-section {
+      background: #1a1a1a; border: 1px solid #2a2a2a;
+      border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;
+    }
+    .note-render .note-section-title {
+      font-size: 0.8rem; font-weight: 700; color: #f5c518;
+      text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #2a2a2a;
+    }
+    .note-render .note-line {
+      font-size: 0.88rem; color: #e0e0e0; padding: 2px 0;
+    }
+    .note-render .note-line.bullet::before {
+      content: '• '; color: #f5c518;
+    }
+    .note-render .note-line.dash::before {
+      content: '— '; color: #888;
+    }
+    .note-render .note-line.num::before {
+      content: attr(data-num) '. '; color: #f5c518;
+    }
+    .note-render .note-line.indent {
+      padding-left: 16px;
+    }
+    .note-render .note-spacer { height: 4px; }
+
+    .preview-empty {
+      text-align: center; padding: 48px 16px; color: #555; font-size: 0.85rem;
+    }
+    .preview-empty .icon { font-size: 2rem; margin-bottom: 8px; }
+  </style>
+</head>
+<body>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Carregando...</div>
+  </div>
+
+  <div class="header">
+    <button class="nav-btn left" onclick="history.back()">← Voltar</button>
+    <h1>📝 Anotações</h1>
+    <div class="subtitle" id="studentName">Carregando...</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabEditor"  onclick="switchTab('editor')">✏️ Editar</button>
+    <button class="tab"        id="tabPreview" onclick="switchTab('preview')">👁 Visualizar</button>
+  </div>
+
+  <!-- ── Painel: Editor ──────────────────────────────────────────── -->
+  <div class="panel active" id="panelEditor">
+    <!-- Atalhos de inserção rápida -->
+    <div class="toolbar">
+      <button class="tb-btn" onclick="insertSnippet('section')">+ Seção</button>
+      <button class="tb-btn" onclick="insertSnippet('bullet')">• Item</button>
+      <button class="tb-btn" onclick="insertSnippet('dash')">— Obs.</button>
+      <button class="tb-btn" onclick="insertSnippet('ao-acordar')">Ao Acordar</button>
+      <button class="tb-btn" onclick="insertSnippet('cafe')">Café da manhã</button>
+      <button class="tb-btn" onclick="insertSnippet('almoco')">Almoço</button>
+      <button class="tb-btn" onclick="insertSnippet('pre-treino')">Pré-treino</button>
+      <button class="tb-btn" onclick="insertSnippet('intra')">Intra-treino</button>
+      <button class="tb-btn" onclick="insertSnippet('pos-treino')">Pós-treino</button>
+      <button class="tb-btn" onclick="insertSnippet('jantar')">Jantar</button>
+      <button class="tb-btn" onclick="insertSnippet('ceia')">Ceia</button>
+      <button class="tb-btn" onclick="insertSnippet('suplementos')">Suplementos</button>
+      <button class="tb-btn" onclick="insertSnippet('obs')">Observações</button>
+    </div>
+    <div class="editor-wrap">
+      <textarea id="noteEditor" placeholder="Escreva as orientações do aluno aqui...
+
+Dica: use linhas começando com # para criar seções (ex: # Café da manhã).
+Linhas com • ou - viram listas. Toque nos atalhos acima para inserir rápido."></textarea>
+      <div class="editor-hint">
+        <strong style="color:#888"># Título</strong> → seção colorida &nbsp;·&nbsp;
+        <strong style="color:#888">• item</strong> ou <strong style="color:#888">- item</strong> → lista &nbsp;·&nbsp;
+        linha em branco → separador
+      </div>
+    </div>
+    <div class="last-saved" id="lastSaved"></div>
+  </div>
+
+  <!-- ── Painel: Pré-visualização ───────────────────────────────── -->
+  <div class="panel" id="panelPreview">
+    <div class="preview-wrap" id="previewContent">
+      <div class="preview-empty">
+        <div class="icon">📄</div>
+        Nenhum conteúdo ainda
+      </div>
+    </div>
+  </div>
+
+  <!-- Barra de salvar (visível apenas no painel editor) -->
+  <div class="save-bar" id="saveBar">
+    <button class="clear-btn" onclick="confirmClear()">Limpar</button>
+    <button class="save-btn" id="saveBtn" onclick="saveNote()">Salvar</button>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-guard.js"></script>
+<script>
+// =====================================================================
+// Estado
+// =====================================================================
+let myId       = null;
+let studentId  = null;
+let noteId     = null;   // uuid da linha no banco (null = ainda não existe)
+let lastSavedContent = '';
+
+const params    = new URLSearchParams(location.search);
+studentId       = params.get('aluno');
+
+if (!studentId) {
+  alert('Aluno não especificado.');
+  location.replace('professor.html');
+}
+
+// =====================================================================
+// Helpers
+// =====================================================================
+function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+
+function showToast(text, isError) {
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast', 2500);
+}
+
+// =====================================================================
+// Abas
+// =====================================================================
+function switchTab(tab) {
+  document.getElementById('tabEditor').classList.toggle('active', tab === 'editor');
+  document.getElementById('tabPreview').classList.toggle('active', tab === 'preview');
+  document.getElementById('panelEditor').classList.toggle('active', tab === 'editor');
+  document.getElementById('panelPreview').classList.toggle('active', tab === 'preview');
+  document.getElementById('saveBar').style.display = tab === 'editor' ? 'flex' : 'none';
+  if (tab === 'preview') renderPreview();
+}
+
+// =====================================================================
+// Inserção rápida de snippets
+// =====================================================================
+const SNIPPETS = {
+  section:    '# Nova Seção\n',
+  bullet:     '• ',
+  dash:       '- ',
+  obs:        '# Observações\n- ',
+  suplementos:'# Suplementos\n• ',
+  'ao-acordar': `# Ao Acordar\n• 700 ml de água\n• `,
+  cafe:        `# Café da Manhã\n• `,
+  almoco:      `# Almoço\n• `,
+  'pre-treino':  `# Pré-treino\n• `,
+  intra:       `# Intra-treino\n• `,
+  'pos-treino':  `# Pós-treino\n• `,
+  jantar:      `# Jantar\n• `,
+  ceia:        `# Ceia\n• `,
+};
+
+function insertSnippet(key) {
+  const ta = document.getElementById('noteEditor');
+  const snippet = SNIPPETS[key] || '';
+  const pos = ta.selectionStart;
+  const val = ta.value;
+
+  // Se o cursor não está no começo de linha, adiciona quebra antes
+  let prefix = '';
+  if (pos > 0 && val[pos - 1] !== '\n') prefix = '\n';
+  // Se há conteúdo após o cursor na mesma linha, adiciona quebra depois
+  const nextNl = val.indexOf('\n', pos);
+  const suffix = (nextNl === pos) ? '' : '';
+
+  const newVal = val.slice(0, pos) + prefix + snippet;
+  ta.value = newVal + val.slice(pos);
+  const newPos = pos + prefix.length + snippet.length;
+  ta.setSelectionRange(newPos, newPos);
+  ta.focus();
+}
+
+// =====================================================================
+// Renderização do preview (mesmo algoritmo do modal do aluno)
+// =====================================================================
+function renderNoteContent(raw) {
+  if (!raw || !raw.trim()) return '<div class="preview-empty"><div class="icon">📄</div>Nenhum conteúdo ainda</div>';
+
+  const lines   = raw.split('\n');
+  let html      = '<div class="note-render">';
+  let inSection = false;
+  let numCount  = 0;
+
+  function closeSection() {
+    if (inSection) { html += '</div>'; inSection = false; }
+  }
+
+  lines.forEach(raw => {
+    const line = raw; // preserva indentação original para análise
+
+    // Linha de seção: começa com #
+    if (/^#\s+/.test(line)) {
+      closeSection();
+      const title = line.replace(/^#+\s*/, '').trim();
+      html += `<div class="note-section"><div class="note-section-title">${esc(title)}</div>`;
+      inSection = true;
+      numCount  = 0;
+      return;
+    }
+
+    const trimmed = line.trim();
+
+    // Linha em branco → espaçador
+    if (!trimmed) {
+      html += '<div class="note-spacer"></div>';
+      numCount = 0;
+      return;
+    }
+
+    // Bullet: • ou *
+    if (/^[•*]\s+/.test(trimmed)) {
+      const text = trimmed.replace(/^[•*]\s+/, '');
+      html += `<div class="note-line bullet">${esc(text)}</div>`;
+      numCount = 0;
+      return;
+    }
+
+    // Dash: - ou —
+    if (/^[-—]\s+/.test(trimmed)) {
+      const text = trimmed.replace(/^[-—]\s+/, '');
+      html += `<div class="note-line dash">${esc(text)}</div>`;
+      numCount = 0;
+      return;
+    }
+
+    // Numerado: começa com dígito + ponto/parêntese
+    const numMatch = trimmed.match(/^(\d+)[.)]\s+(.*)/);
+    if (numMatch) {
+      html += `<div class="note-line num" data-num="${numMatch[1]}">${esc(numMatch[2])}</div>`;
+      numCount++;
+      return;
+    }
+
+    // Linha normal
+    html += `<div class="note-line">${esc(trimmed)}</div>`;
+  });
+
+  closeSection();
+  html += '</div>';
+  return html;
+}
+
+function renderPreview() {
+  const content = document.getElementById('noteEditor').value;
+  document.getElementById('previewContent').innerHTML = renderNoteContent(content);
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s || '';
+  return d.innerHTML;
+}
+
+// =====================================================================
+// Salvar
+// =====================================================================
+async function saveNote() {
+  const btn     = document.getElementById('saveBtn');
+  const content = document.getElementById('noteEditor').value.trim();
+
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  try {
+    if (noteId) {
+      // Atualizar existente
+      const { error } = await _sb.from('trainer_notes')
+        .update({ content, updated_at: new Date().toISOString() })
+        .eq('id', noteId);
+      if (error) throw error;
+    } else {
+      // Inserir novo
+      const { data, error } = await _sb.from('trainer_notes')
+        .insert({ student_id: studentId, coach_id: myId, content })
+        .select('id')
+        .single();
+      if (error) throw error;
+      noteId = data.id;
+    }
+
+    lastSavedContent = content;
+    updateLastSaved();
+    showToast('Anotações salvas ✓');
+  } catch (e) {
+    console.error('Erro ao salvar:', e);
+    showToast('Erro ao salvar', true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar';
+  }
+}
+
+function updateLastSaved() {
+  const el = document.getElementById('lastSaved');
+  const now = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  el.textContent = `Salvo às ${now}`;
+}
+
+// =====================================================================
+// Limpar
+// =====================================================================
+function confirmClear() {
+  if (!document.getElementById('noteEditor').value.trim()) return;
+  if (!confirm('Apagar todo o conteúdo desta anotação?')) return;
+  document.getElementById('noteEditor').value = '';
+  document.getElementById('lastSaved').textContent = '';
+}
+
+// =====================================================================
+// Carregar nota existente
+// =====================================================================
+async function loadNote() {
+  try {
+    const { data, error } = await _sb.from('trainer_notes')
+      .select('id, content, updated_at')
+      .eq('student_id', studentId)
+      .maybeSingle();
+
+    if (error) throw error;
+
+    if (data) {
+      noteId = data.id;
+      document.getElementById('noteEditor').value = data.content || '';
+      lastSavedContent = data.content || '';
+      if (data.updated_at) {
+        const d = new Date(data.updated_at);
+        const fmt = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' +
+                    d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('lastSaved').textContent = `Última edição: ${fmt}`;
+      }
+    }
+  } catch (e) {
+    console.error('Erro ao carregar nota:', e);
+    showToast('Erro ao carregar anotações', true);
+  }
+}
+
+// =====================================================================
+// Carregar nome do aluno
+// =====================================================================
+async function loadStudentName() {
+  try {
+    const { data } = await _sb.from('profiles')
+      .select('full_name')
+      .eq('id', studentId)
+      .maybeSingle();
+    if (data?.full_name) {
+      document.getElementById('studentName').textContent = data.full_name;
+      document.title = `Anotações — ${data.full_name}`;
+    }
+  } catch (e) { /* ignora */ }
+}
+
+// =====================================================================
+// Init
+// =====================================================================
+guard('trainer', {
+  onReady: async (session, profile) => {
+    myId = profile.id;
+    await Promise.all([loadStudentName(), loadNote()]);
+    hideLoading();
+  }
+});
+</script>
+</body>
+</html>
