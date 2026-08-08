@@ -59,8 +59,18 @@
     .form-section.open .form-body { display: block; }
     .form-group { margin-bottom: 12px; }
     .form-group label { display: block; font-size: 0.7rem; color: #999; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
-    .form-group input { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #0d0d0d; color: #fff; font-size: 16px; }
-    .form-group input:focus { outline: none; border-color: #f5c518; }
+    .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #0d0d0d; color: #fff; font-size: 16px; font-family: inherit; }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #f5c518; }
+    .form-group select option { background: #1a1a1a; }
+    .form-group textarea { resize: none; line-height: 1.4; }
+    .form-row { display: flex; gap: 10px; }
+    .form-row .form-group { flex: 1; min-width: 0; }
+    .trainer-extra { font-size: 0.68rem; color: #777; margin-top: 3px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .trainer-extra span { display: inline-flex; align-items: center; gap: 3px; }
+    .plan-badge { display: inline-block; font-size: 0.58rem; padding: 2px 7px; border-radius: 8px; font-weight: 700; text-transform: uppercase; }
+    .plan-badge.free   { background: #222; color: #888; border: 1px solid #444; }
+    .plan-badge.basic  { background: #1a2a3a; color: #64b5f6; border: 1px solid #1e4a7a; }
+    .plan-badge.pro    { background: #2a1a00; color: #f5c518; border: 1px solid #5a3a00; }
     .submit-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #f5c518; color: #000; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
     .submit-btn:disabled { opacity: 0.5; }
     .submit-btn:active { opacity: 0.7; }
@@ -119,9 +129,30 @@
       <div class="form-body">
         <div class="form-group"><label>Nome completo</label><input type="text" id="newName" placeholder="Nome do professor"></div>
         <div class="form-group"><label>E-mail</label><input type="email" id="newEmail" inputmode="email" placeholder="email@exemplo.com"></div>
-        <div class="form-group"><label>Duração paga (meses)</label><input type="number" id="newMonths" inputmode="numeric" value="1" min="1" max="24"></div>
-        <div class="form-group"><label>Valor (R$)</label><input type="number" id="newAmount" inputmode="decimal" step="0.01" placeholder="0.00"></div>
-        <div class="form-group"><label>Método de pagamento</label><input type="text" id="newMethod" placeholder="PIX, dinheiro..."></div>
+        <div class="form-row">
+          <div class="form-group"><label>CREF</label><input type="text" id="newCref" placeholder="012345-G/SP"></div>
+          <div class="form-group"><label>Telefone</label><input type="tel" id="newPhone" inputmode="tel" placeholder="(11) 99999-9999"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>CPF</label><input type="text" id="newCpf" inputmode="numeric" placeholder="000.000.000-00"></div>
+          <div class="form-group"><label>Plano</label>
+            <select id="newPlanTier">
+              <option value="free">Free</option>
+              <option value="basic">Basic</option>
+              <option value="pro">Pro</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Limite de alunos</label><input type="number" id="newStudentLimit" inputmode="numeric" value="10" min="1"></div>
+          <div class="form-group"><label>Duração paga (meses)</label><input type="number" id="newMonths" inputmode="numeric" value="1" min="1" max="24"></div>
+        </div>
+        <div class="form-group"><label>Especialidades</label><input type="text" id="newSpecialties" placeholder="musculação, corrida, crossfit..."></div>
+        <div class="form-group"><label>Bio</label><textarea id="newBio" rows="2" placeholder="Apresentação curta do professor"></textarea></div>
+        <div class="form-row">
+          <div class="form-group"><label>Valor (R$)</label><input type="number" id="newAmount" inputmode="decimal" step="0.01" placeholder="0.00"></div>
+          <div class="form-group"><label>Método de pagamento</label><input type="text" id="newMethod" placeholder="PIX, dinheiro..."></div>
+        </div>
         <button class="submit-btn" id="createBtn" onclick="createTrainer()">Cadastrar Professor</button>
       </div>
     </div>
@@ -131,6 +162,36 @@
   <div class="section">
     <div class="section-title">Professores</div>
     <div id="trainersList"></div>
+  </div>
+
+  <!-- Modal de edição do professor -->
+  <div class="modal" id="editModal">
+    <div class="modal-content" style="max-height:90vh;overflow-y:auto;">
+      <h3>Editar Professor</h3>
+      <div class="form-group"><label>Nome completo</label><input type="text" id="editName" placeholder="Nome do professor"></div>
+      <div class="form-row">
+        <div class="form-group"><label>CREF</label><input type="text" id="editCref" placeholder="012345-G/SP"></div>
+        <div class="form-group"><label>Telefone</label><input type="tel" id="editPhone" inputmode="tel" placeholder="(11) 99999-9999"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>CPF</label><input type="text" id="editCpf" inputmode="numeric" placeholder="000.000.000-00"></div>
+        <div class="form-group"><label>Plano</label>
+          <select id="editPlanTier">
+            <option value="free">Free</option>
+            <option value="basic">Basic</option>
+            <option value="pro">Pro</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Limite de alunos</label><input type="number" id="editStudentLimit" inputmode="numeric" min="1"></div>
+        <div class="form-group"><label>URL da foto</label><input type="url" id="editAvatarUrl" placeholder="https://..."></div>
+      </div>
+      <div class="form-group"><label>Especialidades</label><input type="text" id="editSpecialties" placeholder="musculação, corrida, crossfit..."></div>
+      <div class="form-group"><label>Bio</label><textarea id="editBio" rows="3" placeholder="Apresentação curta do professor"></textarea></div>
+      <button class="submit-btn" onclick="confirmEdit()">Salvar</button>
+      <button class="modal-close" onclick="closeEditModal()">Cancelar</button>
+    </div>
   </div>
 
   <!-- Modal de pagamento/renovação -->
@@ -172,7 +233,7 @@ function showToast(t, err) { const e = document.getElementById('toast'); e.textC
 // === Carregar professores ===
 async function loadTrainers() {
   const { data, error } = await _sb.from('profiles')
-    .select('id, full_name, email, status, access_starts_at, access_expires_at, max_students')
+    .select('id, full_name, email, status, access_starts_at, access_expires_at, max_students, cref, phone, cpf, avatar_url, plan_tier, student_limit, bio, specialties')
     .eq('role', 'trainer')
     .order('full_name', { ascending: true });
   if (error) { console.log('Erro:', error); return; }
@@ -202,17 +263,24 @@ function renderTrainers() {
     const status = getStatus(t);
     const statusLabel = status === 'active' ? 'Ativo' : status === 'expired' ? 'Vencido' : 'Suspenso';
     const expiresText = t.access_expires_at ? new Date(t.access_expires_at + 'T00:00:00').toLocaleDateString('pt-BR') : 'Sem prazo';
+    const limit = t.student_limit || t.max_students || 10;
+    const tier = t.plan_tier || 'free';
+    const tierLabel = { free: 'Free', basic: 'Basic', pro: 'Pro' }[tier] || tier;
+    const extraParts = [];
+    if (t.cref)  extraParts.push(`<span>📋 ${esc(t.cref)}</span>`);
+    if (t.phone) extraParts.push(`<span>📱 ${esc(t.phone)}</span>`);
     return `
       <div class="trainer-card ${t.status === 'suspended' ? 'suspended' : ''}">
         <div class="trainer-top">
-          <div class="trainer-avatar">${esc(initials)}</div>
+          <div class="trainer-avatar">${t.avatar_url ? `<img src="${esc(t.avatar_url)}" style="width:38px;height:38px;border-radius:50%;object-fit:cover;">` : esc(initials)}</div>
           <div class="trainer-info">
-            <div class="trainer-name">${esc(t.full_name)}</div>
+            <div class="trainer-name">${esc(t.full_name)} <span class="plan-badge ${tier}">${tierLabel}</span></div>
             <div class="trainer-meta">${esc(t.email)} · até ${expiresText}</div>
+            ${extraParts.length ? `<div class="trainer-extra">${extraParts.join('')}</div>` : ''}
           </div>
           <span class="trainer-status ${status}">${statusLabel}</span>
         </div>
-        <div class="students-count">${t.studentCount} aluno${t.studentCount !== 1 ? 's' : ''} (limite: ${t.max_students || 20})</div>
+        <div class="students-count">${t.studentCount} aluno${t.studentCount !== 1 ? 's' : ''} (limite: ${limit})</div>
         <div class="actions">
           ${t.status === 'active'
             ? `<button class="action-btn danger" onclick="toggleStatus('${t.id}','suspended')">Suspender</button>`
@@ -220,7 +288,7 @@ function renderTrainers() {
           }
           <button class="action-btn" onclick="openPayModal('${t.id}','${esc(t.full_name).replace(/'/g,"\\'")}')">💰 Pagamento</button>
           <button class="action-btn" onclick="viewPayments('${t.id}','${esc(t.full_name).replace(/'/g,"\\'")}')">📋 Histórico</button>
-          <button class="action-btn" onclick="editLimit('${t.id}', ${t.max_students || 20})">👥 Limite</button>
+          <button class="action-btn" onclick="openEditModal('${t.id}')">✏️ Editar</button>
         </div>
       </div>
     `;
@@ -274,12 +342,15 @@ async function createTrainer() {
     return;
   }
 
+  // Coleta campos extras para salvar depois que o profile for criado via trigger.
+  // Por ora apenas guardamos no convite os dados básicos; os extras ficam para edição.
+  // Se quiser pré-preencher no perfil, mapeie nos campos do invite ou use upsert após trigger.
+
   showToast('Professor cadastrado! Peça pra acessar com esse e-mail.');
-  document.getElementById('newName').value = '';
-  document.getElementById('newEmail').value = '';
+  ['newName','newEmail','newCref','newPhone','newCpf','newSpecialties','newBio','newAmount','newMethod'].forEach(id => { document.getElementById(id).value = ''; });
   document.getElementById('newMonths').value = '1';
-  document.getElementById('newAmount').value = '';
-  document.getElementById('newMethod').value = '';
+  document.getElementById('newStudentLimit').value = '10';
+  document.getElementById('newPlanTier').value = 'free';
   await loadTrainers();
 }
 
@@ -369,13 +440,51 @@ async function viewPayments(trainerId, name) {
   }).join('');
 }
 
-// === Editar limite de alunos ===
-async function editLimit(trainerId, current) {
-  const newLimit = prompt(`Limite atual: ${current} alunos.\nNovo limite:`, current);
-  if (!newLimit || isNaN(newLimit) || parseInt(newLimit) < 1) return;
-  const { error } = await _sb.from('profiles').update({ max_students: parseInt(newLimit) }).eq('id', trainerId);
+// === Editar professor ===
+let editTrainerId = null;
+
+function openEditModal(trainerId) {
+  const t = trainers.find(x => x.id === trainerId);
+  if (!t) return;
+  editTrainerId = trainerId;
+  document.getElementById('editName').value         = t.full_name || '';
+  document.getElementById('editCref').value         = t.cref || '';
+  document.getElementById('editPhone').value        = t.phone || '';
+  document.getElementById('editCpf').value          = t.cpf || '';
+  document.getElementById('editPlanTier').value     = t.plan_tier || 'free';
+  document.getElementById('editStudentLimit').value = t.student_limit || t.max_students || 10;
+  document.getElementById('editAvatarUrl').value    = t.avatar_url || '';
+  document.getElementById('editSpecialties').value  = (t.specialties || []).join(', ');
+  document.getElementById('editBio').value          = t.bio || '';
+  document.getElementById('editModal').classList.add('show');
+}
+
+function closeEditModal() {
+  document.getElementById('editModal').classList.remove('show');
+  editTrainerId = null;
+}
+
+async function confirmEdit() {
+  if (!editTrainerId) return;
+  const specialtiesRaw = document.getElementById('editSpecialties').value.trim();
+  const specialties = specialtiesRaw ? specialtiesRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+  const updates = {
+    full_name:     document.getElementById('editName').value.trim() || null,
+    cref:          document.getElementById('editCref').value.trim() || null,
+    phone:         document.getElementById('editPhone').value.trim() || null,
+    cpf:           document.getElementById('editCpf').value.trim() || null,
+    plan_tier:     document.getElementById('editPlanTier').value,
+    student_limit: parseInt(document.getElementById('editStudentLimit').value) || 10,
+    avatar_url:    document.getElementById('editAvatarUrl').value.trim() || null,
+    bio:           document.getElementById('editBio').value.trim() || null,
+    specialties,
+  };
+
+  const { error } = await _sb.from('profiles').update(updates).eq('id', editTrainerId);
   if (error) { showToast('Erro: ' + error.message, true); return; }
-  showToast(`Limite alterado para ${newLimit} alunos.`);
+  showToast('Professor atualizado!');
+  closeEditModal();
   await loadTrainers();
 }
 
