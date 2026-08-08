@@ -35,9 +35,11 @@
     .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
     .header .plan-title { font-size: 0.75rem; color: #666; margin-top: 2px; }
     .header .plan-dates {
-      font-size: 0.65rem; color: #888; margin-top: 4px;
-      background: #2a2a2a; display: inline-block; padding: 2px 10px;
+      position: absolute; bottom: 10px; right: 14px;
+      font-size: 0.62rem; color: #888;
+      background: #2a2a2a; padding: 3px 9px;
       border-radius: 10px; border: 1px solid #333;
+      white-space: nowrap;
     }
     .header .plan-dates.hidden { display: none; }
     .logout-btn {
@@ -366,7 +368,7 @@
     <div class="tabs" id="tabs"></div>
     <!-- Botão iniciar treino (discreto, abaixo das tabs, só no dia atual) -->
     <div class="start-workout-row" id="startWorkoutRow" style="display:none;">
-      <button class="start-workout-btn" id="timerStartBtn" onclick="startWorkoutSession()">▶ Iniciar Treino</button>
+      <button class="start-workout-btn" id="timerStartBtn" onclick="confirmStartWorkout()">▶ Iniciar Treino</button>
       <span class="workout-timer-inline" id="timerInline" style="display:none;">⏱ <span id="timerDisplay">00:00:00</span></span>
     </div>
   </div>
@@ -1108,6 +1110,11 @@ async function stopWorkoutExpired() {
   showTimerExpired();
   updateTimerVisibility();
   showToast('Sessão expirada — passou de 5h sem encerrar.', true);
+}
+
+async function confirmStartWorkout() {
+  if (!confirm('Iniciar o treino agora?')) return;
+  startWorkoutSession();
 }
 
 async function startWorkoutSession() {
