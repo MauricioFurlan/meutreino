@@ -1,14 +1,33 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import { resolve } from 'path';
 import fs from 'fs';
 
-// ─── Plugin: renderiza SVGs em PNG usando @resvg/resvg-js ─────────────────────
+// ─── Plugin: injeta window.__ENV no <head> de cada HTML ───────────────────────
+// Isso evita o uso de import.meta.env em scripts não-módulo, mantendo
+// a compatibilidade com os scripts inline existentes.
+function injectEnvPlugin(env) {
+  const snippet = `<script>window.__ENV=${JSON.stringify({
+    SUPABASE_URL: env.VITE_SUPABASE_URL,
+    SUPABASE_KEY: env.VITE_SUPABASE_KEY,
+  })};</script>`;
+
+  return {
+    name: 'inject-env',
+    transformIndexHtml(html) {
+      return html.replace('<head>', `<head>\n  ${snippet}`);
+    },
+  };
+}
+
+// ─── Plugin: gera ícones PNG a partir dos SVGs via @resvg/resvg-js ───────────
 function generateIconsPlugin() {
   return {
     name: 'generate-png-icons',
-    async closeBundle() {
+    async buildStart() {
+      // Gera os PNGs na pasta public/ ANTES do build
+      // assim o Vite os copia para dist/ como arquivos estáticos (sem hash)
       const { Resvg } = await import('@resvg/resvg-js');
-      const outDir = resolve(process.cwd(), 'dist');
+      const publicDir = resolve(process.cwd(), 'public');
 
       const icons = [
         { size: 192, src: resolve(process.cwd(), 'icon-192.svg') },
@@ -17,14 +36,11 @@ function generateIconsPlugin() {
 
       for (const { size, src } of icons) {
         const svg = fs.readFileSync(src, 'utf8');
-        const resvg = new Resvg(svg, {
-          fitTo: { mode: 'width', value: size },
-        });
-        const pngData = resvg.render();
-        const pngBuffer = pngData.asPng();
-        const outPath = resolve(outDir, `icon-${size}.png`);
+        const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: size } });
+        const pngBuffer = resvg.render().asPng();
+        const outPath = resolve(publicDir, `icon-${size}.png`);
         fs.writeFileSync(outPath, pngBuffer);
-        console.log(`  ✓ icon-${size}.png gerado (${pngBuffer.length} bytes)`);
+        console.log(`  ✓ icon-${size}.png → public/`);
       }
     },
   };
@@ -32,15 +48,8 @@ function generateIconsPlugin() {
 
 // ─── Páginas do app (multi-page) ──────────────────────────────────────────────
 const pages = [
-  'login',
-  'index',
-  'professor',
-  'owner',
-  'editor',
-  'treinos',
-  'treinador',
-  'anamnese',
-  'anotacoes',
+  'login', 'index', 'professor', 'owner',
+  'editor', 'treinos', 'treinador', 'anamnese', 'anotacoes',
 ];
 
 const input = Object.fromEntries(
@@ -51,18 +60,20 @@ const input = Object.fromEntries(
 );
 
 // ─── Config ───────────────────────────────────────────────────────────────────
-export default defineConfig({
-  // base '/' para funcionar no Vercel sem subpasta
-  base: '/',
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), 'VITE_');
 
-  build: {
-    outDir: 'dist',
-    rollupOptions: { input },
-    minify: 'esbuild',
-  },
-
-  // Expõe variáveis VITE_* para o código via import.meta.env
-  envPrefix: 'VITE_',
-
-  plugins: [generateIconsPlugin()],
+  return {
+    base: '/',
+    build: {
+      outDir: 'dist',
+      rollupOptions: { input },
+      minify: 'esbuild',
+    },
+    envPrefix: 'VITE_',
+    plugins: [
+      injectEnvPlugin(env),
+      generateIconsPlugin(),
+    ],
+  };
 });

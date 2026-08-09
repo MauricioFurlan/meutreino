@@ -1,6 +1,7 @@
 // auth-guard.js — guarda de acesso para páginas protegidas.
 // Uso: inclua no HTML ANTES do script da página e chame guard('student'|'trainer'|'owner').
 // Depende do supabase-js (CDN) já carregado.
+// As credenciais vêm de window.__ENV, injetado pelo Vite em build-time.
 //
 // Fluxo:
 //  1. Sem sessão → login.html
@@ -9,12 +10,13 @@
 //  4. Acesso não "active" → mostra tela de bloqueio (ou login se não houver handler)
 //  5. Tudo ok → chama onReady(session, profile) se fornecido
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
+const _ENV = window.__ENV || {};
+const SUPABASE_URL = _ENV.SUPABASE_URL || '';
+const SUPABASE_KEY = _ENV.SUPABASE_KEY || '';
 
-// Expõe no window para que scripts inline (não-módulo) possam usar _sb e guard()
-window._sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-const _sb = window._sb;
+// Expõe _sb globalmente para que os scripts inline das páginas possam usar
+const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+window._sb = _sb;
 
 const _ROUTES = { student: 'index.html', trainer: 'professor.html', owner: 'owner.html' };
 
@@ -22,14 +24,12 @@ const _ROUTES = { student: 'index.html', trainer: 'professor.html', owner: 'owne
  * @param {string} requiredRole - 'student' | 'trainer' | 'owner'
  * @param {object} [opts]
  * @param {function} [opts.onReady]    - chamado com (session, profile) se acesso ok
- * @param {function} [opts.onBlocked]  - chamado com (state) se acesso negado ('expired'|'unavailable'|'suspended')
- *                                        se não fornecido, redireciona pro login
+ * @param {function} [opts.onBlocked]  - chamado com (state) se acesso negado
  */
 async function guard(requiredRole, opts = {}) {
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) { location.replace('login.html'); return; }
 
-  // Perfil do usuário
   const { data: profile } = await _sb.from('profiles')
     .select('id, role, full_name, email, gym_name, coach_id, status, access_expires_at')
     .eq('id', session.user.id)
@@ -37,14 +37,12 @@ async function guard(requiredRole, opts = {}) {
 
   if (!profile) { location.replace('login.html'); return; }
 
-  // Papel errado → manda pra página certa
   if (profile.role !== requiredRole) {
     const dest = _ROUTES[profile.role] || 'login.html';
     location.replace(dest);
     return;
   }
 
-  // Estado de acesso seguro (motivos sensíveis colapsam)
   const { data: access } = await _sb.rpc('get_my_access');
 
   if (access !== 'active') {
@@ -53,9 +51,8 @@ async function guard(requiredRole, opts = {}) {
     return;
   }
 
-  // Tudo ok
   if (opts.onReady) { opts.onReady(session, profile); }
 }
 
-// Expõe guard() no window para scripts inline
+// Expõe guard() globalmente
 window.guard = guard;
