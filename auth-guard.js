@@ -9,10 +9,12 @@
 //  4. Acesso não "active" → mostra tela de bloqueio (ou login se não houver handler)
 //  5. Tudo ok → chama onReady(session, profile) se fornecido
 
-const SUPABASE_URL = 'https://qslvwyhpamazoqhcmqan.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_lTQKzQJc5uq7LNq-N1UvRg_w3aF_7zH';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
 
-const _sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Expõe no window para que scripts inline (não-módulo) possam usar _sb e guard()
+window._sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const _sb = window._sb;
 
 const _ROUTES = { student: 'index.html', trainer: 'professor.html', owner: 'owner.html' };
 
@@ -54,3 +56,6 @@ async function guard(requiredRole, opts = {}) {
   // Tudo ok
   if (opts.onReady) { opts.onReady(session, profile); }
 }
+
+// Expõe guard() no window para scripts inline
+window.guard = guard;

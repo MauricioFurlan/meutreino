@@ -9,7 +9,7 @@
         content="default-src 'self';
                  script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
                  style-src 'self' 'unsafe-inline';
-                 connect-src 'self' https://qslvwyhpamazoqhcmqan.supabase.co;
+                 connect-src 'self' https://*.supabase.co;
                  img-src 'self' data:;">
   <title>Entrar</title>
   <link rel="manifest" href="manifest.json">
@@ -89,8 +89,8 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    const SUPABASE_URL = 'https://qslvwyhpamazoqhcmqan.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_lTQKzQJc5uq7LNq-N1UvRg_w3aF_7zH';
+    const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+    const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
     const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // Destinos por papel

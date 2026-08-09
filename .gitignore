@@ -1,6 +1,22 @@
-modelo_anaminese.pdf
-.kiro/
+# Dependências
+node_modules/
+
+# Build
+dist/
+
+# Variáveis de ambiente (NUNCA commitar)
+.env
+.env.local
+.env.*.local
+
+# Python
 venv/
 __pycache__/
 *.pyc
 output.log
+
+# Arquivos grandes / gerados
+modelo_anaminese.pdf
+
+# Kiro
+.kiro/
