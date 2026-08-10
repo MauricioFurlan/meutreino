@@ -348,6 +348,7 @@ Linhas com • ou - viram listas. Toque nos atalhos acima para inserir rápido."
 // =====================================================================
 let myId       = null;
 let studentId  = null;
+let inviteId   = null; // invite pendente (aluno ainda sem login)
 let noteId     = null;   // uuid da linha no banco (null = ainda não existe)
 let lastSavedContent = '';
 
@@ -357,8 +358,9 @@ let importSelectedNote  = null; // { content, student_name }
 
 const params    = new URLSearchParams(location.search);
 studentId       = params.get('aluno');
+inviteId        = params.get('invite');
 
-if (!studentId) {
+if (!studentId && !inviteId) {
   alert('Aluno não especificado.');
   location.replace('professor.html');
 }
@@ -527,8 +529,12 @@ async function saveNote() {
       if (error) throw error;
     } else {
       // Inserir novo
+      const insertData = { coach_id: myId, content };
+      if (studentId) insertData.student_id = studentId;
+      else if (inviteId) insertData.invite_id = inviteId;
+
       const { data, error } = await _sb.from('trainer_notes')
-        .insert({ student_id: studentId, coach_id: myId, content })
+        .insert(insertData)
         .select('id')
         .single();
       if (error) throw error;
@@ -568,10 +574,12 @@ function confirmClear() {
 // =====================================================================
 async function loadNote() {
   try {
-    const { data, error } = await _sb.from('trainer_notes')
-      .select('id, content, updated_at')
-      .eq('student_id', studentId)
-      .maybeSingle();
+    let query = _sb.from('trainer_notes')
+      .select('id, content, updated_at');
+    if (studentId) query = query.eq('student_id', studentId);
+    else if (inviteId) query = query.eq('invite_id', inviteId);
+
+    const { data, error } = await query.maybeSingle();
 
     if (error) throw error;
 
@@ -597,13 +605,24 @@ async function loadNote() {
 // =====================================================================
 async function loadStudentName() {
   try {
-    const { data } = await _sb.from('profiles')
-      .select('full_name')
-      .eq('id', studentId)
-      .maybeSingle();
-    if (data?.full_name) {
-      document.getElementById('studentName').textContent = data.full_name;
-      document.title = `Anotações — ${data.full_name}`;
+    let name = null;
+    if (studentId) {
+      const { data } = await _sb.from('profiles')
+        .select('full_name')
+        .eq('id', studentId)
+        .maybeSingle();
+      name = data?.full_name;
+    } else if (inviteId) {
+      const { data } = await _sb.from('invites')
+        .select('full_name')
+        .eq('id', inviteId)
+        .maybeSingle();
+      name = data?.full_name;
+    }
+    if (name) {
+      const label = name + (inviteId && !studentId ? ' (pendente)' : '');
+      document.getElementById('studentName').textContent = label;
+      document.title = `Anotações — ${label}`;
     }
   } catch (e) { /* ignora */ }
 }

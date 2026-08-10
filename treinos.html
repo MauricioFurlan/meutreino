@@ -277,6 +277,7 @@
 <script>
 const DAYS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
 let studentId = null;
+let inviteId = null; // invite pendente (aluno ainda sem login)
 let plans = [];
 let busy = false;
 
@@ -360,9 +361,16 @@ function activeDays(structure) {
 
 // === Carregar treinos do aluno ===
 async function loadPlans() {
-  const { data, error } = await _sb.from('workout_plans')
-    .select('id, title, structure, is_active, plan_start_date, plan_end_date, created_at, updated_at')
-    .eq('student_id', studentId)
+  let query = _sb.from('workout_plans')
+    .select('id, title, structure, is_active, plan_start_date, plan_end_date, created_at, updated_at');
+
+  if (studentId) {
+    query = query.eq('student_id', studentId);
+  } else if (inviteId) {
+    query = query.eq('invite_id', inviteId);
+  }
+
+  const { data, error } = await query
     .order('is_active', { ascending: false })
     .order('created_at', { ascending: false });
 
@@ -435,11 +443,14 @@ async function onToggle(input) {
   try {
     if (turnOn) {
       // Só 1 treino ativo por aluno: desativa os outros antes (índice único no banco)
-      const { error: e1 } = await _sb.from('workout_plans')
+      let deactivateQuery = _sb.from('workout_plans')
         .update({ is_active: false })
-        .eq('student_id', studentId)
         .eq('is_active', true)
         .neq('id', planId);
+      if (studentId) deactivateQuery = deactivateQuery.eq('student_id', studentId);
+      else if (inviteId) deactivateQuery = deactivateQuery.eq('invite_id', inviteId);
+
+      const { error: e1 } = await deactivateQuery;
       if (e1) throw e1;
 
       const { error: e2 } = await _sb.from('workout_plans')
@@ -608,9 +619,11 @@ async function deletePlan(planId) {
 guard('trainer', {
   onReady: async (session, profile) => {
     showLoading();
-    studentId = new URLSearchParams(location.search).get('aluno');
+    const params = new URLSearchParams(location.search);
+    studentId = params.get('aluno');
+    inviteId = params.get('invite');
 
-    if (!studentId) {
+    if (!studentId && !inviteId) {
       hideLoading();
       document.getElementById('plansList').innerHTML =
         '<div class="empty-state">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#f5c518;">Voltar</a></div>';
@@ -618,14 +631,27 @@ guard('trainer', {
       return;
     }
 
-    document.getElementById('newBtn').onclick = () => location.href = 'editor.html?aluno=' + encodeURIComponent(studentId);
-    document.getElementById('importBtn').onclick = () => location.href = 'editor.html?aluno=' + encodeURIComponent(studentId) + '&importar=1';
+    // Parâmetro que passa para o editor
+    const editorParam = studentId
+      ? 'aluno=' + encodeURIComponent(studentId)
+      : 'invite=' + encodeURIComponent(inviteId);
+    document.getElementById('newBtn').onclick = () => location.href = 'editor.html?' + editorParam;
+    document.getElementById('importBtn').onclick = () => location.href = 'editor.html?' + editorParam + '&importar=1';
 
-    const { data: student } = await _sb.from('profiles')
-      .select('full_name')
-      .eq('id', studentId)
-      .maybeSingle();
-    document.getElementById('studentName').textContent = student?.full_name || '';
+    // Nome do aluno (do profile ou do invite)
+    if (studentId) {
+      const { data: student } = await _sb.from('profiles')
+        .select('full_name')
+        .eq('id', studentId)
+        .maybeSingle();
+      document.getElementById('studentName').textContent = student?.full_name || '';
+    } else if (inviteId) {
+      const { data: invite } = await _sb.from('invites')
+        .select('full_name')
+        .eq('id', inviteId)
+        .maybeSingle();
+      document.getElementById('studentName').textContent = (invite?.full_name || '') + ' (pendente)';
+    }
 
     await loadPlans();
     hideLoading();

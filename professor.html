@@ -565,6 +565,11 @@ function renderStudents() {
             ${esc(inv.email)} · convidado em ${createdDate}
           </div>
           <div class="student-meta" style="color:#f5c518; margin-top:4px; font-size:0.65rem;">Aguardando primeiro acesso do aluno</div>
+          <div class="actions">
+            <button class="action-btn" onclick="location.href='treinos.html?invite=${inv.id}'">🏋️ Treinos</button>
+            <button class="action-btn" onclick="location.href='anamnese.html?invite=${inv.id}'">🩺 Anamnese</button>
+            <button class="action-btn" onclick="location.href='anotacoes.html?invite=${inv.id}'">📝 Anotações</button>
+          </div>
         </div>
       </div>
     `;

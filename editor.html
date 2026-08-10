@@ -425,6 +425,7 @@ function hideLoading() { document.getElementById('loadingOverlay').classList.add
 
 const DAYS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
 let studentId = null;
+let inviteId = null; // invite pendente (aluno ainda sem login)
 let coachId = null;
 let planId = null;              // preenchido quando editando um treino existente
 let otherActivePlan = null;     // treino ativo do aluno diferente do que está aberto
@@ -448,6 +449,7 @@ function getParam(name) {
 
 function goBack() {
   if (studentId) location.href = 'treinos.html?aluno=' + encodeURIComponent(studentId);
+  else if (inviteId) location.href = 'treinos.html?invite=' + encodeURIComponent(inviteId);
   else location.href = 'professor.html';
 }
 
@@ -1114,8 +1116,9 @@ async function savePlan() {
     if (makeActive) {
       let q = _sb.from('workout_plans')
         .update({ is_active: false })
-        .eq('student_id', studentId)
         .eq('is_active', true);
+      if (studentId) q = q.eq('student_id', studentId);
+      else if (inviteId) q = q.eq('invite_id', inviteId);
       if (planId) q = q.neq('id', planId);
       const { error } = await q;
       if (error) throw error;
@@ -1133,15 +1136,18 @@ async function savePlan() {
       if (error) throw error;
     } else {
       // Criação: insere um novo treino no histórico do aluno
-      const { data, error } = await _sb.from('workout_plans').insert({
-        student_id: studentId,
+      const insertData = {
         coach_id: coachId,
         title: title || 'Treino',
         structure,
         is_active: makeActive,
         plan_start_date: planStartDate,
         plan_end_date: planEndDate
-      }).select('id').maybeSingle();
+      };
+      if (studentId) insertData.student_id = studentId;
+      else if (inviteId) insertData.invite_id = inviteId;
+
+      const { data, error } = await _sb.from('workout_plans').insert(insertData).select('id').maybeSingle();
       if (error) throw error;
       // Passa para modo edição: salvar de novo não duplica o treino
       if (data && data.id) {
@@ -1351,13 +1357,14 @@ guard('trainer', {
     coachId = profile.id;
     planId = getParam('plan');
     studentId = getParam('aluno');
+    inviteId = getParam('invite');
 
     let plan = null;
 
     if (planId) {
       // Modo edição: o aluno vem do próprio treino
       const { data } = await _sb.from('workout_plans')
-        .select('id, student_id, title, structure, is_active, plan_start_date, plan_end_date')
+        .select('id, student_id, invite_id, title, structure, is_active, plan_start_date, plan_end_date')
         .eq('id', planId)
         .maybeSingle();
       if (!data) {
@@ -1367,28 +1374,39 @@ guard('trainer', {
       }
       plan = data;
       studentId = data.student_id;
+      inviteId = data.invite_id;
       document.getElementById('heading').textContent = 'Editar Treino';
     }
 
-    if (!studentId) {
+    if (!studentId && !inviteId) {
       hideLoading();
       document.getElementById('daysContainer').innerHTML = '<div class="loading">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#f5c518;">Voltar</a></div>';
       return;
     }
 
     // Nome do aluno
-    const { data: student } = await _sb.from('profiles')
-      .select('full_name')
-      .eq('id', studentId)
-      .maybeSingle();
-    document.getElementById('studentName').textContent = student?.full_name || '';
+    if (studentId) {
+      const { data: student } = await _sb.from('profiles')
+        .select('full_name')
+        .eq('id', studentId)
+        .maybeSingle();
+      document.getElementById('studentName').textContent = student?.full_name || '';
+    } else if (inviteId) {
+      const { data: invite } = await _sb.from('invites')
+        .select('full_name')
+        .eq('id', inviteId)
+        .maybeSingle();
+      document.getElementById('studentName').textContent = (invite?.full_name || '') + ' (pendente)';
+    }
 
     // Treino ativo do aluno (para avisar que será substituído)
-    const { data: active } = await _sb.from('workout_plans')
+    let activeQuery = _sb.from('workout_plans')
       .select('id, title')
-      .eq('student_id', studentId)
-      .eq('is_active', true)
-      .maybeSingle();
+      .eq('is_active', true);
+    if (studentId) activeQuery = activeQuery.eq('student_id', studentId);
+    else if (inviteId) activeQuery = activeQuery.eq('invite_id', inviteId);
+
+    const { data: active } = await activeQuery.maybeSingle();
     otherActivePlan = (active && active.id !== planId) ? active : null;
 
     const today = new Date().toISOString().split('T')[0];

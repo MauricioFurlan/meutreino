@@ -411,6 +411,7 @@
 <script src="auth-guard.js"></script>
 <script>
 let studentId = null, coachId = null, assessments = [];
+let inviteId = null; // invite pendente (aluno ainda sem login)
 let chartInstance = null;
 let studentInfo = null; // dados do aluno para o PDF
 let coachInfo = null;   // dados do professor (assinatura do relatório)
@@ -494,7 +495,10 @@ async function saveAssessment(e) {
     ({ error } = await _sb.from('assessments').update({ assessment_date: date, data }).eq('id', editingId));
   } else {
     // Modo criação: insert
-    ({ error } = await _sb.from('assessments').insert({ student_id: studentId, coach_id: coachId, assessment_date: date, data }));
+    const insertData = { coach_id: coachId, assessment_date: date, data };
+    if (studentId) insertData.student_id = studentId;
+    else if (inviteId) insertData.invite_id = inviteId;
+    ({ error } = await _sb.from('assessments').insert(insertData));
   }
 
   btn.disabled = false;
@@ -636,9 +640,11 @@ function populatePlaceholders() {
 
 // === Carregar avaliações ===
 async function loadAssessments() {
-  const { data, error } = await _sb.from('assessments')
-    .select('*').eq('student_id', studentId)
-    .order('assessment_date', { ascending: true });
+  let query = _sb.from('assessments').select('*');
+  if (studentId) query = query.eq('student_id', studentId);
+  else if (inviteId) query = query.eq('invite_id', inviteId);
+
+  const { data, error } = await query.order('assessment_date', { ascending: true });
   if (!error) assessments = data || [];
 }
 
@@ -1672,17 +1678,29 @@ guard('trainer', {
   onReady: async (session, profile) => {
     showLoading();
     coachId = profile.id;
-    studentId = new URLSearchParams(location.search).get('aluno');
-    if (!studentId) { hideLoading(); document.getElementById('panel-form').innerHTML = '<div class="empty-state">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#f5c518;">Voltar</a></div>'; return; }
+    const params = new URLSearchParams(location.search);
+    studentId = params.get('aluno');
+    inviteId = params.get('invite');
 
-    // Info do aluno
-    const { data: student } = await _sb.from('profiles')
-      .select('full_name, birth_date, sex, gym_name')
-      .eq('id', studentId).maybeSingle();
+    if (!studentId && !inviteId) { hideLoading(); document.getElementById('panel-form').innerHTML = '<div class="empty-state">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#f5c518;">Voltar</a></div>'; return; }
+
+    // Info do aluno (do profile ou do invite)
+    let student = null;
+    if (studentId) {
+      const { data } = await _sb.from('profiles')
+        .select('full_name, birth_date, sex, gym_name')
+        .eq('id', studentId).maybeSingle();
+      student = data;
+    } else if (inviteId) {
+      const { data } = await _sb.from('invites')
+        .select('full_name, birth_date, sex, gym_name')
+        .eq('id', inviteId).maybeSingle();
+      student = data;
+    }
 
     studentInfo = student; // guardar referência global para o PDF
     coachInfo = profile;   // professor que assina o relatório
-    document.getElementById('studentName').textContent = student?.full_name || '';
+    document.getElementById('studentName').textContent = (student?.full_name || '') + (inviteId && !studentId ? ' (pendente)' : '');
     const age = calcAge(student?.birth_date);
     const infoHtml = [
       student?.full_name ? `<div class="info-item"><strong>${esc(student.full_name)}</strong></div>` : '',
