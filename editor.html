@@ -852,6 +852,7 @@ function renderChips() {
     <button class="chip" type="button" onclick="fillLastType(this, 'aquec')">AQUEC</button>
     <button class="chip" type="button" onclick="fillLastType(this, 'feeder')">FEEDER</button>
     <button class="chip" type="button" onclick="fillLastType(this, 'hard')">HARD</button>
+    <button class="chip" type="button" onclick="fillLastType(this, 'serie')">SERIE</button>
     <button class="chip chip-cardio" type="button" onclick="fillLastType(this, 'cardio')">CARDIO</button>
   </div>`;
 }
@@ -884,7 +885,7 @@ function addExercise(day) {
   const items = body.querySelectorAll('.exercise-item');
   const idx = items.length;
   const addBtn = body.querySelector('.add-exercise-btn');
-  const newEx = renderExercise(day, idx, { name: '', video_url: null, note: null, sets: [{ type: 'hard', reps: '8-12', rest: null, note: null }] });
+  const newEx = renderExercise(day, idx, { name: '', video_url: null, note: null, sets: [{ type: '', reps: '', rest: null, note: null }] });
   body.insertBefore(newEx, addBtn);
   updateDayCount(day);
   newEx.querySelector('.ex-name').focus();
