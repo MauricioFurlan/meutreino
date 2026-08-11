@@ -180,6 +180,20 @@
     }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
 
+    /* Birthday badge */
+    .birthday-badge {
+      display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;
+      font-size: 0.65rem; font-weight: 700; color: #e91e63;
+      background: #2a0a1a; border: 1px solid #5a1a3a;
+      padding: 2px 7px; border-radius: 10px; line-height: 1.4;
+      margin-left: 4px;
+    }
+    .birthday-badge.today {
+      color: #fff; background: #e91e63; border-color: #e91e63;
+      animation: birthdayPulse 1.5s infinite;
+    }
+    @keyframes birthdayPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.7; } }
+
     /* Loading overlay */
     .loading-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -544,6 +558,22 @@ async function loadStudents() {
   updateStudentCount();
 }
 
+// === Aniversário ===
+function getBirthdayInfo(birthDate) {
+  if (!birthDate) return { badge: '', isToday: false, isBirthdayMonth: false };
+  const today = new Date();
+  const [y, m, d] = birthDate.split('-').map(Number);
+  const isToday = today.getDate() === d && (today.getMonth() + 1) === m;
+  const isBirthdayMonth = (today.getMonth() + 1) === m && !isToday;
+  let badge = '';
+  if (isToday) {
+    badge = `<span class="birthday-badge today">🎂 Hoje!</span>`;
+  } else if (isBirthdayMonth) {
+    badge = `<span class="birthday-badge">🎂 ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}</span>`;
+  }
+  return { badge, isToday, isBirthdayMonth };
+}
+
 // === Renderizar lista ===
 function renderStudents() {
   const container = document.getElementById('studentsList');
@@ -582,6 +612,7 @@ function renderStudents() {
     const expiresText = s.access_expires_at
       ? new Date(s.access_expires_at + 'T00:00:00').toLocaleDateString('pt-BR')
       : 'Sem prazo';
+    const bday = getBirthdayInfo(s.birth_date);
     return `
       <div class="student-card ${s.status === 'suspended' ? 'suspended' : ''}">
         <div class="toggle-wrap">
@@ -592,11 +623,12 @@ function renderStudents() {
         </div>
         <button class="delete-x" onclick="deleteStudent('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')" title="Excluir">×</button>
         <div class="student-info">
-          <div class="student-name"><span class="student-name-text">${esc(s.full_name)}</span> <button class="edit-icon" onclick="openEditModal('${s.id}')">✏️</button>${getStreakHtml(s.id)}</div>
+          <div class="student-name"><span class="student-name-text">${esc(s.full_name)}</span> <button class="edit-icon" onclick="openEditModal('${s.id}')">✏️</button>${getStreakHtml(s.id)}${bday.badge}</div>
           <div class="student-meta">
             ${s.gym_name ? `<span class="gym">${esc(s.gym_name)} · </span>` : ''}
             até ${expiresText}
           </div>
+          <div class="student-meta" style="color:#777; font-size:0.65rem;">📧 ${esc(s.email)}</div>
           ${getSessionHtml(s.id)}
           <div class="actions">
             <button class="action-btn" onclick="openRenewModal('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')">Renovar</button>
@@ -623,18 +655,47 @@ function getStatus(s) {
 function renderAlerts() {
   const now = new Date();
   const in7days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-  const alerts = students.filter(s => {
+
+  // Alertas de vencimento
+  const expiringAlerts = students.filter(s => {
     if (s.status === 'suspended') return false;
     if (!s.access_expires_at) return false;
     const exp = new Date(s.access_expires_at + 'T23:59:59');
     return exp <= in7days;
   }).sort((a, b) => a.access_expires_at.localeCompare(b.access_expires_at));
 
+  // Alertas de aniversário do dia
+  const todayDay = now.getDate();
+  const todayMonth = now.getMonth() + 1;
+  const birthdayAlerts = students.filter(s => {
+    if (!s.birth_date) return false;
+    const [y, m, d] = s.birth_date.split('-').map(Number);
+    return d === todayDay && m === todayMonth;
+  });
+
   const section = document.getElementById('alertsSection');
   const container = document.getElementById('alertsList');
-  if (alerts.length === 0) { section.style.display = 'none'; return; }
+  if (expiringAlerts.length === 0 && birthdayAlerts.length === 0) { section.style.display = 'none'; return; }
   section.style.display = 'block';
-  container.innerHTML = alerts.map(s => {
+
+  let html = '';
+
+  // Aniversários primeiro
+  if (birthdayAlerts.length > 0) {
+    html += birthdayAlerts.map(s => {
+      const [y] = s.birth_date.split('-').map(Number);
+      const age = now.getFullYear() - y;
+      return `
+        <div class="alert-card" style="background:#2a0a1a; border-color:#e91e63;">
+          <div class="name">🎂 ${esc(s.full_name)}</div>
+          <div class="info">Aniversário hoje! Completa ${age} anos. Mande parabéns! 🎉</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Vencimentos
+  html += expiringAlerts.map(s => {
     const exp = new Date(s.access_expires_at + 'T23:59:59');
     const isExpired = exp < now;
     const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
@@ -646,6 +707,8 @@ function renderAlerts() {
       </div>
     `;
   }).join('');
+
+  container.innerHTML = html;
 }
 
 // === Criar aluno ===
