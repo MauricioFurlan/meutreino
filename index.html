@@ -519,7 +519,9 @@ async function loadTodayData(day) {
     if (error) throw error;
     if (!data || data.length === 0) { await loadLastWorkout(day); return; }
     const isToday = (sessionDate === getTodayDate());
+    const exercisesWithData = new Set();
     data.forEach(record => {
+      exercisesWithData.add(record.exercise_name);
       const card = document.querySelector(`[data-exercise="${CSS.escape(record.exercise_name)}"][data-day="${day}"]`);
       if (!card) return;
       const rows = card.querySelectorAll('.set-row:not(.set-header)');
@@ -527,21 +529,29 @@ async function loadTodayData(day) {
       if (!row) return;
       applyRecordToRow(row, record, isToday);
     });
+    // Carregar hints do último treino para exercícios que não têm log hoje
+    await loadLastWorkout(day, exercisesWithData);
   } catch (e) { console.log('Erro ao carregar dados do dia:', e); }
 }
 
-async function loadLastWorkout(day) {
+async function loadLastWorkout(day, excludeExercises) {
   try {
-    const { data, error } = await _sb.from('workout_logs')
+    let query = _sb.from('workout_logs')
       .select('*')
       .eq('student_id', studentId)
-      .eq('weekday', day)
+      .eq('weekday', day);
+    // Se já existem dados de hoje, excluir a sessão de hoje para buscar o treino anterior
+    if (excludeExercises && excludeExercises.size > 0) {
+      query = query.neq('session_date', getTodayDate());
+    }
+    const { data, error } = await query
       .order('created_at', { ascending: false })
       .limit(100);
     if (error || !data || data.length === 0) return;
     const lastDate = data[0].session_date;
     const lastData = data.filter(r => r.session_date === lastDate);
     lastData.forEach(record => {
+      if (excludeExercises && excludeExercises.has(record.exercise_name)) return;
       const card = document.querySelector(`[data-exercise="${CSS.escape(record.exercise_name)}"][data-day="${day}"]`);
       if (!card) return;
       const rows = card.querySelectorAll('.set-row:not(.set-header)');
@@ -723,7 +733,7 @@ async function loadHistory(exerciseName) {
     // Mapa: data (YYYY-MM-DD) -> duração em segundos
     const sessionsByDate = {};
     sessions.forEach(s => {
-      const d = s.started_at.split('T')[0];
+      const d = toLocalISO(new Date(s.started_at));
       if (!sessionsByDate[d]) sessionsByDate[d] = s.duration_seconds;
     });
 
