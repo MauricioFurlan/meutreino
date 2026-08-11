@@ -54,10 +54,33 @@
     .block .icon { font-size: 2.4rem; margin-bottom: 10px; }
     .block h2 { font-size: 1.05rem; color: #f5c518; margin-bottom: 8px; }
     .block p { font-size: 0.9rem; color: #ccc; line-height: 1.5; }
+
+    /* Splash enquanto verifica sessão */
+    .splash {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 16px;
+    }
+    .splash .logo { font-size: 2rem; font-weight: 900; color: #f5c518; letter-spacing: 2px; }
+    .splash .spinner {
+      width: 28px; height: 28px; border: 3px solid #333;
+      border-top-color: #f5c518; border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Formulário escondido até confirmar que não há sessão */
+    .card.hidden { display: none; }
   </style>
 </head>
 <body>
-  <div class="card">
+  <!-- Splash exibida enquanto verifica sessão -->
+  <div class="splash" id="splash">
+    <div class="logo">MEUTREINO</div>
+    <div class="spinner"></div>
+  </div>
+
+  <div class="card hidden" id="loginCard">
     <h1>ENTRAR</h1>
     <div class="sub" id="sub">Acesse com seu e-mail</div>
 
@@ -108,11 +131,21 @@
       if (new URLSearchParams(location.search).has('logout')) {
         await sb.auth.signOut();
         history.replaceState(null, '', 'login.html');
+        showLogin();
         return;
       }
       const { data: { session } } = await sb.auth.getSession();
-      if (session) route();
+      if (session) {
+        route();
+      } else {
+        showLogin();
+      }
     })();
+
+    function showLogin() {
+      document.getElementById('splash').style.display = 'none';
+      document.getElementById('loginCard').classList.remove('hidden');
+    }
 
     // Etapa 1 — envia OTP
     emailStep.addEventListener('submit', async (e) => {
@@ -178,6 +211,8 @@
     }
 
     function showBlock(state) {
+      document.getElementById('splash').style.display = 'none';
+      document.getElementById('loginCard').classList.remove('hidden');
       emailStep.classList.add('hidden');
       codeStep.classList.add('hidden');
       blockStep.classList.remove('hidden');
