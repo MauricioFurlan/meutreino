@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Treinos do Aluno</title>
-  <meta name="theme-color" content="#f5c518">
+  <meta name="theme-color" content="#00bcd4">
   <!-- PWA: precisa estar em TODAS as páginas, senão o iOS mostra a barra do
        Safari ao navegar dentro do app instalado (modo standalone) -->
   <link rel="manifest" href="/manifest.json">
@@ -21,14 +21,14 @@
     body, * { scrollbar-width: none; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0d0d0d; color: #f0f0f0; min-height: 100vh; padding-bottom: 90px;
+      background: #0a1a2e; color: #f0f0f0; min-height: 100vh; padding-bottom: 90px;
       -webkit-text-size-adjust: 100%;
     }
     .header {
-      background: #1a1a1a; padding: 16px; text-align: center;
-      border-bottom: 1px solid #333; position: relative;
+      background: #0d2137; padding: 16px; text-align: center;
+      border-bottom: 1px solid #1a3a4f; position: relative;
     }
-    .header h1 { font-size: 1.1rem; color: #f5c518; letter-spacing: 1px; }
+    .header h1 { font-size: 1.1rem; color: #00bcd4; letter-spacing: 1px; }
     .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
     .nav-btn {
       position: absolute; top: 12px; background: none; border: 1px solid #555;
@@ -40,7 +40,7 @@
 
     .section { padding: 14px 12px; overflow: hidden; }
     .section-title {
-      font-size: 0.85rem; color: #f5c518; font-weight: 700; margin-bottom: 12px;
+      font-size: 0.85rem; color: #00bcd4; font-weight: 700; margin-bottom: 12px;
       text-transform: uppercase; letter-spacing: 0.5px;
     }
     .section-title span { font-weight: 400; color: #888; font-size: 0.7rem; text-transform: none; letter-spacing: 0; }
@@ -53,7 +53,7 @@
 
     /* Card de treino */
     .plan-card {
-      background: #1a1a1a; border: 1px solid #333; border-radius: 14px;
+      background: #0d2137; border: 1px solid #1a3a4f; border-radius: 14px;
       padding: 14px; margin-bottom: 12px; position: relative; overflow: hidden;
     }
     .plan-card.active { border-color: #4caf50; background: #161c16; }
@@ -68,7 +68,7 @@
       padding: 3px 8px; border-radius: 10px; margin-top: 6px; text-transform: uppercase;
     }
     .plan-badge.on { background: #1b3a1b; color: #4caf50; }
-    .plan-badge.off { background: #2a2a2a; color: #888; }
+    .plan-badge.off { background: #132d42; color: #888; }
     .plan-meta { font-size: 0.7rem; color: #999; margin-top: 6px; line-height: 1.5; }
     .plan-meta .sep { color: #444; }
     .plan-days { font-size: 0.68rem; color: #777; margin-top: 4px; }
@@ -98,28 +98,28 @@
       color: #ccc; font-size: 0.72rem; font-weight: 600; cursor: pointer;
     }
     .action-btn:active { opacity: 0.6; }
-    .action-btn.primary { border-color: #f5c518; color: #f5c518; }
+    .action-btn.primary { border-color: #00bcd4; color: #00bcd4; }
     .action-btn.danger { border-color: #f44336; color: #f44336; flex: 0 0 46px; min-width: 46px; font-size: 0.95rem; }
 
     /* Barra fixa de criação */
     .bottom-bar {
-      position: fixed; bottom: 0; left: 0; right: 0; background: #1a1a1a;
-      border-top: 1px solid #333; padding: 12px; z-index: 100;
+      position: fixed; bottom: 0; left: 0; right: 0; background: #0d2137;
+      border-top: 1px solid #1a3a4f; padding: 12px; z-index: 100;
       display: flex; gap: 8px; padding-bottom: calc(12px + env(safe-area-inset-bottom));
     }
     .bottom-bar button {
       min-height: 48px; border: none; border-radius: 12px; font-weight: 700;
       font-size: 0.85rem; cursor: pointer;
     }
-    .bottom-bar .new-btn { flex: 1.4; background: #f5c518; color: #000; }
-    .bottom-bar .import-btn { flex: 1; background: #2a2a2a; color: #f5c518; border: 1px solid #444; }
+    .bottom-bar .new-btn { flex: 1.4; background: #00bcd4; color: #000; }
+    .bottom-bar .import-btn { flex: 1; background: #132d42; color: #00bcd4; border: 1px solid #444; }
     .bottom-bar button:active { opacity: 0.7; }
 
     .empty-state { text-align: center; padding: 34px 20px; color: #666; font-size: 0.85rem; line-height: 1.6; }
 
     .toast {
       position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-      background: #f5c518; color: #000; padding: 10px 20px; border-radius: 20px;
+      background: #00bcd4; color: #000; padding: 10px 20px; border-radius: 20px;
       font-size: 0.85rem; font-weight: 600; display: none; z-index: 1001; max-width: 90vw; text-align: center;
     }
     .toast.error { background: #f44336; color: #fff; }
@@ -133,14 +133,14 @@
     }
     .modal.show { display: flex; }
     .modal-content {
-      background: #1a1a1a; border-radius: 16px 16px 0 0; padding: 18px;
+      background: #0d2137; border-radius: 16px 16px 0 0; padding: 18px;
       width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto;
-      border: 1px solid #333; padding-bottom: calc(18px + env(safe-area-inset-bottom));
+      border: 1px solid #1a3a4f; padding-bottom: calc(18px + env(safe-area-inset-bottom));
     }
-    .modal-content h3 { color: #f5c518; font-size: 0.95rem; margin-bottom: 14px; }
+    .modal-content h3 { color: #00bcd4; font-size: 0.95rem; margin-bottom: 14px; }
     .modal-close {
       width: 100%; min-height: 46px; border: none; border-radius: 10px;
-      background: #2a2a2a; color: #999; font-weight: 600; font-size: 0.85rem;
+      background: #132d42; color: #999; font-weight: 600; font-size: 0.85rem;
       cursor: pointer; margin-top: 14px;
     }
     /* === Visualização da ficha ===
@@ -150,7 +150,7 @@
        confere a ficha batendo o olho, sem ler tudo. */
     .v-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
     .v-chip {
-      font-size: 0.62rem; color: #aaa; background: #222; border: 1px solid #333;
+      font-size: 0.62rem; color: #aaa; background: #222; border: 1px solid #1a3a4f;
       padding: 4px 9px; border-radius: 10px; white-space: nowrap;
     }
     .v-chip.on { color: #4caf50; border-color: #2c5c2c; background: #142014; font-weight: 700; }
@@ -159,10 +159,10 @@
     .v-day { margin-bottom: 16px; }
     .v-day-head {
       display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
-      padding-bottom: 6px; border-bottom: 1px solid #2a2a2a;
+      padding-bottom: 6px; border-bottom: 1px solid #132d42;
     }
     .v-day-name {
-      font-size: 0.8rem; color: #f5c518; font-weight: 700;
+      font-size: 0.8rem; color: #00bcd4; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.6px;
     }
     .v-day-count { font-size: 0.62rem; color: #777; }
@@ -171,7 +171,7 @@
     .v-ex-head { display: flex; align-items: center; gap: 8px; }
     .v-ex-num {
       flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
-      background: #2a2a2a; color: #999; font-size: 0.6rem; font-weight: 700;
+      background: #132d42; color: #999; font-size: 0.6rem; font-weight: 700;
       display: flex; align-items: center; justify-content: center;
     }
     .v-ex-name {
@@ -181,18 +181,18 @@
       flex-shrink: 0; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.3px;
       padding: 3px 7px; border-radius: 8px; text-transform: uppercase;
     }
-    .v-tag.cardio { color: #ffb74d; background: #2a1f10; border: 1px solid #5a4423; }
+    .v-tag.cardio { color: #ffb74d; background: #2a1f10; border: 1px solid #005a6a; }
 
     /* Séries: pill TIPO + valor. Cardio em laranja porque o valor é tempo,
        não repetição — a cor evita ler "40min" como carga. */
     .v-sets { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 0 28px; }
     .v-set {
       display: inline-flex; align-items: center; gap: 5px; background: #1e1e1e;
-      border: 1px solid #333; border-radius: 8px; padding: 3px 7px; font-size: 0.66rem;
+      border: 1px solid #1a3a4f; border-radius: 8px; padding: 3px 7px; font-size: 0.66rem;
     }
-    .v-set-type { color: #f5c518; font-weight: 700; letter-spacing: 0.3px; }
+    .v-set-type { color: #00bcd4; font-weight: 700; letter-spacing: 0.3px; }
     .v-set-val { color: #ddd; font-weight: 600; }
-    .v-set.cardio { border-color: #5a4423; background: #201a12; }
+    .v-set.cardio { border-color: #005a6a; background: #201a12; }
     .v-set.cardio .v-set-type { color: #ff9800; }
     .v-set.cardio .v-set-val { color: #ffb74d; }
 
@@ -208,11 +208,11 @@
 
     /* Biset/triset: mesma moldura amarela que o aluno vê no app */
     .v-group {
-      border: 1px solid #5a4b10; border-left: 3px solid #f5c518;
+      border: 1px solid #5a4b10; border-left: 3px solid #00bcd4;
       border-radius: 10px; padding: 8px; margin-bottom: 8px; background: #131109;
     }
     .v-group-label {
-      display: block; font-size: 0.58rem; color: #f5c518; font-weight: 700;
+      display: block; font-size: 0.58rem; color: #00bcd4; font-weight: 700;
       letter-spacing: 0.5px; margin-bottom: 6px;
     }
     .v-group .v-ex { background: #171614; margin-bottom: 6px; }
@@ -227,8 +227,8 @@
     }
     .loading-overlay.hidden { opacity: 0; pointer-events: none; }
     .loading-spinner {
-      width: 44px; height: 44px; border: 3px solid #333;
-      border-top-color: #f5c518; border-radius: 50%;
+      width: 44px; height: 44px; border: 3px solid #1a3a4f;
+      border-top-color: #00bcd4; border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -626,7 +626,7 @@ guard('trainer', {
     if (!studentId && !inviteId) {
       hideLoading();
       document.getElementById('plansList').innerHTML =
-        '<div class="empty-state">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#f5c518;">Voltar</a></div>';
+        '<div class="empty-state">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#00bcd4;">Voltar</a></div>';
       document.querySelector('.bottom-bar').style.display = 'none';
       return;
     }
