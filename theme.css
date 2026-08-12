@@ -74,13 +74,13 @@
 
 /* === Emerald (Verde Esmeralda — Progresso) === */
 [data-theme="emerald"] {
-  --bg-body: #0a0a0a;
-  --bg-header: #141414;
-  --bg-card: #141414;
-  --bg-secondary: #1a1a1a;
-  --bg-input: #171717;
-  --border: #2a2a2a;
-  --border-light: #222222;
+  --bg-body: #050505;
+  --bg-header: #0c0c0c;
+  --bg-card: #0c0c0c;
+  --bg-secondary: #111111;
+  --bg-input: #0e0e0e;
+  --border: rgba(255,255,255,0.15);
+  --border-light: rgba(255,255,255,0.08);
   --accent: #10b981;
   --accent-dark: #059669;
   --accent-hover: #34d399;
@@ -99,10 +99,10 @@
   --warning-light: #fbbf24;
   --info: #6ee7b7;
   --save-done: #059669;
-  --spinner-track: #2a2a2a;
+  --spinner-track: rgba(255,255,255,0.1);
   --spinner-accent: #10b981;
   --logo-color: #10b981;
-  --overlay-bg: rgba(10,10,10,0.92);
+  --overlay-bg: rgba(5,5,5,0.95);
 }
 
 /* === Daltonismo (Alto contraste, sem verde/vermelho) === */
@@ -202,4 +202,37 @@
   --spinner-accent: #b388ff;
   --logo-color: #b388ff;
   --overlay-bg: rgba(10,10,10,0.92);
+}
+
+/* === Light (Claro — Minimalista) === */
+[data-theme="light"] {
+  --bg-body: #f4f4f5;
+  --bg-header: #ffffff;
+  --bg-card: #ffffff;
+  --bg-secondary: #ebebeb;
+  --bg-input: #ffffff;
+  --border: #d4d4d8;
+  --border-light: #e4e4e7;
+  --accent: #18181b;
+  --accent-dark: #27272a;
+  --accent-hover: #3f3f46;
+  --text: #18181b;
+  --text-muted: #71717a;
+  --text-muted2: #a1a1aa;
+  --text-muted3: #d4d4d8;
+  --text-dim: #a1a1aa;
+  --text-bright: #000;
+  --text-dark: #fff;
+  --success: #16a34a;
+  --success-light: #22c55e;
+  --error: #dc2626;
+  --error-light: #ef4444;
+  --warning: #d97706;
+  --warning-light: #f59e0b;
+  --info: #2563eb;
+  --save-done: #16a34a;
+  --spinner-track: #d4d4d8;
+  --spinner-accent: #18181b;
+  --logo-color: #18181b;
+  --overlay-bg: rgba(244,244,245,0.95);
 }
