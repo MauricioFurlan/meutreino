@@ -11,6 +11,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Treino">
   <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="stylesheet" href="theme.css">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
   <style>
@@ -19,19 +20,19 @@
     body, * { scrollbar-width: none; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0d0d0d; color: #f0f0f0; min-height: 100vh; padding-bottom: 60px;
+      background: var(--bg-body); color: var(--text); min-height: 100vh; padding-bottom: 60px;
     }
 
     /* ── Header ─────────────────────────────────────────────────── */
     .header {
-      background: #0d2137; padding: 16px; text-align: center;
-      border-bottom: 1px solid #1a3a4f; position: relative;
+      background: var(--bg-header); padding: 16px; text-align: center;
+      border-bottom: 1px solid var(--border); position: relative;
     }
-    .header h1 { font-size: 1.1rem; color: #00bcd4; letter-spacing: 1px; }
-    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .header h1 { font-size: 1.1rem; color: var(--accent); letter-spacing: 1px; }
+    .header .subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
     .nav-btn {
-      position: absolute; top: 14px; background: none; border: 1px solid #555;
-      color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+      position: absolute; top: 14px; background: none; border: 1px solid var(--text-dim);
+      color: var(--text-muted); font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
     }
     .nav-btn.left { left: 14px; }
     .nav-btn:active { opacity: 0.6; }
@@ -39,41 +40,41 @@
     /* ── Loading overlay ─────────────────────────────────────────── */
     .loading-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(13,13,13,0.92); z-index: 9999;
+      background: var(--overlay-bg); z-index: 9999;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 16px; transition: opacity 0.3s;
     }
     .loading-overlay.hidden { opacity: 0; pointer-events: none; }
     .loading-spinner {
-      width: 44px; height: 44px; border: 3px solid #1a3a4f;
-      border-top-color: #00bcd4; border-radius: 50%;
+      width: 44px; height: 44px; border: 3px solid var(--spinner-track);
+      border-top-color: var(--spinner-accent); border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
+    .loading-text { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
 
     /* ── Toast ───────────────────────────────────────────────────── */
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: #00bcd4; color: #000; padding: 10px 20px;
+      background: var(--accent); color: var(--text-dark); padding: 10px 20px;
       border-radius: 20px; font-size: 0.85rem; font-weight: 600;
       display: none; z-index: 1001; white-space: nowrap;
     }
-    .toast.error { background: #f44336; color: #fff; }
+    .toast.error { background: var(--error); color: var(--text-bright); }
     .toast.show { display: block; animation: fadeOut 2.5s forwards; }
     @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
 
     /* ── Abas (editor / pré-visualização) ───────────────────────── */
     .tabs {
       display: flex; gap: 4px; padding: 10px 16px;
-      background: #0d2137; border-bottom: 1px solid #1a3a4f;
+      background: var(--bg-header); border-bottom: 1px solid var(--border);
     }
     .tab {
-      flex: 1; padding: 9px 4px; border-radius: 20px; background: #132d42;
-      color: #888; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+      flex: 1; padding: 9px 4px; border-radius: 20px; background: var(--bg-secondary);
+      color: var(--text-muted2); font-size: 0.75rem; font-weight: 600; cursor: pointer;
       border: none; text-align: center;
     }
-    .tab.active { background: #00bcd4; color: #000; }
+    .tab.active { background: var(--accent); color: var(--text-dark); }
 
     /* ── Painel editor ───────────────────────────────────────────── */
     .panel { display: none; }
@@ -82,49 +83,49 @@
     /* Atalhos de formatação */
     .toolbar {
       display: flex; gap: 6px; padding: 10px 16px;
-      flex-wrap: wrap; background: #091a2b; border-bottom: 1px solid #222;
+      flex-wrap: wrap; background: var(--bg-input); border-bottom: 1px solid var(--border-light);
     }
     .tb-btn {
-      background: #132d42; border: 1px solid #444; color: #ccc;
+      background: var(--bg-secondary); border: 1px solid #444; color: var(--text-muted);
       font-size: 0.7rem; padding: 6px 10px; border-radius: 8px;
       cursor: pointer; font-weight: 600; white-space: nowrap;
     }
-    .tb-btn:active { background: #00bcd4; color: #000; border-color: #00bcd4; }
+    .tb-btn:active { background: var(--accent); color: var(--text-dark); border-color: var(--accent); }
 
     .editor-wrap { padding: 12px 16px; }
     #noteEditor {
       width: 100%; min-height: 420px;
-      background: #091a2b; color: #f0f0f0;
-      border: 1px solid #1a3a4f; border-radius: 10px;
+      background: var(--bg-input); color: var(--text);
+      border: 1px solid var(--border); border-radius: 10px;
       padding: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       font-size: 15px; line-height: 1.7; resize: none;
     }
-    #noteEditor:focus { outline: none; border-color: #00bcd4; }
+    #noteEditor:focus { outline: none; border-color: var(--accent); }
 
     .editor-hint {
-      font-size: 0.7rem; color: #555; margin-top: 8px; line-height: 1.5;
+      font-size: 0.7rem; color: var(--text-dim); margin-top: 8px; line-height: 1.5;
     }
 
     .save-bar {
       position: fixed; bottom: 0; left: 0; right: 0;
-      padding: 10px 16px; background: #0d0d0d; border-top: 1px solid #222;
+      padding: 10px 16px; background: var(--bg-body); border-top: 1px solid var(--border-light);
       display: flex; gap: 10px; align-items: center;
     }
     .save-btn {
       flex: 1; padding: 13px; border: none; border-radius: 10px;
-      background: #00bcd4; color: #000; font-weight: 700; font-size: 0.9rem;
+      background: var(--accent); color: var(--text-dark); font-weight: 700; font-size: 0.9rem;
       cursor: pointer;
     }
     .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .save-btn:active:not(:disabled) { opacity: 0.7; }
     .clear-btn {
       padding: 13px 16px; border: 1px solid #444; border-radius: 10px;
-      background: none; color: #888; font-size: 0.8rem; cursor: pointer;
+      background: none; color: var(--text-muted2); font-size: 0.8rem; cursor: pointer;
     }
-    .clear-btn:active { border-color: #f44336; color: #f44336; }
+    .clear-btn:active { border-color: var(--error); color: var(--error); }
 
     .last-saved {
-      font-size: 0.65rem; color: #555; text-align: center;
+      font-size: 0.65rem; color: var(--text-dim); text-align: center;
       padding: 4px 16px 0;
     }
 
@@ -136,25 +137,25 @@
     /* mesmo estilo que o modal do aluno vai usar */
     .note-render { line-height: 1.7; font-size: 0.92rem; }
     .note-render .note-section {
-      background: #0d2137; border: 1px solid #132d42;
+      background: var(--bg-card); border: 1px solid var(--bg-secondary);
       border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;
     }
     .note-render .note-section-title {
-      font-size: 0.8rem; font-weight: 700; color: #00bcd4;
+      font-size: 0.8rem; font-weight: 700; color: var(--accent);
       text-transform: uppercase; letter-spacing: 0.5px;
-      margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #132d42;
+      margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--bg-secondary);
     }
     .note-render .note-line {
-      font-size: 0.88rem; color: #e0e0e0; padding: 2px 0;
+      font-size: 0.88rem; color: var(--text); padding: 2px 0;
     }
     .note-render .note-line.bullet::before {
-      content: '• '; color: #00bcd4;
+      content: '• '; color: var(--accent);
     }
     .note-render .note-line.dash::before {
-      content: '— '; color: #888;
+      content: '— '; color: var(--text-muted2);
     }
     .note-render .note-line.num::before {
-      content: attr(data-num) '. '; color: #00bcd4;
+      content: attr(data-num) '. '; color: var(--accent);
     }
     .note-render .note-line.indent {
       padding-left: 16px;
@@ -162,7 +163,7 @@
     .note-render .note-spacer { height: 4px; }
 
     .preview-empty {
-      text-align: center; padding: 48px 16px; color: #555; font-size: 0.85rem;
+      text-align: center; padding: 48px 16px; color: var(--text-dim); font-size: 0.85rem;
     }
     .preview-empty .icon { font-size: 2rem; margin-bottom: 8px; }
 
@@ -170,10 +171,10 @@
     .import-open-btn {
       display: block; width: calc(100% - 32px); margin: 10px 16px 0;
       padding: 11px; background: none; border: 1px dashed #444;
-      border-radius: 10px; color: #888; font-size: 0.78rem;
+      border-radius: 10px; color: var(--text-muted2); font-size: 0.78rem;
       cursor: pointer; text-align: center;
     }
-    .import-open-btn:active { border-color: #00bcd4; color: #00bcd4; }
+    .import-open-btn:active { border-color: var(--accent); color: var(--accent); }
 
     /* ── Modal de importação ─────────────────────────────────────── */
     .modal {
@@ -182,7 +183,7 @@
     }
     .modal.show { display: flex; }
     .modal-content {
-      background: #0d2137; border-radius: 18px 18px 0 0;
+      background: var(--bg-card); border-radius: 18px 18px 0 0;
       width: 100%; max-height: 82vh; overflow-y: auto;
       padding: 0 0 24px;
     }
@@ -190,60 +191,61 @@
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px 16px 0; margin-bottom: 4px;
     }
-    .modal-head h3 { font-size: 1rem; color: #f0f0f0; }
+    .modal-head h3 { font-size: 1rem; color: var(--text); }
     .modal-x {
-      background: none; border: none; color: #888; font-size: 1.1rem;
+      background: none; border: none; color: var(--text-muted2); font-size: 1.1rem;
       cursor: pointer; padding: 4px 8px;
     }
     .modal-sub {
-      font-size: 0.75rem; color: #666; padding: 0 16px 12px;
-      border-bottom: 1px solid #132d42; margin-bottom: 10px;
+      font-size: 0.75rem; color: var(--text-muted3); padding: 0 16px 12px;
+      border-bottom: 1px solid var(--bg-secondary); margin-bottom: 10px;
     }
-    .modal-empty { text-align: center; padding: 32px 16px; color: #555; font-size: 0.82rem; }
+    .modal-empty { text-align: center; padding: 32px 16px; color: var(--text-dim); font-size: 0.82rem; }
     .modal-close {
       display: block; width: calc(100% - 32px); margin: 12px 16px 0;
-      padding: 12px; background: #132d42; border: none; border-radius: 10px;
-      color: #888; font-size: 0.85rem; cursor: pointer;
+      padding: 12px; background: var(--bg-secondary); border: none; border-radius: 10px;
+      color: var(--text-muted2); font-size: 0.85rem; cursor: pointer;
     }
     .import-search {
       display: block; width: calc(100% - 32px); margin: 0 16px 10px;
-      padding: 10px 14px; background: #091a2b; border: 1px solid #1a3a4f;
-      border-radius: 10px; color: #f0f0f0; font-size: 0.85rem;
+      padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-size: 0.85rem;
     }
-    .import-search:focus { outline: none; border-color: #00bcd4; }
+    .import-search:focus { outline: none; border-color: var(--accent); }
     .pick-item {
       display: flex; align-items: center; gap: 12px;
       width: calc(100% - 32px); margin: 0 16px 8px;
-      background: #091a2b; border: 1px solid #132d42; border-radius: 10px;
+      background: var(--bg-input); border: 1px solid var(--bg-secondary); border-radius: 10px;
       padding: 12px; cursor: pointer; text-align: left;
     }
-    .pick-item:active { border-color: #00bcd4; }
+    .pick-item:active { border-color: var(--accent); }
     .pick-avatar {
-      width: 36px; height: 36px; border-radius: 50%; background: #132d42;
+      width: 36px; height: 36px; border-radius: 50%; background: var(--bg-secondary);
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.9rem; font-weight: 700; color: #00bcd4; flex-shrink: 0;
+      font-size: 0.9rem; font-weight: 700; color: var(--accent); flex-shrink: 0;
     }
     .pick-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-    .pick-title { font-size: 0.88rem; color: #f0f0f0; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .pick-meta  { font-size: 0.72rem; color: #666; }
-    .pick-arrow { color: #555; font-size: 1.1rem; flex-shrink: 0; }
+    .pick-title { font-size: 0.88rem; color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pick-meta  { font-size: 0.72rem; color: var(--text-muted3); }
+    .pick-arrow { color: var(--text-dim); font-size: 1.1rem; flex-shrink: 0; }
     .back-link {
-      display: block; background: none; border: none; color: #00bcd4;
+      display: block; background: none; border: none; color: var(--accent);
       font-size: 0.78rem; padding: 0 16px 10px; cursor: pointer; text-align: left;
     }
     .confirm-btn {
       display: block; width: calc(100% - 32px); margin: 12px 16px 0;
-      padding: 13px; background: #00bcd4; border: none; border-radius: 10px;
-      color: #000; font-weight: 700; font-size: 0.9rem; cursor: pointer;
+      padding: 13px; background: var(--accent); border: none; border-radius: 10px;
+      color: var(--text-dark); font-weight: 700; font-size: 0.9rem; cursor: pointer;
     }
     .confirm-btn:active { opacity: 0.7; }
     .import-preview-box {
-      margin: 0 16px; background: #091a2b; border: 1px solid #132d42;
+      margin: 0 16px; background: var(--bg-input); border: 1px solid var(--bg-secondary);
       border-radius: 10px; padding: 14px; max-height: 260px; overflow-y: auto;
     }
   </style>
 </head>
 <body>
+<script>(function(){var t=localStorage.getItem('app-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
 
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner"></div>
@@ -314,8 +316,8 @@
 Dica: use linhas começando com # para criar seções (ex: # Café da manhã).
 Linhas com • ou - viram listas. Toque nos atalhos acima para inserir rápido."></textarea>
       <div class="editor-hint">
-        <strong style="color:#888"># Título</strong> → seção colorida &nbsp;·&nbsp;
-        <strong style="color:#888">• item</strong> ou <strong style="color:#888">- item</strong> → lista &nbsp;·&nbsp;
+        <strong style="color:var(--text-muted2)"># Título</strong> → seção colorida &nbsp;·&nbsp;
+        <strong style="color:var(--text-muted2)">• item</strong> ou <strong style="color:var(--text-muted2)">- item</strong> → lista &nbsp;·&nbsp;
         linha em branco → separador
       </div>
     </div>

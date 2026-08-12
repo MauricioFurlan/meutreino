@@ -13,60 +13,61 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Treino">
   <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="stylesheet" href="theme.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body::-webkit-scrollbar, *::-webkit-scrollbar { display: none; }
     body, * { scrollbar-width: none; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0d0d0d;
-      color: #f0f0f0;
+      background: var(--bg-body);
+      color: var(--text);
       min-height: 100vh;
       padding-bottom: 80px;
     }
     .header {
-      background: #0d2137;
+      background: var(--bg-header);
       padding: 16px;
       text-align: center;
-      border-bottom: 1px solid #1a3a4f;
+      border-bottom: 1px solid var(--border);
       position: relative;
     }
-    .header h1 { font-size: 1.2rem; color: #00bcd4; letter-spacing: 1px; }
-    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .header h1 { font-size: 1.2rem; color: var(--accent); letter-spacing: 1px; }
+    .header .subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
     .header .app-logo {
-      display: inline-block; margin-top: 2px; height: 44px; width: auto; color: #00bcd4;
+      display: inline-block; margin-top: 2px; height: 44px; width: auto; color: var(--logo-color);
     }
-    .header .plan-title { font-size: 0.75rem; color: #666; margin-top: 2px; }
+    .header .plan-title { font-size: 0.75rem; color: var(--text-muted3); margin-top: 2px; }
     .header .plan-dates {
       position: absolute; bottom: 10px; right: 14px;
-      font-size: 0.62rem; color: #888;
-      background: #132d42; padding: 3px 9px;
-      border-radius: 10px; border: 1px solid #1a3a4f;
+      font-size: 0.62rem; color: var(--text-muted2);
+      background: var(--bg-secondary); padding: 3px 9px;
+      border-radius: 10px; border: 1px solid var(--border);
       white-space: nowrap;
     }
     .header .plan-dates.hidden { display: none; }
     .logout-btn {
-      position: absolute; top: 14px; right: 14px; background: none; border: 1px solid #555;
-      color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+      position: absolute; top: 14px; right: 14px; background: none; border: 1px solid var(--text-dim);
+      color: var(--text-muted); font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
     }
     .logout-btn:active { opacity: 0.6; }
     .sticky-top {
-      position: sticky; top: 0; z-index: 99; background: #0d2137;
+      position: sticky; top: 0; z-index: 99; background: var(--bg-header);
     }
     .tabs {
       display: flex;
-      background: #0d2137;
+      background: var(--bg-header);
       padding: 8px;
       gap: 4px;
-      border-bottom: 1px solid #1a3a4f;
+      border-bottom: 1px solid var(--border);
     }
     .tabs::-webkit-scrollbar { display: none; }
     .tab {
       flex: 1;
       padding: 8px 4px;
       border-radius: 20px;
-      background: #132d42;
-      color: #888;
+      background: var(--bg-secondary);
+      color: var(--text-muted2);
       font-size: 0.7rem;
       font-weight: 600;
       cursor: pointer;
@@ -74,41 +75,41 @@
       transition: all 0.2s;
       text-align: center;
     }
-    .tab.active { background: #00bcd4; color: #000; }
+    .tab.active { background: var(--accent); color: var(--text-dark); }
     .day-content { display: none; padding: 16px; }
     .day-content.active { display: block; }
     .exercise-card {
-      background: #0d2137;
+      background: var(--bg-card);
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 12px;
-      border: 1px solid #1a3a4f;
+      border: 1px solid var(--border);
     }
 
     /* Biset/Triset/Giant Set wrapper */
     .biset-wrapper {
-      border: 2px solid #00bcd4;
+      border: 2px solid var(--accent);
       border-radius: 14px;
       padding: 12px 10px 10px;
       margin-bottom: 12px;
       position: relative;
-      background: #091a2b;
+      background: var(--bg-input);
     }
     .biset-wrapper .biset-label {
       position: absolute; top: -11px; left: 14px;
-      background: #091a2b; color: #00bcd4; font-size: 0.7rem;
+      background: var(--bg-input); color: var(--accent); font-size: 0.7rem;
       font-weight: 700; padding: 0 8px; letter-spacing: 0.5px;
     }
     .biset-wrapper .exercise-card {
       margin-bottom: 8px;
-      border: 1px solid #1a3a4f;
+      border: 1px solid var(--border);
     }
     .biset-wrapper .exercise-card:last-of-type { margin-bottom: 10px; }
     .biset-wrapper .save-btn { margin-top: 4px; }
     .exercise-name {
       font-size: 1.3rem;
       font-weight: 700;
-      color: #00bcd4;
+      color: var(--accent);
       margin-bottom: 10px;
       text-transform: uppercase;
     }
@@ -122,42 +123,42 @@
     }
     .set-label {
       font-size: 0.75rem;
-      color: #ccc;
+      color: var(--text);
       text-transform: uppercase;
       min-width: 60px;
       font-weight: 600;
     }
-    .set-label.type-aquec { color: #4caf50; }
-    .set-label.type-feeder { color: #42a5f5; }
-    .set-label.type-hard { color: #ff5252; }
-    .set-label.type-cardio { color: #ff9800; }
+    .set-label.type-aquec { color: var(--success-light); }
+    .set-label.type-feeder { color: var(--info); }
+    .set-label.type-hard { color: var(--error-light); }
+    .set-label.type-cardio { color: var(--warning); }
     /* Cardio: uma coluna só (minutos) em vez de KG × REPS */
     .set-row.cardio-row { grid-template-columns: auto 1fr 40px; }
-    .set-row.cardio-row input { border-color: #005a6a; }
-    .set-row.cardio-row input:focus { border-color: #ff9800; }
+    .set-row.cardio-row input { border-color: var(--accent-dark); }
+    .set-row.cardio-row input:focus { border-color: var(--warning); }
     /* Descanso prescrito: sempre visível, em linha PRÓPRIA — quando era
        inline dividia a linha com o "Ver histórico" e ficava colado nele. */
     .rest-line { display: block; margin: 2px 0 8px; }
     .rest-pill {
       display: inline-flex; align-items: baseline; flex-wrap: wrap; gap: 5px;
-      background: #12242b; border: 1px solid #2f4d5a; color: #4fc3f7;
+      background: var(--bg-input); border: 1px solid var(--border); color: var(--accent-hover);
       font-size: 0.7rem; font-weight: 600; padding: 5px 10px;
       border-radius: 10px; line-height: 1.4; max-width: 100%;
     }
-    .rest-pill .rest-key { color: #6b8b98; font-weight: 600; }
+    .rest-pill .rest-key { color: var(--text-muted2); font-weight: 600; }
     .rest-pill .rest-value { font-size: 0.76rem; font-weight: 700; word-break: break-word; }
     .history-btn { display: block; }
     .no-sets {
-      background: #2a2118; border: 1px solid #005a6a; color: #ffb74d;
+      background: var(--bg-input); border: 1px solid var(--accent-dark); color: var(--warning-light);
       font-size: 0.75rem; padding: 8px 10px; border-radius: 8px; margin-top: 4px;
     }
     .set-row input {
       width: 100%;
       padding: 10px 8px;
       border-radius: 8px;
-      border: 1px solid #1a3a4f;
-      background: #0d0d0d;
-      color: #fff;
+      border: 1px solid var(--border);
+      background: var(--bg-body);
+      color: var(--text-bright);
       font-size: 16px;
       font-weight: 600;
       text-align: center;
@@ -165,42 +166,42 @@
       box-sizing: border-box;
     }
     .set-header { margin-bottom: 0; padding: 0; }
-    .col-title { font-size: 0.65rem; color: #888; text-align: center; font-weight: 700; text-transform: uppercase; }
-    .set-row input::placeholder { color: #999; font-size: 14px; font-weight: 500; }
-    .set-row input:focus { outline: none; border-color: #00bcd4; }
+    .col-title { font-size: 0.65rem; color: var(--text-muted2); text-align: center; font-weight: 700; text-transform: uppercase; }
+    .set-row input::placeholder { color: var(--text-muted); font-size: 14px; font-weight: 500; }
+    .set-row input:focus { outline: none; border-color: var(--accent); }
     .save-btn {
       width: 100%; padding: 12px; border: none; border-radius: 8px;
-      background: #00bcd4; color: #000; font-weight: 700; font-size: 0.9rem;
+      background: var(--accent); color: var(--text-dark); font-weight: 700; font-size: 0.9rem;
       cursor: pointer; margin-top: 8px; transition: opacity 0.2s;
     }
     .save-btn:active:not(:disabled) { opacity: 0.7; }
     .save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .save-btn.saved { background: #00897b; color: #fff; }
+    .save-btn.saved { background: var(--save-done); color: var(--text-bright); }
     .history-btn {
-      background: none; border: none; color: #00bcd4; font-size: 0.75rem;
+      background: none; border: none; color: var(--accent); font-size: 0.75rem;
       cursor: pointer; padding: 4px 0; margin-bottom: 8px; text-decoration: underline;
     }
     .check-icon {
-      width: 28px; height: 28px; border-radius: 50%; border: 2px solid #555;
+      width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--text-dim);
       display: flex; align-items: center; justify-content: center; transition: all 0.2s;
     }
     .check-icon svg { display: none; }
-    .check-icon.done { border-color: #00897b; background: #00897b; }
+    .check-icon.done { border-color: var(--save-done); background: var(--save-done); }
     .check-icon.done svg { display: block; }
     /* Timer de treino - discreto */
     .start-workout-row {
       display: flex; flex-direction: column; align-items: stretch; gap: 8px;
-      padding: 10px 16px; background: #0d2137; border-bottom: 1px solid #222;
+      padding: 10px 16px; background: var(--bg-header); border-bottom: 1px solid var(--border-light);
     }
     .start-workout-btn {
-      width: 100%; background: none; border: 1px solid #00bcd4; color: #00bcd4;
+      width: 100%; background: none; border: 1px solid var(--accent); color: var(--accent);
       font-size: 0.9rem; font-weight: 700; padding: 12px;
       border-radius: 8px; cursor: pointer; transition: opacity 0.2s;
     }
     .start-workout-btn:active { opacity: 0.6; }
     .start-workout-btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .workout-timer-inline {
-      font-size: 0.9rem; color: #00bcd4; font-weight: 700;
+      font-size: 0.9rem; color: var(--accent); font-weight: 700;
       font-variant-numeric: tabular-nums; letter-spacing: 0.5px;
       text-align: center;
     }
@@ -208,34 +209,34 @@
       padding: 12px 16px; margin-top: 8px;
     }
     .end-workout-btn {
-      width: 100%; background: none; border: 1px solid #00bcd4; color: #00bcd4;
+      width: 100%; background: none; border: 1px solid var(--accent); color: var(--accent);
       font-size: 0.9rem; font-weight: 700; padding: 12px;
       border-radius: 8px; cursor: pointer; transition: opacity 0.2s;
     }
     .end-workout-btn:active { opacity: 0.6; }
     .workout-done-msg {
-      font-size: 0.9rem; color: #00bcd4; font-weight: 700;
+      font-size: 0.9rem; color: var(--accent); font-weight: 700;
       text-align: center; padding: 12px 16px;
     }
 
-    .loading { text-align: center; padding: 40px; color: #888; }
+    .loading { text-align: center; padding: 40px; color: var(--text-muted2); }
     .empty-state {
       text-align: center; padding: 60px 24px;
       display: flex; flex-direction: column; align-items: center; gap: 12px;
     }
     .empty-state .empty-icon { font-size: 3rem; }
-    .empty-state .empty-title { font-size: 1.1rem; font-weight: 700; color: #00bcd4; }
-    .empty-state .empty-text { font-size: 0.9rem; color: #999; line-height: 1.6; }
+    .empty-state .empty-title { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .empty-state .empty-text { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; }
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      background: #00bcd4; color: #000; padding: 10px 20px; border-radius: 20px;
+      background: var(--accent); color: var(--text-dark); padding: 10px 20px; border-radius: 20px;
       font-size: 0.85rem; font-weight: 600; display: none; z-index: 1000;
     }
-    .toast.error { background: #f44336; color: #fff; }
+    .toast.error { background: var(--error); color: var(--text-bright); }
     .toast.show { display: block; animation: fadeOut 2s forwards; }
     @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
     .note-icon {
-      display: none; background: #f44336; color: #fff; width: 18px; height: 18px;
+      display: none; background: var(--error); color: var(--text-bright); width: 18px; height: 18px;
       border-radius: 50%; font-size: 0.65rem; font-weight: 700; border: none;
       cursor: pointer; margin-left: 4px; flex-shrink: 0; vertical-align: middle;
     }
@@ -243,17 +244,17 @@
     .exercise-header { display: flex; align-items: center; }
     .exercise-name { flex: 1; }
     .video-btn {
-      background: none; border: 1px solid #555; color: #00bcd4; width: 22px; height: 22px;
+      background: none; border: 1px solid var(--text-dim); color: var(--accent); width: 22px; height: 22px;
       border-radius: 50%; font-size: 0.6rem; cursor: pointer; margin-left: 8px;
       flex-shrink: 0; display: none; align-items: center; justify-content: center;
     }
     .video-btn.visible { display: flex; }
     .note-bubble {
-      display: none; background: #132d42; border: 1px solid #00bcd4; border-radius: 8px;
-      padding: 10px; margin-bottom: 10px; font-size: 0.8rem; color: #f0f0f0;
+      display: none; background: var(--bg-secondary); border: 1px solid var(--accent); border-radius: 8px;
+      padding: 10px; margin-bottom: 10px; font-size: 0.8rem; color: var(--text);
     }
     .note-bubble.show { display: block; }
-    .note-bubble-label { font-size: 0.65rem; color: #00bcd4; margin-bottom: 4px; font-weight: 600; }
+    .note-bubble-label { font-size: 0.65rem; color: var(--accent); margin-bottom: 4px; font-weight: 600; }
     .history-modal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(0,0,0,0.9); z-index: 1000; align-items: center;
@@ -261,38 +262,38 @@
     }
     .history-modal.show { display: flex; }
     .history-modal-content {
-      background: #0d2137; border-radius: 12px; padding: 16px; width: 100%;
-      max-width: 400px; max-height: 80vh; overflow-y: auto; border: 1px solid #1a3a4f;
+      background: var(--bg-card); border-radius: 12px; padding: 16px; width: 100%;
+      max-width: 400px; max-height: 80vh; overflow-y: auto; border: 1px solid var(--border);
     }
-    .history-modal-content h3 { color: #00bcd4; font-size: 0.9rem; margin-bottom: 12px; }
+    .history-modal-content h3 { color: var(--accent); font-size: 0.9rem; margin-bottom: 12px; }
     .history-modal-close {
       width: 100%; padding: 10px; border: none; border-radius: 8px;
-      background: #132d42; color: #999; font-weight: 600; font-size: 0.85rem;
+      background: var(--bg-secondary); color: var(--text-muted); font-weight: 600; font-size: 0.85rem;
       cursor: pointer; margin-top: 12px;
     }
-    .history-date { color: #00bcd4; font-size: 0.75rem; font-weight: 600; margin-top: 10px; margin-bottom: 4px; }
-    .history-set { font-size: 0.8rem; color: #ddd; padding: 3px 0; border-bottom: 1px solid #222; }
+    .history-date { color: var(--accent); font-size: 0.75rem; font-weight: 600; margin-top: 10px; margin-bottom: 4px; }
+    .history-set { font-size: 0.8rem; color: var(--text); padding: 3px 0; border-bottom: 1px solid var(--border-light); }
     /* Tela de bloqueio */
     .block-screen { display: none; text-align: center; padding: 60px 24px; }
     .block-screen.show { display: block; }
     .block-screen .icon { font-size: 2.4rem; margin-bottom: 12px; }
-    .block-screen h2 { font-size: 1.05rem; color: #00bcd4; margin-bottom: 8px; }
-    .block-screen p { font-size: 0.9rem; color: #ccc; line-height: 1.5; }
+    .block-screen h2 { font-size: 1.05rem; color: var(--accent); margin-bottom: 8px; }
+    .block-screen p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
     /* Loading overlay */
     .loading-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(13,13,13,0.92); z-index: 9999;
+      background: var(--overlay-bg); z-index: 9999;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
       gap: 16px; transition: opacity 0.3s;
     }
     .loading-overlay.hidden { opacity: 0; pointer-events: none; }
     .loading-spinner {
-      width: 44px; height: 44px; border: 3px solid #1a3a4f;
-      border-top-color: #00bcd4; border-radius: 50%;
+      width: 44px; height: 44px; border: 3px solid var(--spinner-track);
+      border-top-color: var(--spinner-accent); border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
+    .loading-text { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
 
     /* ── Modal de anotações do aluno ─────────────────────────── */
     .notes-modal {
@@ -302,18 +303,18 @@
     }
     .notes-modal.show { display: flex; }
     .notes-modal-sheet {
-      background: #0d2137; border-radius: 16px 16px 0 0;
+      background: var(--bg-card); border-radius: 16px 16px 0 0;
       width: 100%; max-width: 520px;
       max-height: 88vh; display: flex; flex-direction: column;
-      border: 1px solid #1a3a4f; border-bottom: none;
+      border: 1px solid var(--border); border-bottom: none;
     }
     .notes-modal-header {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 14px 16px 10px; border-bottom: 1px solid #132d42; flex-shrink: 0;
+      padding: 14px 16px 10px; border-bottom: 1px solid var(--bg-secondary); flex-shrink: 0;
     }
-    .notes-modal-header h3 { color: #00bcd4; font-size: 0.95rem; font-weight: 700; }
+    .notes-modal-header h3 { color: var(--accent); font-size: 0.95rem; font-weight: 700; }
     .notes-modal-close {
-      background: #132d42; border: none; color: #999; font-size: 1.1rem;
+      background: var(--bg-secondary); border: none; color: var(--text-muted); font-size: 1.1rem;
       width: 28px; height: 28px; border-radius: 50%; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
     }
@@ -325,43 +326,43 @@
     /* ── Renderização das notas ──────────────────────────────── */
     .note-render { line-height: 1.7; font-size: 0.92rem; }
     .note-render .note-section {
-      background: #091a2b; border: 1px solid #132d42;
+      background: var(--bg-input); border: 1px solid var(--bg-secondary);
       border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;
     }
     .note-render .note-section-title {
-      font-size: 0.78rem; font-weight: 700; color: #00bcd4;
+      font-size: 0.78rem; font-weight: 700; color: var(--accent);
       text-transform: uppercase; letter-spacing: 0.5px;
-      margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid #132d42;
+      margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--bg-secondary);
     }
     .note-render .note-line {
-      font-size: 0.87rem; color: #e0e0e0; padding: 2px 0;
+      font-size: 0.87rem; color: var(--text); padding: 2px 0;
     }
-    .note-render .note-line.bullet::before { content: '• '; color: #00bcd4; }
-    .note-render .note-line.dash::before   { content: '— '; color: #888; }
-    .note-render .note-line.num::before    { content: attr(data-num) '. '; color: #00bcd4; }
+    .note-render .note-line.bullet::before { content: '• '; color: var(--accent); }
+    .note-render .note-line.dash::before   { content: '— '; color: var(--text-muted2); }
+    .note-render .note-line.num::before    { content: attr(data-num) '. '; color: var(--accent); }
     .note-render .note-spacer { height: 4px; }
     .note-modal-updated {
-      font-size: 0.65rem; color: #555; text-align: right;
-      margin-top: 8px; padding-top: 8px; border-top: 1px solid #222;
+      font-size: 0.65rem; color: var(--text-muted3); text-align: right;
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-light);
     }
 
     /* ── Botão hamburger (header) ─────────────────────────────── */
     .menu-btn {
       position: absolute; top: 12px; left: 14px;
-      background: #0a2a3a; border: 1px solid #00bcd4;
+      background: var(--bg-input); border: 1px solid var(--accent);
       width: 34px; height: 30px; border-radius: 10px; cursor: pointer;
       display: flex; flex-direction: column; align-items: center;
       justify-content: center; gap: 4px; padding: 0;
     }
     .menu-btn:active { opacity: 0.7; }
-    .menu-btn span { display: block; width: 16px; height: 2px; background: #00bcd4; border-radius: 2px; }
+    .menu-btn span { display: block; width: 16px; height: 2px; background: var(--accent); border-radius: 2px; }
     /* Ponto vermelho: orientação nova que o aluno ainda não abriu.
        Sem isso, esconder as Orientações dentro do menu faria o aluno
        perder o recado do professor sem nunca saber que existia. */
     .menu-btn .menu-badge {
       position: absolute; top: -3px; right: -3px;
       width: 9px; height: 9px; border-radius: 50%;
-      background: #f44336; border: none; display: none;
+      background: var(--error); border: none; display: none;
     }
     .menu-btn.has-news .menu-badge { display: block; }
 
@@ -373,61 +374,61 @@
     .drawer-backdrop.show { opacity: 1; pointer-events: auto; }
     .drawer {
       position: fixed; top: 0; left: 0; bottom: 0; width: 82%; max-width: 300px;
-      background: #0d2137; border-right: 1px solid #1a3a4f; z-index: 1101;
+      background: var(--bg-header); border-right: 1px solid var(--border); z-index: 1101;
       transform: translateX(-100%); transition: transform 0.22s ease-out;
       display: flex; flex-direction: column;
       padding-top: env(safe-area-inset-top);
     }
     .drawer.show { transform: translateX(0); }
     .drawer-header {
-      padding: 16px 16px 12px; border-bottom: 1px solid #132d42;
+      padding: 16px 16px 12px; border-bottom: 1px solid var(--bg-secondary);
       display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
     }
-    .drawer-header .drawer-title { font-size: 0.95rem; font-weight: 700; color: #00bcd4; }
-    .drawer-header .drawer-sub { font-size: 0.68rem; color: #777; margin-top: 3px; }
+    .drawer-header .drawer-title { font-size: 0.95rem; font-weight: 700; color: var(--accent); }
+    .drawer-header .drawer-sub { font-size: 0.68rem; color: var(--text-dim); margin-top: 3px; }
     .drawer-close {
-      background: #132d42; border: none; color: #999; font-size: 1rem;
+      background: var(--bg-secondary); border: none; color: var(--text-muted); font-size: 1rem;
       width: 28px; height: 28px; border-radius: 50%; cursor: pointer; flex-shrink: 0;
     }
     .drawer-items { padding: 8px; overflow-y: auto; flex: 1; }
     .drawer-item {
       width: 100%; display: flex; align-items: center; gap: 12px;
       background: none; border: none; border-radius: 10px;
-      padding: 13px 12px; cursor: pointer; text-align: left; color: #f0f0f0;
+      padding: 13px 12px; cursor: pointer; text-align: left; color: var(--text);
     }
-    .drawer-item:active { background: #132d42; }
+    .drawer-item:active { background: var(--bg-secondary); }
     .drawer-item .di-icon { font-size: 1.15rem; width: 24px; text-align: center; flex-shrink: 0; }
     .drawer-item .di-text { flex: 1; min-width: 0; }
     /* label e desc são <span>: sem display:block ficariam na mesma linha */
     .drawer-item .di-label { display: block; font-size: 0.88rem; font-weight: 600; }
-    .drawer-item .di-desc { display: block; font-size: 0.66rem; color: #777; margin-top: 2px; }
+    .drawer-item .di-desc { display: block; font-size: 0.66rem; color: var(--text-dim); margin-top: 2px; }
     .drawer-item .di-dot {
-      width: 8px; height: 8px; border-radius: 50%; background: #f44336;
+      width: 8px; height: 8px; border-radius: 50%; background: var(--error);
       flex-shrink: 0; display: none;
     }
     .drawer-item.has-news .di-dot { display: block; }
     .drawer-section {
-      font-size: 0.6rem; color: #555; text-transform: uppercase;
+      font-size: 0.6rem; color: var(--text-muted3); text-transform: uppercase;
       letter-spacing: 0.6px; padding: 12px 12px 4px;
     }
 
     /* ── Gráfico de evolução do exercício (dentro do histórico) ── */
     .chart-btn {
-      width: 100%; background: #132d42; border: 1px solid #00bcd4; color: #00bcd4;
+      width: 100%; background: var(--bg-secondary); border: 1px solid var(--accent); color: var(--accent);
       font-size: 0.78rem; font-weight: 600; padding: 9px; border-radius: 8px;
       cursor: pointer; margin-top: 12px;
     }
     .chart-btn:active { opacity: 0.7; }
     .chart-btn:disabled { opacity: 0.5; cursor: default; }
     .chart-container {
-      display: none; background: #0d0d0d; border-radius: 8px;
+      display: none; background: var(--bg-body); border-radius: 8px;
       padding: 10px; margin-top: 10px;
     }
     .chart-container.show { display: block; }
     .chart-container canvas { max-height: 200px; }
     .chart-legend {
       display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;
-      font-size: 0.66rem; color: #999; margin-top: 6px;
+      font-size: 0.66rem; color: var(--text-muted); margin-top: 6px;
     }
     .chart-legend span { display: flex; align-items: center; gap: 4px; }
     .chart-legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
@@ -436,32 +437,36 @@
     .chart-info { margin-top: 8px; }
     .chart-info .stat-row {
       display: flex; justify-content: space-between; gap: 8px;
-      font-size: 0.72rem; padding: 5px 0; border-bottom: 1px solid #222;
+      font-size: 0.72rem; padding: 5px 0; border-bottom: 1px solid var(--border-light);
     }
     .chart-info .stat-row:last-child { border-bottom: none; }
-    .chart-info .stat-label { color: #999; }
-    .chart-info .stat-value { color: #f0f0f0; font-weight: 600; text-align: right; }
-    .chart-info .stat-value.up { color: #4caf50; }
-    .chart-info .stat-value.down { color: #f44336; }
+    .chart-info .stat-label { color: var(--text-muted); }
+    .chart-info .stat-value { color: var(--text); font-weight: 600; text-align: right; }
+    .chart-info .stat-value.up { color: var(--success-light); }
+    .chart-info .stat-value.down { color: var(--error); }
     .chart-caption {
-      font-size: 0.62rem; color: #777; text-align: center;
-      padding-bottom: 6px; border-bottom: 1px solid #222; margin-bottom: 4px;
+      font-size: 0.62rem; color: var(--text-dim); text-align: center;
+      padding-bottom: 6px; border-bottom: 1px solid var(--border-light); margin-bottom: 4px;
     }
     .chart-info .no-data {
-      text-align: center; padding: 16px; color: #666;
+      text-align: center; padding: 16px; color: var(--text-muted3);
       font-size: 0.8rem; font-style: italic;
     }
     .frequency {
-      margin-top: 10px; padding: 8px; background: #0d2137;
-      border-radius: 8px; font-size: 0.72rem; color: #bbb; text-align: center;
+      margin-top: 10px; padding: 8px; background: var(--bg-card);
+      border-radius: 8px; font-size: 0.72rem; color: var(--text-muted); text-align: center;
     }
-    .frequency strong { color: #00bcd4; }
+    .frequency strong { color: var(--accent); }
     .freq-dots { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 6px; }
-    .freq-dot { width: 10px; height: 10px; border-radius: 50%; background: #4caf50; }
-    .freq-dot.missed { background: #f44336; }
+    .freq-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--success-light); }
+    .freq-dot.missed { background: var(--error); }
   </style>
 </head>
 <body>
+  <script>
+    // Aplica tema ANTES de qualquer render para evitar flash de cor errada
+    (function(){var t=localStorage.getItem('app-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
+  </script>
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner"></div>
     <div class="loading-text">Carregando...</div>
@@ -529,6 +534,14 @@
         <span class="di-text">
           <span class="di-label">Evolução mensal</span>
           <span class="di-desc">Calendário de presença e destaques do mês</span>
+        </span>
+      </button>
+      <div class="drawer-section">Preferências</div>
+      <button class="drawer-item" onclick="location.href='config.html'">
+        <span class="di-icon">⚙</span>
+        <span class="di-text">
+          <span class="di-label">Configurações</span>
+          <span class="di-desc">Temas e personalização</span>
         </span>
       </button>
     </div>
@@ -1831,6 +1844,12 @@ guard('student', {
   onReady: async (session, profile) => {
     showLoading();
     studentId = profile.id;
+
+    // Sincroniza tema do perfil (Supabase tem prioridade sobre localStorage)
+    if (profile.app_theme) {
+      localStorage.setItem('app-theme', profile.app_theme);
+      document.documentElement.setAttribute('data-theme', profile.app_theme);
+    }
 
     // Header: saudação + academia + título do treino
     document.getElementById('greeting').textContent = 'Olá ' + (profile.full_name || '');

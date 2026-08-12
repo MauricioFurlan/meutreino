@@ -1,0 +1,205 @@
+/* =====================================================================
+   TEMAS — Foco no Treino
+   Aplicar APENAS nas páginas do aluno: index, login, evolucao, anotacoes, config.
+   Cada página deve incluir <link rel="stylesheet" href="theme.css"> e
+   carregar theme.js antes do </body>.
+   ===================================================================== */
+
+/* === Default (Ciano) === */
+:root,
+[data-theme="default"] {
+  --bg-body: #0d0d0d;
+  --bg-header: #0d2137;
+  --bg-card: #0d2137;
+  --bg-secondary: #132d42;
+  --bg-input: #0a2a3a;
+  --border: #1a3a4f;
+  --border-light: #222;
+  --accent: #00bcd4;
+  --accent-dark: #005a6a;
+  --accent-hover: #4fc3f7;
+  --text: #f0f0f0;
+  --text-muted: #999;
+  --text-muted2: #888;
+  --text-muted3: #666;
+  --text-dim: #777;
+  --text-bright: #fff;
+  --text-dark: #000;
+  --success: #00897b;
+  --success-light: #4caf50;
+  --error: #f44336;
+  --error-light: #ff5252;
+  --warning: #ff9800;
+  --warning-light: #ffb74d;
+  --info: #42a5f5;
+  --save-done: #00897b;
+  --spinner-track: #1a3a4f;
+  --spinner-accent: #00bcd4;
+  --logo-color: #00bcd4;
+  --overlay-bg: rgba(13,13,13,0.92);
+}
+
+/* === Amarelo / Preto (Energia) === */
+[data-theme="yellow"] {
+  --bg-body: #0a0a0a;
+  --bg-header: #1a1a00;
+  --bg-card: #1a1a00;
+  --bg-secondary: #2a2800;
+  --bg-input: #1f1d00;
+  --border: #3d3a00;
+  --border-light: #2a2a00;
+  --accent: #ffd600;
+  --accent-dark: #c6a700;
+  --accent-hover: #ffea00;
+  --text: #f0f0f0;
+  --text-muted: #999;
+  --text-muted2: #888;
+  --text-muted3: #666;
+  --text-dim: #777;
+  --text-bright: #fff;
+  --text-dark: #000;
+  --success: #c6a700;
+  --success-light: #ffd600;
+  --error: #f44336;
+  --error-light: #ff5252;
+  --warning: #ff9800;
+  --warning-light: #ffb74d;
+  --info: #ffe082;
+  --save-done: #c6a700;
+  --spinner-track: #3d3a00;
+  --spinner-accent: #ffd600;
+  --logo-color: #ffd600;
+  --overlay-bg: rgba(10,10,10,0.92);
+}
+
+/* === Rosa / Preto (Feminino) === */
+[data-theme="pink"] {
+  --bg-body: #0d0d0d;
+  --bg-header: #1f0a1a;
+  --bg-card: #1f0a1a;
+  --bg-secondary: #2d1228;
+  --bg-input: #250e20;
+  --border: #4a1a3a;
+  --border-light: #2a1020;
+  --accent: #f06292;
+  --accent-dark: #c2185b;
+  --accent-hover: #f48fb1;
+  --text: #f0f0f0;
+  --text-muted: #999;
+  --text-muted2: #888;
+  --text-muted3: #666;
+  --text-dim: #777;
+  --text-bright: #fff;
+  --text-dark: #000;
+  --success: #c2185b;
+  --success-light: #f06292;
+  --error: #f44336;
+  --error-light: #ff5252;
+  --warning: #ff9800;
+  --warning-light: #ffb74d;
+  --info: #f48fb1;
+  --save-done: #c2185b;
+  --spinner-track: #4a1a3a;
+  --spinner-accent: #f06292;
+  --logo-color: #f06292;
+  --overlay-bg: rgba(13,13,13,0.92);
+}
+
+/* === Daltonismo (Alto contraste, sem verde/vermelho) === */
+[data-theme="colorblind"] {
+  --bg-body: #0d0d0d;
+  --bg-header: #1a1a2e;
+  --bg-card: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-input: #1a1a2e;
+  --border: #2a2a5a;
+  --border-light: #222244;
+  --accent: #4fc3f7;
+  --accent-dark: #0288d1;
+  --accent-hover: #81d4fa;
+  --text: #f0f0f0;
+  --text-muted: #aaa;
+  --text-muted2: #999;
+  --text-muted3: #777;
+  --text-dim: #888;
+  --text-bright: #fff;
+  --text-dark: #000;
+  --success: #0288d1;
+  --success-light: #4fc3f7;
+  --error: #ff9100;
+  --error-light: #ffab40;
+  --warning: #ffd600;
+  --warning-light: #ffea00;
+  --info: #81d4fa;
+  --save-done: #0288d1;
+  --spinner-track: #2a2a5a;
+  --spinner-accent: #4fc3f7;
+  --logo-color: #4fc3f7;
+  --overlay-bg: rgba(13,13,13,0.92);
+}
+
+/* === Claro (Light) === */
+[data-theme="light"] {
+  --bg-body: #f5f5f5;
+  --bg-header: #ffffff;
+  --bg-card: #ffffff;
+  --bg-secondary: #e8e8e8;
+  --bg-input: #ffffff;
+  --border: #ddd;
+  --border-light: #eee;
+  --accent: #0097a7;
+  --accent-dark: #006064;
+  --accent-hover: #00bcd4;
+  --text: #212121;
+  --text-muted: #666;
+  --text-muted2: #777;
+  --text-muted3: #999;
+  --text-dim: #888;
+  --text-bright: #000;
+  --text-dark: #fff;
+  --success: #00796b;
+  --success-light: #009688;
+  --error: #d32f2f;
+  --error-light: #f44336;
+  --warning: #f57c00;
+  --warning-light: #ff9800;
+  --info: #1976d2;
+  --save-done: #00796b;
+  --spinner-track: #ddd;
+  --spinner-accent: #0097a7;
+  --logo-color: #0097a7;
+  --overlay-bg: rgba(245,245,245,0.95);
+}
+
+/* === Neon (Roxo/Elétrico — tema surpresa) === */
+[data-theme="neon"] {
+  --bg-body: #0a0a0f;
+  --bg-header: #12101f;
+  --bg-card: #12101f;
+  --bg-secondary: #1a1530;
+  --bg-input: #15122a;
+  --border: #2e2555;
+  --border-light: #221a40;
+  --accent: #b388ff;
+  --accent-dark: #7c4dff;
+  --accent-hover: #d1c4e9;
+  --text: #f0f0f0;
+  --text-muted: #999;
+  --text-muted2: #888;
+  --text-muted3: #666;
+  --text-dim: #777;
+  --text-bright: #fff;
+  --text-dark: #000;
+  --success: #7c4dff;
+  --success-light: #b388ff;
+  --error: #ff5252;
+  --error-light: #ff8a80;
+  --warning: #ffab40;
+  --warning-light: #ffd180;
+  --info: #82b1ff;
+  --save-done: #7c4dff;
+  --spinner-track: #2e2555;
+  --spinner-accent: #b388ff;
+  --logo-color: #b388ff;
+  --overlay-bg: rgba(10,10,15,0.92);
+}

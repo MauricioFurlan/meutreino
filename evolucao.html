@@ -12,6 +12,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Treino">
   <link rel="apple-touch-icon" href="/icon-192.png">
+  <link rel="stylesheet" href="theme.css">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
   <style>
@@ -20,17 +21,17 @@
     body, * { scrollbar-width: none; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0d0d0d; color: #f0f0f0; min-height: 100vh; padding-bottom: 40px;
+      background: var(--bg-body); color: var(--text); min-height: 100vh; padding-bottom: 40px;
     }
     .header {
-      background: #0d2137; padding: 16px; text-align: center;
-      border-bottom: 1px solid #1a3a4f; position: relative;
+      background: var(--bg-header); padding: 16px; text-align: center;
+      border-bottom: 1px solid var(--border); position: relative;
     }
-    .header h1 { font-size: 1.1rem; color: #00bcd4; letter-spacing: 1px; }
-    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .header h1 { font-size: 1.1rem; color: var(--accent); letter-spacing: 1px; }
+    .header .subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
     .nav-btn {
-      position: absolute; top: 14px; background: none; border: 1px solid #555;
-      color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+      position: absolute; top: 14px; background: none; border: 1px solid var(--text-dim);
+      color: var(--text-muted); font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
     }
     .nav-btn.left { left: 14px; }
     .nav-btn.right { right: 14px; }
@@ -39,33 +40,31 @@
     /* === Sequência (foguinho) === */
     .streak-bar {
       display: flex; align-items: center; justify-content: center; gap: 10px;
-      /* Margem embaixo também: sem ela o card do foguinho encostava no
-         seletor Semanal/Mensal e os dois pareciam um bloco só. */
       margin: 12px 14px 14px; padding: 10px 14px;
-      background: #0d2137; border: 1px solid #1a3a4f; border-radius: 12px;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
     }
     .streak-bar.hidden { display: none; }
     .streak-flame { font-size: 1.6rem; line-height: 1; filter: grayscale(1) opacity(0.4); }
     .streak-bar.on .streak-flame { filter: none; animation: flame-pulse 2s ease-in-out infinite; }
     @keyframes flame-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
-    .streak-count { font-size: 1.25rem; font-weight: 700; color: #00bcd4; line-height: 1; }
-    .streak-bar:not(.on) .streak-count { color: #777; }
+    .streak-count { font-size: 1.25rem; font-weight: 700; color: var(--accent); line-height: 1; }
+    .streak-bar:not(.on) .streak-count { color: var(--text-dim); }
     .streak-texts { display: flex; flex-direction: column; gap: 2px; }
-    .streak-label { font-size: 0.7rem; color: #999; }
-    .streak-sub { font-size: 0.62rem; color: #666; }
-    .streak-rest { color: #4caf50; }
+    .streak-label { font-size: 0.7rem; color: var(--text-muted); }
+    .streak-sub { font-size: 0.62rem; color: var(--text-muted3); }
+    .streak-rest { color: var(--success-light); }
 
     .view-toggle {
       display: flex; justify-content: center; gap: 0;
-      padding: 12px 16px; background: #0d2137; border-bottom: 1px solid #1a3a4f;
+      padding: 12px 16px; background: var(--bg-header); border-bottom: 1px solid var(--border);
     }
     .view-btn {
-      padding: 8px 20px; border: 1px solid #1a3a4f; background: #132d42;
-      color: #888; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      padding: 8px 20px; border: 1px solid var(--border); background: var(--bg-secondary);
+      color: var(--text-muted2); font-size: 0.8rem; font-weight: 600; cursor: pointer;
     }
     .view-btn:first-child { border-radius: 8px 0 0 8px; }
     .view-btn:last-child { border-radius: 0 8px 8px 0; }
-    .view-btn.active { background: #00bcd4; color: #000; border-color: #00bcd4; }
+    .view-btn.active { background: var(--accent); color: var(--text-dark); border-color: var(--accent); }
 
     .resume-section { display: none; padding: 16px; }
     .resume-section.active { display: block; }
@@ -74,88 +73,90 @@
       gap: 16px; margin-bottom: 16px;
     }
     .resume-nav button {
-      background: #132d42; border: none; color: #00bcd4; font-size: 1.2rem;
+      background: var(--bg-secondary); border: none; color: var(--accent); font-size: 1.2rem;
       width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
     }
     .resume-nav button:disabled { color: #333; cursor: not-allowed; }
-    .resume-nav span { font-size: 0.9rem; font-weight: 600; color: #f0f0f0; }
+    .resume-nav span { font-size: 0.9rem; font-weight: 600; color: var(--text); }
     .resume-card {
-      background: #0d2137; border-radius: 12px; padding: 14px;
-      margin-bottom: 12px; border: 1px solid #1a3a4f;
+      background: var(--bg-card); border-radius: 12px; padding: 14px;
+      margin-bottom: 12px; border: 1px solid var(--border);
     }
-    .resume-card h3 { font-size: 0.8rem; color: #00bcd4; margin-bottom: 8px; }
+    .resume-card h3 { font-size: 0.8rem; color: var(--accent); margin-bottom: 8px; }
     .stat-row {
       display: flex; justify-content: space-between; padding: 6px 0;
-      border-bottom: 1px solid #222; font-size: 0.8rem;
+      border-bottom: 1px solid var(--border-light); font-size: 0.8rem;
     }
     .stat-row:last-child { border-bottom: none; }
-    .stat-label { color: #999; }
-    .stat-value { color: #f0f0f0; font-weight: 600; }
-    .stat-value.up { color: #4caf50; }
-    .stat-value.down { color: #f44336; }
+    .stat-label { color: var(--text-muted); }
+    .stat-value { color: var(--text); font-weight: 600; }
+    .stat-value.up { color: var(--success-light); }
+    .stat-value.down { color: var(--error); }
     .volume-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .volume-bar-label { font-size: 0.7rem; color: #999; min-width: 35px; }
+    .volume-bar-label { font-size: 0.7rem; color: var(--text-muted); min-width: 35px; }
     .volume-bar-track {
-      flex: 1; height: 14px; background: #222; border-radius: 7px; overflow: hidden;
+      flex: 1; height: 14px; background: var(--border-light); border-radius: 7px; overflow: hidden;
     }
-    .volume-bar-fill { height: 100%; background: #00bcd4; border-radius: 7px; transition: width 0.3s; }
-    .volume-bar-value { font-size: 0.7rem; color: #bbb; min-width: 55px; text-align: right; }
+    .volume-bar-fill { height: 100%; background: var(--accent); border-radius: 7px; transition: width 0.3s; }
+    .volume-bar-value { font-size: 0.7rem; color: var(--text-muted); min-width: 55px; text-align: right; }
     .weekly-days { display: flex; justify-content: space-around; margin-bottom: 16px; }
     .weekly-day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .weekly-day-label { font-size: 0.65rem; color: #888; }
+    .weekly-day-label { font-size: 0.65rem; color: var(--text-muted2); }
     .weekly-day-dot {
       width: 24px; height: 24px; border-radius: 50%; display: flex;
-      align-items: center; justify-content: center; font-size: 0.7rem; color: #fff;
+      align-items: center; justify-content: center; font-size: 0.7rem; color: var(--text-bright);
     }
-    .weekly-day-dot.trained { background: #4caf50; }
-    .weekly-day-dot.missed { background: #f44336; }
-    .weekly-day-dot.rest { background: #1a3a4f; color: #666; }
+    .weekly-day-dot.trained { background: var(--success-light); }
+    .weekly-day-dot.missed { background: var(--error); }
+    .weekly-day-dot.rest { background: var(--border); color: var(--text-muted3); }
     .weekly-day-dot.future { background: none; border: 1px dashed #444; color: #444; }
     .presence-calendar {
       display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;
       margin: 0 auto 12px; max-width: 280px;
     }
-    .cal-header { font-size: 0.6rem; color: #888; text-align: center; padding: 2px 0; }
+    .cal-header { font-size: 0.6rem; color: var(--text-muted2); text-align: center; padding: 2px 0; }
     .cal-day {
       width: 100%; aspect-ratio: 1; border-radius: 50%; display: flex;
       align-items: center; justify-content: center; font-size: 0.55rem;
-      color: #666; max-width: 28px; max-height: 28px; margin: 0 auto;
+      color: var(--text-muted3); max-width: 28px; max-height: 28px; margin: 0 auto;
     }
-    .cal-day.trained { background: #4caf50; color: #fff; }
-    .cal-day.missed { background: #f44336; color: #fff; }
-    .cal-day.rest { background: #222; color: #555; }
-    .cal-day.future { background: none; color: #1a3a4f; }
-    .loading { text-align: center; padding: 40px; color: #888; }
+    .cal-day.trained { background: var(--success-light); color: var(--text-bright); }
+    .cal-day.missed { background: var(--error); color: var(--text-bright); }
+    .cal-day.rest { background: var(--border-light); color: var(--text-dim); }
+    .cal-day.future { background: none; color: var(--border); }
+    .loading { text-align: center; padding: 40px; color: var(--text-muted2); }
     .no-data {
-      text-align: center; padding: 20px; color: #555;
+      text-align: center; padding: 20px; color: var(--text-dim);
       font-size: 0.85rem; font-style: italic;
     }
-    .hint { font-size: 0.62rem; color: #666; margin-top: 6px; }
+    .hint { font-size: 0.62rem; color: var(--text-muted3); margin-top: 6px; }
     .hint.center { text-align: center; }
-    .hint.warn { color: #00bcd4; }
+    .hint.warn { color: var(--accent); }
     /* Tela de bloqueio */
     .block-screen { display: none; text-align: center; padding: 60px 24px; }
     .block-screen.show { display: block; }
     .block-screen .icon { font-size: 2.4rem; margin-bottom: 12px; }
-    .block-screen h2 { font-size: 1.05rem; color: #00bcd4; margin-bottom: 8px; }
-    .block-screen p { font-size: 0.9rem; color: #ccc; line-height: 1.5; }
+    .block-screen h2 { font-size: 1.05rem; color: var(--accent); margin-bottom: 8px; }
+    .block-screen p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.5; }
     /* Loading overlay */
     .loading-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(13,13,13,0.92); z-index: 9999;
+      background: var(--overlay-bg); z-index: 9999;
       display: flex; flex-direction: column; align-items: center;
       justify-content: center; gap: 16px; transition: opacity 0.3s;
     }
     .loading-overlay.hidden { opacity: 0; pointer-events: none; }
     .loading-spinner {
-      width: 44px; height: 44px; border: 3px solid #1a3a4f;
-      border-top-color: #00bcd4; border-radius: 50%; animation: spin 0.8s linear infinite;
+      width: 44px; height: 44px; border: 3px solid var(--spinner-track);
+      border-top-color: var(--spinner-accent); border-radius: 50%; animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
+    .loading-text { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
   </style>
 </head>
 <body>
+  <script>(function(){var t=localStorage.getItem('app-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
+
   <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner"></div>
     <div class="loading-text">Carregando...</div>

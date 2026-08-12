@@ -38,7 +38,7 @@ async function guard(requiredRole, opts = {}) {
   if (!session) { location.replace('login.html'); return; }
 
   const { data: profile } = await _sb.from('profiles')
-    .select('id, role, full_name, email, gym_name, coach_id, status, access_expires_at')
+    .select('id, role, full_name, email, gym_name, coach_id, status, access_expires_at, app_theme')
     .eq('id', session.user.id)
     .maybeSingle();
 
