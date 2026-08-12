@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 50" fill="none">
+  <!-- Mira (target) minimalista -->
+  <circle cx="25" cy="25" r="12" stroke="currentColor" stroke-width="2" fill="none" class="logo-ring-outer"/>
+  <circle cx="25" cy="25" r="6" stroke="currentColor" stroke-width="2" fill="none" class="logo-ring-inner"/>
+  <circle cx="25" cy="25" r="2" fill="currentColor" class="logo-dot"/>
+  <!-- Linhas da mira -->
+  <line x1="25" y1="8" x2="25" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="25" y1="37" x2="25" y2="42" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="8" y1="25" x2="13" y2="25" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <line x1="37" y1="25" x2="42" y2="25" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+  <!-- Texto -->
+  <text x="52" y="21" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="12" font-weight="700" letter-spacing="2" fill="currentColor" class="logo-text-main">FOCO NO TREINO</text>
+  <text x="52" y="36" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="7" letter-spacing="1" fill="currentColor" opacity="0.5" class="logo-text-sub">DISCIPLINA &amp; RESULTADO</text>
+</svg>
