@@ -39,7 +39,9 @@
     /* === Sequência (foguinho) === */
     .streak-bar {
       display: flex; align-items: center; justify-content: center; gap: 10px;
-      margin: 12px 14px 0; padding: 10px 14px;
+      /* Margem embaixo também: sem ela o card do foguinho encostava no
+         seletor Semanal/Mensal e os dois pareciam um bloco só. */
+      margin: 12px 14px 14px; padding: 10px 14px;
       background: #0d2137; border: 1px solid #1a3a4f; border-radius: 12px;
     }
     .streak-bar.hidden { display: none; }
