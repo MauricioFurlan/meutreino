@@ -50,6 +50,7 @@ function generateIconsPlugin() {
 const pages = [
   'login', 'index', 'professor', 'owner',
   'editor', 'treinos', 'treinador', 'anamnese', 'anotacoes',
+  'evolucao',
 ];
 
 const input = Object.fromEntries(

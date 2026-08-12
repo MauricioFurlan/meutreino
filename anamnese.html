@@ -168,13 +168,13 @@
   </div>
 
   <div class="header">
-    <button class="nav-btn left" onclick="location.href='professor.html'">← Voltar</button>
-    <h1>Anamnese</h1>
+    <button class="nav-btn left" id="backBtn" onclick="location.href='professor.html'">← Voltar</button>
+    <h1 id="pageTitle">Anamnese</h1>
     <div class="subtitle" id="studentName"></div>
   </div>
 
   <div class="tabs">
-    <button class="tab active" onclick="switchTab('form')">Nova Avaliação</button>
+    <button class="tab active" id="tabForm" onclick="switchTab('form')">Nova Avaliação</button>
     <button class="tab" onclick="switchTab('history')">Histórico</button>
     <button class="tab" onclick="switchTab('charts')">Evolução</button>
   </div>
@@ -398,8 +398,8 @@
       <div id="detailBody"></div>
       <div style="display:flex; gap:8px; margin-top:12px;">
         <button class="submit-btn" style="flex:1;" onclick="generatePDF()">📄 PDF</button>
-        <button class="submit-btn" style="flex:1; background:#2196F3;" onclick="editAssessment()">✏️ Editar</button>
-        <button class="submit-btn" style="flex:1; background:#f44336;" onclick="deleteAssessment()">🗑️ Excluir</button>
+        <button class="submit-btn" id="btnEditAssessment" style="flex:1; background:#2196F3;" onclick="editAssessment()">✏️ Editar</button>
+        <button class="submit-btn" id="btnDeleteAssessment" style="flex:1; background:#f44336;" onclick="deleteAssessment()">🗑️ Excluir</button>
       </div>
       <button class="modal-close" onclick="document.getElementById('detailModal').classList.remove('show')">Fechar</button>
     </div>
@@ -417,6 +417,16 @@ let studentInfo = null; // dados do aluno para o PDF
 let coachInfo = null;   // dados do professor (assinatura do relatório)
 let currentAssessmentId = null; // avaliação aberta no modal
 let editingId = null; // se !== null, estamos editando ao invés de criando
+
+// Modo somente-leitura: a mesma página serve o ALUNO consultando o próprio
+// resultado. Ele vê medidas, gráficos e PDF; não lança, não edita, não apaga.
+// A segurança de verdade está no RLS (assessments só aceita escrita do professor
+// do aluno ou do owner) — isto aqui é a interface honesta em cima disso.
+let STUDENT_VIEW = false;
+
+// O campo `observacoes` é o que o PROFESSOR escreve sobre o aluno. Fica fora da
+// visão do aluno (tela e PDF) por decisão de produto: é anotação de trabalho.
+function hideObservacoes() { return STUDENT_VIEW; }
 
 function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
@@ -737,7 +747,7 @@ function viewAssessment(id) {
     row('Nível de atividade', saude.nivel_atividade)
   ]);
 
-  if (d.observacoes) {
+  if (d.observacoes && !hideObservacoes()) {
     html += section('Observações', [
       `<div class="detail-row"><span class="value" style="color:#ccc; font-weight:400;">${esc(d.observacoes)}</span></div>`
     ]);
@@ -1630,7 +1640,8 @@ function generatePDF() {
   }
 
   // ---------- observações ----------
-  if (d.observacoes) {
+  // Fora do PDF do aluno: é anotação de trabalho do professor.
+  if (d.observacoes && !hideObservacoes()) {
     sectionTitle('Observações do professor');
     textBlock('Anotações', d.observacoes);
     y += 2;
@@ -1674,9 +1685,18 @@ function generatePDF() {
 }
 
 // === Init ===
-guard('trainer', {
+// Página compartilhada: o PROFESSOR lança e edita avaliações; o ALUNO consulta
+// as próprias (histórico, gráficos e PDF). Quem decide é o profile.role.
+guard(['trainer', 'student'], {
   onReady: async (session, profile) => {
     showLoading();
+
+    if (profile.role === 'student') {
+      await initStudentView(profile);
+      hideLoading();
+      return;
+    }
+
     coachId = profile.id;
     const params = new URLSearchParams(location.search);
     studentId = params.get('aluno');
@@ -1701,14 +1721,7 @@ guard('trainer', {
     studentInfo = student; // guardar referência global para o PDF
     coachInfo = profile;   // professor que assina o relatório
     document.getElementById('studentName').textContent = (student?.full_name || '') + (inviteId && !studentId ? ' (pendente)' : '');
-    const age = calcAge(student?.birth_date);
-    const infoHtml = [
-      student?.full_name ? `<div class="info-item"><strong>${esc(student.full_name)}</strong></div>` : '',
-      age ? `<div class="info-item">Idade: <strong>${age} anos</strong></div>` : '',
-      student?.sex ? `<div class="info-item">Sexo: <strong>${student.sex === 'M' ? 'Masculino' : 'Feminino'}</strong></div>` : '',
-      student?.gym_name ? `<div class="info-item">Academia: <strong>${esc(student.gym_name)}</strong></div>` : ''
-    ].join('');
-    document.getElementById('infoBar').innerHTML = infoHtml;
+    renderInfoBar(student);
 
     // Preenche data de hoje
     document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
@@ -1719,6 +1732,51 @@ guard('trainer', {
   },
   onBlocked: () => { location.replace('login.html'); }
 });
+
+function renderInfoBar(student) {
+  const age = calcAge(student?.birth_date);
+  document.getElementById('infoBar').innerHTML = [
+    student?.full_name ? `<div class="info-item"><strong>${esc(student.full_name)}</strong></div>` : '',
+    age ? `<div class="info-item">Idade: <strong>${age} anos</strong></div>` : '',
+    student?.sex ? `<div class="info-item">Sexo: <strong>${student.sex === 'M' ? 'Masculino' : 'Feminino'}</strong></div>` : '',
+    student?.gym_name ? `<div class="info-item">Academia: <strong>${esc(student.gym_name)}</strong></div>` : ''
+  ].join('');
+}
+
+// Visão do aluno: só leitura. Esconde o formulário de lançamento e os botões de
+// editar/excluir; mantém histórico, gráficos e PDF.
+async function initStudentView(profile) {
+  STUDENT_VIEW = true;
+  studentId = profile.id;
+
+  document.getElementById('pageTitle').textContent = 'Minha anamnese';
+  document.getElementById('backBtn').onclick = () => { location.href = 'index.html'; };
+  document.getElementById('backBtn').textContent = '← Treino';
+  document.getElementById('tabForm').style.display = 'none';
+  document.getElementById('btnEditAssessment').style.display = 'none';
+  document.getElementById('btnDeleteAssessment').style.display = 'none';
+
+  // O guard não traz birth_date/sex (não são necessários nas outras telas).
+  const { data: me } = await _sb.from('profiles')
+    .select('full_name, birth_date, sex, gym_name')
+    .eq('id', studentId).maybeSingle();
+  studentInfo = me || { full_name: profile.full_name, gym_name: profile.gym_name };
+  document.getElementById('studentName').textContent = studentInfo.full_name || '';
+  renderInfoBar(studentInfo);
+
+  // Nome do professor para assinar o PDF. O aluno não pode ler a linha do
+  // professor em profiles (RLS), então vem por RPC que devolve só o nome.
+  // Se a migração ainda não rodou, o PDF sai sem o nome em vez de falhar.
+  try {
+    const { data: coachName } = await _sb.rpc('my_coach_name');
+    if (coachName) coachInfo = { full_name: coachName };
+  } catch (e) {
+    console.log('Nome do professor indisponível:', e);
+  }
+
+  await loadAssessments();
+  switchTab('history');
+}
 </script>
 </body>
 </html>

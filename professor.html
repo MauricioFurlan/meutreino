@@ -329,6 +329,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth-guard.js"></script>
+<!-- Cálculos compartilhados (sequência, datas, cardio, volume) -->
+<script src="/metrics.js"></script>
 <script>
 let myId = null;
 let students = [];
@@ -416,51 +418,14 @@ function getSessionHtml(studentId) {
 }
 
 // =====================================================================
-// SEQUÊNCIA (foguinho) — mesma regra da tela de acompanhamento:
-// conta só os DIAS DE TREINO PRESCRITOS. Descanso não conta e não quebra.
-// Hoje sem registro fica pendente (o dia ainda não acabou).
+// SEQUÊNCIA (foguinho)
+// A regra vive em metrics.js (computeStreak): conta só os DIAS DE TREINO
+// PRESCRITOS, descanso não conta e não quebra, hoje sem registro fica pendente.
+// DAYS, toLocalISO e isTrainingDate também vêm de lá.
 // =====================================================================
-const DAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
-// 120 dias cobre qualquer sequência realista e mantém o payload da lista pequeno.
-const STREAK_WINDOW_DAYS = 120;
-
-// 'YYYY-MM-DD' no fuso LOCAL. toISOString() jogaria pro dia seguinte após 21h no Brasil.
-function toLocalISO(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-function isTrainingDate(dateStr, prescribed) {
-  const d = new Date(dateStr + 'T12:00:00');
-  return prescribed.has(DAYS[d.getDay()]);
-}
-
-function computeStreak(trained, prescribed, today) {
-  let current = 0;
-  for (let i = 0; i < STREAK_WINDOW_DAYS; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const ds = toLocalISO(d);
-    if (!isTrainingDate(ds, prescribed)) continue;  // descanso: pula, não quebra
-    if (trained.has(ds)) { current++; continue; }
-    if (i === 0) continue;                          // hoje ainda pode treinar
-    break;                                          // faltou num dia prescrito
-  }
-
-  let best = 0, run = 0;
-  for (let i = STREAK_WINDOW_DAYS - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const ds = toLocalISO(d);
-    if (!isTrainingDate(ds, prescribed)) continue;
-    if (trained.has(ds)) { run++; if (run > best) best = run; }
-    else if (i > 0) run = 0;
-  }
-
-  return { current, best, hitWindowEdge: current >= STREAK_WINDOW_DAYS - 1 };
-}
+// Janela menor que a da tela de acompanhamento: aqui a consulta é multiplicada
+// pelo número de alunos da lista, e 120 dias já cobrem qualquer sequência real.
+const STREAK_WINDOW_LIST_DAYS = 120;
 
 async function loadStreaks() {
   const ids = students.map(s => s.id);
@@ -497,7 +462,7 @@ async function loadStreaks() {
 
   const today = new Date();
   const windowStart = new Date(today);
-  windowStart.setDate(today.getDate() - (STREAK_WINDOW_DAYS - 1));
+  windowStart.setDate(today.getDate() - (STREAK_WINDOW_LIST_DAYS - 1));
   const from = toLocalISO(windowStart);
 
   // Uma consulta por aluno, filtrando set_number=1: para saber SE treinou no dia
@@ -515,7 +480,7 @@ async function loadStreaks() {
     const { data, error } = results[i];
     if (error || !data) { streakLoadedFor = ''; return; }  // tenta de novo na próxima
     const trained = new Set(data.map(r => r.session_date));
-    const st = computeStreak(trained, prescribedBy[id], today);
+    const st = computeStreak(trained, prescribedBy[id], today, STREAK_WINDOW_LIST_DAYS);
     const sorted = [...trained].sort();
     st.lastTrained = sorted.length ? sorted[sorted.length - 1] : null;
     streakMap[id] = st;

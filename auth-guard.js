@@ -1,5 +1,7 @@
 // auth-guard.js — guarda de acesso para páginas protegidas.
-// Uso: inclua no HTML ANTES do script da página e chame guard('student'|'trainer'|'owner').
+// Uso: inclua no HTML ANTES do script da página e chame
+//   guard('student'|'trainer'|'owner')  — um papel
+//   guard(['trainer','student'])        — página compartilhada por dois papéis
 // Depende do supabase-js (CDN) já carregado.
 // As credenciais vêm de window.__ENV, injetado pelo Vite em build-time.
 //
@@ -21,12 +23,17 @@ window._sb = _sb;
 const _ROUTES = { student: 'index.html', trainer: 'professor.html', owner: 'owner.html' };
 
 /**
- * @param {string} requiredRole - 'student' | 'trainer' | 'owner'
+ * @param {string|string[]} requiredRole - 'student' | 'trainer' | 'owner', ou uma
+ *   lista quando a mesma página serve mais de um papel (ex: anamnese.html, que o
+ *   professor usa para lançar e o aluno para consultar). A página é responsável
+ *   por adaptar a interface ao profile.role recebido em onReady.
  * @param {object} [opts]
  * @param {function} [opts.onReady]    - chamado com (session, profile) se acesso ok
  * @param {function} [opts.onBlocked]  - chamado com (state) se acesso negado
  */
 async function guard(requiredRole, opts = {}) {
+  const allowed = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+
   const { data: { session } } = await _sb.auth.getSession();
   if (!session) { location.replace('login.html'); return; }
 
@@ -37,7 +44,7 @@ async function guard(requiredRole, opts = {}) {
 
   if (!profile) { location.replace('login.html'); return; }
 
-  if (profile.role !== requiredRole) {
+  if (!allowed.includes(profile.role)) {
     const dest = _ROUTES[profile.role] || 'login.html';
     location.replace(dest);
     return;

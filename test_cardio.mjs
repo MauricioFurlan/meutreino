@@ -30,9 +30,13 @@ const eq = (nome, real, esperado) => {
   ok ? pass++ : fail++;
 };
 
-const FILES = ['editor.html', 'index.html', 'treinador.html', 'treinos.html'];
+const FILES = ['editor.html', 'index.html', 'treinador.html', 'treinos.html', 'evolucao.html'];
 const src = {};
 FILES.forEach(f => { src[f] = inlineScript(f); });
+
+// As contas de cardio/data/volume saíram dos HTMLs para o módulo compartilhado.
+// O teste passa a ler de lá — é a mesma função que as três telas carregam.
+const METRICS = fs.readFileSync('public/metrics.js', 'utf8');
 
 // ---------- sintaxe das telas ----------
 FILES.forEach(f => {
@@ -40,6 +44,13 @@ FILES.forEach(f => {
   try { new vm.Script(src[f], { filename: f }); } catch (e) { erro = e.message; }
   eq(`sintaxe ok: ${f}`, erro, null);
 });
+
+// metrics.js é script clássico (não módulo): mesma checagem de sintaxe.
+{
+  let erro = null;
+  try { new vm.Script(METRICS, { filename: 'metrics.js' }); } catch (e) { erro = e.message; }
+  eq('sintaxe ok: public/metrics.js', erro, null);
+}
 
 // ---------- normalizeRest (as 3 telas precisam concordar) ----------
 const editorApi = new vm.Script(
@@ -209,12 +220,12 @@ eq('minutos "abc" = null', alunoApi.parseCardioMinutes('abc'), null);
 eq('minutos negativo vira positivo', alunoApi.parseCardioMinutes('-30'), 30);
 eq('minutos acima do teto trava em 600', alunoApi.parseCardioMinutes('9999'), 600); // check do banco
 
-// ---------- agregação no treinador ----------
+// ---------- agregação (metrics.js, usada pelo treinador e pelo aluno) ----------
 const trainerApi = new vm.Script(
-  grabFrom(src['treinador.html'], 'isCardio') + '\n' +
-  grabFrom(src['treinador.html'], 'sumCardioMinutes') + '\n' +
-  grabFrom(src['treinador.html'], 'formatMinutes') + '\n' +
-  grabFrom(src['treinador.html'], 'cardioByDate') + '\n' +
+  grabFrom(METRICS, 'isCardio') + '\n' +
+  grabFrom(METRICS, 'sumCardioMinutes') + '\n' +
+  grabFrom(METRICS, 'formatMinutes') + '\n' +
+  grabFrom(METRICS, 'cardioByDate') + '\n' +
   '({ isCardio, sumCardioMinutes, formatMinutes, cardioByDate })'
 ).runInNewContext();
 
@@ -339,10 +350,10 @@ eq('misto: resumo cita os dois tipos',
 // O que estava confuso na tela: números que se repetem com pouca amostra e
 // comparação "1ª vs última" com cara de tendência.
 const chartApi = new vm.Script(
-  grabFrom(src['treinador.html'], 'isCardio') + '\n' +
-  grabFrom(src['treinador.html'], 'formatMinutes') + '\n' +
-  grabFrom(src['treinador.html'], 'cardioChartInfo') + '\n' +
-  src['treinador.html'].match(/const CARDIO_CAPTION = '[^']*';/)[0] + '\n' +
+  grabFrom(METRICS, 'isCardio') + '\n' +
+  grabFrom(METRICS, 'formatMinutes') + '\n' +
+  grabFrom(METRICS, 'cardioChartInfo') + '\n' +
+  METRICS.match(/const CARDIO_CAPTION = '[^']*';/)[0] + '\n' +
   '({ cardioChartInfo })'
 ).runInNewContext();
 
@@ -380,7 +391,7 @@ eq('gráfico avisa que a janela é de 12 semanas',
 eq('gráfico avisa que não é o total do dia',
   /não é o total do dia/.test(duasSessoes.html), true);
 eq('gráfico de força também avisa a janela',
-  /const FORCA_CAPTION[^\n]*12 semanas/.test(src['treinador.html']), true);
+  /const FORCA_CAPTION[^\n]*12 semanas/.test(METRICS), true);
 eq('força: rótulo 1ª → última em vez de "Progressão"',
   /1ª → última sessão \(1RM est\.\)/.test(src['treinador.html']), true);
 
@@ -446,12 +457,12 @@ eq('treinos.html mostra o resumo de descanso',
 // ---------- comparativo do card do dia (hoje vs. último treino) ----------
 // É a pergunta diária: o cardio de hoje foi maior que o do treino anterior?
 const cmpApi = new vm.Script(
-  grabFrom(src['treinador.html'], 'isCardio') + '\n' +
-  grabFrom(src['treinador.html'], 'formatMinutes') + '\n' +
-  grabFrom(src['treinador.html'], 'cardioByDate') + '\n' +
-  grabFrom(src['treinador.html'], 'formatDayMonth') + '\n' +
-  grabFrom(src['treinador.html'], 'previousCardioSession') + '\n' +
-  grabFrom(src['treinador.html'], 'cardioComparison') + '\n' +
+  grabFrom(METRICS, 'isCardio') + '\n' +
+  grabFrom(METRICS, 'formatMinutes') + '\n' +
+  grabFrom(METRICS, 'cardioByDate') + '\n' +
+  grabFrom(METRICS, 'formatDayMonth') + '\n' +
+  grabFrom(METRICS, 'previousCardioSession') + '\n' +
+  grabFrom(METRICS, 'cardioComparison') + '\n' +
   '({ previousCardioSession, cardioComparison, formatDayMonth })'
 ).runInNewContext();
 
@@ -591,6 +602,49 @@ eq('dia: singular quando é 1 exercício',
   /1 exercício</.test(fichaApi.renderViewDay('Terça', [{ name: 'Solto', sets: [] }])), true);
 eq('viewPlan usa o novo render',    /renderViewDay\(day, list\)/.test(src['treinos.html']), true);
 eq('ficha: chips de resumo no topo', /class="v-chips"/.test(src['treinos.html']), true);
+
+// ====================================================================
+// Nenhuma função compartilhada ficou órfã.
+// Ao mover as contas para metrics.js, o risco é a tela usar um nome que não
+// existe mais nela e não carregar o módulo — a página abre em branco e nenhum
+// teste de sintaxe pega isso, porque o erro é só em tempo de execução.
+// ====================================================================
+{
+  const shared = [...METRICS.matchAll(/^(?:function|const)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]);
+  eq('metrics.js expõe as funções esperadas',
+    ['toLocalISO', 'computeStreak', 'isTrainingDate', 'prescribedDaySet', 'e1rm',
+     'formatMinutes', 'formatDurationHM', 'cardioByDate', 'sumCardioMinutes',
+     'cardioChartInfo', 'getWeekRange', 'hardVolume'].every(n => shared.includes(n)), true);
+
+  const PAGES = ['index.html', 'professor.html', 'treinador.html', 'evolucao.html',
+                 'editor.html', 'treinos.html', 'anamnese.html', 'anotacoes.html', 'owner.html'];
+  const orfaos = [];
+  PAGES.forEach(f => {
+    const html = fs.readFileSync(f, 'utf8');
+    const js = inlineScript(f);
+    const carregaMetrics = /<script src="\/metrics\.js"><\/script>/.test(html);
+    if (carregaMetrics) return;  // tem tudo disponível
+    shared.forEach(nome => {
+      const usa = new RegExp(`\\b${nome}\\s*[(\\[.,;)]`).test(js);
+      const declara = new RegExp(`(?:function|const|let|var)\\s+${nome}\\b`).test(js);
+      if (usa && !declara) orfaos.push(`${f}: ${nome}`);
+    });
+  });
+  eq('nenhuma tela usa função compartilhada sem carregar metrics.js', orfaos, []);
+
+  // Colisão de nome entre metrics.js e o script inline.
+  // Dois <script> clássicos dividem o MESMO escopo lexical global: um `const DAYS`
+  // repetido nos dois estoura "Identifier has already been declared" e a tela abre
+  // em branco. Concatenar e parsear reproduz exatamente esse erro — e nenhuma
+  // checagem de sintaxe arquivo-por-arquivo o pegaria.
+  const colisoes = [];
+  PAGES.forEach(f => {
+    if (!/<script src="\/metrics\.js"><\/script>/.test(fs.readFileSync(f, 'utf8'))) return;
+    try { new vm.Script(METRICS + '\n' + inlineScript(f), { filename: f }); }
+    catch (e) { colisoes.push(`${f}: ${e.message}`); }
+  });
+  eq('metrics.js + script da tela convivem no mesmo escopo', colisoes, []);
+}
 
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);

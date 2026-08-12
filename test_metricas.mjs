@@ -1,32 +1,12 @@
-// Teste temporário: extrai as funções REAIS de treinador.html e valida
-// toLocalISO, e1rm e computeStreak (regra do descanso que não quebra a sequência).
+// Valida as funções REAIS de public/metrics.js — o módulo que professor.html,
+// treinador.html, evolucao.html e index.html carregam: toLocalISO, e1rm e
+// computeStreak (regra do descanso que não quebra a sequência).
 import fs from 'fs';
+import vm from 'vm';
 
-const html = fs.readFileSync('treinador.html', 'utf8');
-const js = html.match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/)[1];
-
-function grab(name) {
-  const i = js.indexOf(`function ${name}(`);
-  if (i < 0) throw new Error('não achei ' + name);
-  let depth = 0, started = false;
-  for (let p = i; p < js.length; p++) {
-    if (js[p] === '{') { depth++; started = true; }
-    else if (js[p] === '}') { depth--; if (started && depth === 0) return js.slice(i, p + 1); }
-  }
-  throw new Error('fim não encontrado: ' + name);
-}
-
-const src = [
-  "const DAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];",
-  js.match(/const STREAK_WINDOW_DAYS = \d+;/)[0],
-  grab('toLocalISO'),
-  grab('e1rm'),
-  grab('isTrainingDate'),
-  grab('computeStreak'),
-  'return { toLocalISO, e1rm, isTrainingDate, computeStreak, STREAK_WINDOW_DAYS };'
-].join('\n\n');
-
-const api = new Function(src)();
+const METRICS = fs.readFileSync('public/metrics.js', 'utf8');
+// Script clássico: roda com um `window` falso e devolve a API exposta.
+const api = new vm.Script(METRICS + '\n;window.Metrics').runInNewContext({ window: {} });
 const { toLocalISO, e1rm, isTrainingDate, computeStreak } = api;
 
 let pass = 0, fail = 0;
@@ -112,8 +92,9 @@ eq('domingo prescrito quando no plano',    isTrainingDate('2026-08-09', new Set(
 // ---------- index.html: lado da ESCRITA da data ----------
 // É aqui que session_date é gravado. Se continuar em UTC, o treino da noite vai
 // para o dia seguinte e a correção no treinador não resolve nada.
-const idxJs = fs.readFileSync('index.html', 'utf8')
-  .match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/)[1];
+// toLocalISO agora vem de metrics.js — a tela precisa carregá-lo e usá-lo.
+const idxHtml = fs.readFileSync('index.html', 'utf8');
+const idxJs = idxHtml.match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/)[1];
 
 const grabFrom = (source, name) => {
   const i = source.indexOf(`function ${name}(`);
@@ -125,13 +106,15 @@ const grabFrom = (source, name) => {
   }
 };
 
+eq('index.html carrega metrics.js', /<script src="\/metrics\.js"><\/script>/.test(idxHtml), true);
+eq('index.html não tem cópia de toLocalISO', /function toLocalISO\(/.test(idxJs), false);
+
 const idxApi = new Function(
-  grabFrom(idxJs, 'toLocalISO') + '\n' +
+  grabFrom(METRICS, 'toLocalISO') + '\n' +
   grabFrom(idxJs, 'getDateForDay') + '\n' +
   'return { toLocalISO, getDateForDay };'
 )();
 
-eq('index.html toLocalISO 22h30', idxApi.toLocalISO(new Date(2026, 7, 4, 22, 30)), '2026-08-04');
 eq('index.html getDateForDay usa toLocalISO', /toLocalISO\(target\)/.test(grabFrom(idxJs, 'getDateForDay')), true);
 eq('index.html sem toISOString em data', /toISOString\(\)\.split/.test(idxJs), false);
 

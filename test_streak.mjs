@@ -1,7 +1,10 @@
-// Valida a sequência (foguinho) do CARD DO ALUNO em professor.html, extraindo as
-// funções reais do HTML. Garante que a regra é a mesma da tela de acompanhamento:
-// só dia prescrito conta, descanso não quebra, hoje sem treino fica pendente.
+// Valida a sequência (foguinho) do CARD DO ALUNO em professor.html.
+// O cálculo vive em public/metrics.js: professor.html e treinador.html carregam
+// o MESMO arquivo, então o teste checa a função uma vez e verifica que as duas
+// telas realmente a importam em vez de manter cópia própria (era isso que
+// divergia antes: duas implementações da mesma regra).
 import fs from 'fs';
+import vm from 'vm';
 
 function inlineScript(file) {
   return fs.readFileSync(file, 'utf8')
@@ -21,21 +24,12 @@ function grab(source, name) {
   throw new Error(`fim não encontrado: ${name}`);
 }
 
-function api(file) {
-  const js = inlineScript(file);
-  const src = [
-    js.match(/const DAYS = \[[^\]]*\];/)[0],
-    js.match(/const STREAK_WINDOW_DAYS = \d+;/)[0],
-    grab(js, 'toLocalISO'),
-    grab(js, 'isTrainingDate'),
-    grab(js, 'computeStreak'),
-    'return { toLocalISO, isTrainingDate, computeStreak, STREAK_WINDOW_DAYS };'
-  ].join('\n\n');
-  return new Function(src)();
-}
+const METRICS = fs.readFileSync('public/metrics.js', 'utf8');
+// metrics.js é script clássico: roda com um `window` falso e devolve a API.
+const M = new vm.Script(METRICS + '\n;window.Metrics').runInNewContext({ window: {} });
 
-const prof = api('professor.html');
-const trei = api('treinador.html');
+// Janela usada na LISTA de alunos (professor.html) — menor de propósito.
+const LIST_WINDOW = Number(inlineScript('professor.html').match(/const STREAK_WINDOW_LIST_DAYS = (\d+);/)[1]);
 
 let pass = 0, fail = 0;
 const eq = (nome, real, esperado) => {
@@ -44,42 +38,50 @@ const eq = (nome, real, esperado) => {
   ok ? pass++ : fail++;
 };
 
+// ---------- as duas telas usam a MESMA fonte ----------
+['professor.html', 'treinador.html'].forEach(f => {
+  const html = fs.readFileSync(f, 'utf8');
+  eq(`${f} carrega metrics.js`, /<script src="\/metrics\.js"><\/script>/.test(html), true);
+  eq(`${f} não tem cópia de computeStreak`, /function computeStreak\(/.test(inlineScript(f)), false);
+});
+eq('janela da lista continua menor que a padrão', LIST_WINDOW < M.STREAK_WINDOW_DAYS, true);
+
 const SEG_A_SEX = new Set(['Segunda','Terça','Quarta','Quinta','Sexta']);
 const SEG_QUA_SEX = new Set(['Segunda','Quarta','Sexta']);
 const d = (s) => new Date(s + 'T12:00:00');
 
 // ---------- data local (não pode virar o dia à noite) ----------
-eq('toLocalISO 22h30 não vira o dia', prof.toLocalISO(new Date(2026, 7, 4, 22, 30)), '2026-08-04');
+eq('toLocalISO 22h30 não vira o dia', M.toLocalISO(new Date(2026, 7, 4, 22, 30)), '2026-08-04');
 
 // ---------- regra da sequência ----------
 eq('semana cheia: fim de semana não quebra',
-  prof.computeStreak(new Set(['2026-08-03','2026-08-04','2026-08-05','2026-08-06','2026-08-07']), SEG_A_SEX, d('2026-08-09')).current,
+  M.computeStreak(new Set(['2026-08-03','2026-08-04','2026-08-05','2026-08-06','2026-08-07']), SEG_A_SEX, d('2026-08-09')).current,
   5);
 
 eq('falta em dia prescrito quebra',
-  prof.computeStreak(new Set(['2026-08-03','2026-08-04','2026-08-06','2026-08-07']), SEG_A_SEX, d('2026-08-09')).current,
+  M.computeStreak(new Set(['2026-08-03','2026-08-04','2026-08-06','2026-08-07']), SEG_A_SEX, d('2026-08-09')).current,
   2);
 
 eq('hoje sem treino ainda não quebra',
-  prof.computeStreak(new Set(['2026-08-03']), SEG_A_SEX, d('2026-08-04')).current,
+  M.computeStreak(new Set(['2026-08-03']), SEG_A_SEX, d('2026-08-04')).current,
   1);
 
 eq('falta ontem zera',
-  prof.computeStreak(new Set(['2026-07-31']), SEG_A_SEX, d('2026-08-04')).current,
+  M.computeStreak(new Set(['2026-07-31']), SEG_A_SEX, d('2026-08-04')).current,
   0);
 
 eq('plano 3x: dias vagos no meio não quebram',
-  prof.computeStreak(new Set(['2026-08-03','2026-08-05','2026-08-07']), SEG_QUA_SEX, d('2026-08-09')).current,
+  M.computeStreak(new Set(['2026-08-03','2026-08-05','2026-08-07']), SEG_QUA_SEX, d('2026-08-09')).current,
   3);
 
-const rec = prof.computeStreak(new Set(['2026-07-20','2026-07-21','2026-07-22','2026-07-23','2026-07-24']), SEG_A_SEX, d('2026-08-09'));
+const rec = M.computeStreak(new Set(['2026-07-20','2026-07-21','2026-07-22','2026-07-23','2026-07-24']), SEG_A_SEX, d('2026-08-09'));
 eq('recorde guardado com a atual zerada', [rec.current, rec.best], [0, 5]);
 
-eq('sem treino algum', prof.computeStreak(new Set(), SEG_A_SEX, d('2026-08-09')).current, 0);
+eq('sem treino algum', M.computeStreak(new Set(), SEG_A_SEX, d('2026-08-09')).current, 0);
 
-eq('sábado não é dia prescrito (seg-sex)', prof.isTrainingDate('2026-08-08', SEG_A_SEX), false);
+eq('sábado não é dia prescrito (seg-sex)', M.isTrainingDate('2026-08-08', SEG_A_SEX), false);
 
-// ---------- card e tela de detalhe têm que bater ----------
+// ---------- card (janela da lista) e tela de detalhe (janela padrão) têm que bater ----------
 const cenarios = [
   [new Set(['2026-08-03','2026-08-04','2026-08-05','2026-08-06','2026-08-07']), SEG_A_SEX, '2026-08-09'],
   [new Set(['2026-08-03','2026-08-05','2026-08-07']), SEG_QUA_SEX, '2026-08-09'],
@@ -87,19 +89,21 @@ const cenarios = [
   [new Set(), SEG_A_SEX, '2026-08-09']
 ];
 cenarios.forEach(([trained, presc, hoje], i) => {
-  const a = prof.computeStreak(trained, presc, d(hoje)).current;
-  const b = trei.computeStreak(trained, presc, d(hoje)).current;
+  const a = M.computeStreak(trained, presc, d(hoje), LIST_WINDOW).current;
+  const b = M.computeStreak(trained, presc, d(hoje)).current;
   eq(`card == acompanhamento (cenário ${i + 1})`, a, b);
 });
 
 // ---------- dia do plano sem exercício não pode contar como treino ----------
-// professor.html monta o Set filtrando structure[dia].length > 0; treinador.html faz
-// o mesmo em prescribedDaySet(). Se um dia vazio contasse, viraria falta toda semana.
+// professor.html monta o Set filtrando structure[dia].length > 0; as telas de
+// acompanhamento usam prescribedDaySet() (metrics.js), que faz o mesmo.
+// Se um dia vazio contasse, viraria falta toda semana.
 const profJs = inlineScript('professor.html');
 eq('professor.html ignora dia vazio do plano',
   /Array\.isArray\(st\[d\]\) && st\[d\]\.length > 0/.test(profJs), true);
-eq('treinador.html ignora dia vazio do plano',
-  /length > 0/.test(grab(inlineScript('treinador.html'), 'prescribedDaySet')), true);
+eq('prescribedDaySet ignora dia vazio do plano',
+  M.prescribedDaySet({ Segunda: [{ name: 'Supino' }], Quarta: [], Sexta: undefined }).size, 1);
+eq('prescribedDaySet sem plano devolve vazio', M.prescribedDaySet(null).size, 0);
 
 // ---------- ordenação alfabética da lista ----------
 const byName = (a, b) => (a.full_name || '').localeCompare(b.full_name || '', 'pt-BR', { sensitivity: 'base' });
@@ -152,12 +156,10 @@ function sandbox(planRows, logsById, forceError) {
 
   const profJsSrc = inlineScript('professor.html');
   const src = [
-    profJsSrc.match(/const DAYS = \[[^\]]*\];/)[0],
-    profJsSrc.match(/const STREAK_WINDOW_DAYS = \d+;/)[0],
+    // Base compartilhada (metrics.js) + o que é só da lista de alunos.
+    METRICS.replace(/if \(typeof window[\s\S]*$/, ''),
+    profJsSrc.match(/const STREAK_WINDOW_LIST_DAYS = \d+;/)[0],
     profJsSrc.match(/const esc = \(s\) => .*;/)[0],
-    grab(profJsSrc, 'toLocalISO'),
-    grab(profJsSrc, 'isTrainingDate'),
-    grab(profJsSrc, 'computeStreak'),
     grab(profJsSrc, 'loadStreaks'),
     grab(profJsSrc, 'getStreakHtml'),
     'let students = [];',

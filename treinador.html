@@ -563,8 +563,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth-guard.js"></script>
+<!-- Cálculos compartilhados com professor.html e evolucao.html (DAYS, datas,
+     cardio, volume, 1RM, sequência). Não puxa nada da rede. -->
+<script src="/metrics.js"></script>
 <script>
-const DAYS = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'];
 
 // Mantém as abas de dia da semana coladas logo abaixo do header (nome do aluno).
 // O header muda de altura quando o nome do aluno é carregado / quebra linha,
@@ -583,184 +585,12 @@ if (window.ResizeObserver) {
 
 const esc = (s) => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
 
-function formatDurationHM(seconds) {
-  if (!seconds || seconds <= 0) return '0min';
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  if (h > 0) return `${h}h${String(m).padStart(2,'0')}min`;
-  return `${m}min`;
-}
-
 // =====================================================================
-// CARDIO
-// Minutos vêm de workout_logs.duration_minutes (coluna própria, criada em
-// sql/10_add_cardio.sql). Não entram em volume nem em sets hard: cardio é
-// tempo, e somar isso à musculação inventaria progresso que não existe.
+// As contas desta tela vivem em metrics.js (carregado no <head>): datas,
+// formatação, cardio, volume, 1RM e sequência. Aqui fica só o que desenha.
+// CARDIO: os minutos vêm de workout_logs.duration_minutes (coluna própria,
+// criada em sql/10_add_cardio.sql) — não entram em volume nem em sets hard.
 // =====================================================================
-function isCardio(setType) {
-  return String(setType || '').trim().toLowerCase() === 'cardio';
-}
-
-// Soma os minutos de cardio de um conjunto de linhas de workout_logs.
-// Ignora linha sem minutos (aluno marcou o set mas não informou o tempo).
-function sumCardioMinutes(rows) {
-  return (rows || []).reduce((sum, r) => {
-    const min = Number(r.duration_minutes);
-    return sum + (isCardio(r.set_type) && min > 0 ? min : 0);
-  }, 0);
-}
-
-// 40 → '40min' · 95 → '1h35' · 120 → '2h'
-function formatMinutes(minutes) {
-  const m = Math.round(Number(minutes) || 0);
-  if (m <= 0) return '0min';
-  const h = Math.floor(m / 60);
-  const rest = m % 60;
-  if (h > 0) return rest > 0 ? `${h}h${String(rest).padStart(2, '0')}` : `${h}h`;
-  return `${m}min`;
-}
-
-// Minutos de cardio por data ('YYYY-MM-DD' → minutos)
-function cardioByDate(rows) {
-  const out = {};
-  (rows || []).forEach(r => {
-    const min = Number(r.duration_minutes);
-    if (!isCardio(r.set_type) || !(min > 0)) return;
-    out[r.session_date] = (out[r.session_date] || 0) + min;
-  });
-  return out;
-}
-
-// '2026-08-05' → '05/08'
-function formatDayMonth(date) {
-  if (!date) return '';
-  return new Date(date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-}
-
-// Último treino COM cardio antes de uma data. rows são linhas de workout_logs
-// (qualquer data anterior); agrupa por dia porque o aluno pode registrar
-// cardio em dois exercícios no mesmo treino.
-function previousCardioSession(rows, beforeDate) {
-  const porData = cardioByDate((rows || []).filter(r => r.session_date && r.session_date < beforeDate));
-  const datas = Object.keys(porData).filter(d => porData[d] > 0).sort();
-  if (datas.length === 0) return null;
-  const date = datas[datas.length - 1];
-  return { date, minutes: porData[date] };
-}
-
-// Comparativo do card do dia: "hoje 50min · último 40min ↑25% (30/07)".
-// É a pergunta diária de verdade — o total de 12 semanas do gráfico não
-// responde se o cardio de HOJE foi maior que o do treino anterior.
-// Sem base anterior não inventa ↑100%: diz que é o primeiro registro.
-function cardioComparison(currentMinutes, prev, label) {
-  const cur = Math.round(Number(currentMinutes) || 0);
-  if (cur <= 0) return null;
-  const quando = label || 'hoje';
-  const agora = `${quando} <strong class="cmp-now">${formatMinutes(cur)}</strong>`;
-
-  if (!prev || !(prev.minutes > 0)) {
-    return { dir: 'first', diff: null, html: `${agora} · <span class="cmp-flat">1º cardio registrado</span>` };
-  }
-
-  const diff = Math.round(((cur - prev.minutes) / prev.minutes) * 100);
-  const dir = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
-  const delta = diff === 0 ? '= igual' : `${diff > 0 ? '↑' : '↓'}${Math.abs(diff)}%`;
-  return {
-    dir,
-    diff,
-    html: `${agora} · último <strong class="cmp-prev">${formatMinutes(prev.minutes)}</strong>` +
-      ` <span class="cmp-${dir}">${delta}</span> <span class="cmp-when">em ${formatDayMonth(prev.date)}</span>`
-  };
-}
-
-// Legenda dos gráficos de evolução. Eles vivem dentro da aba Diária mas NÃO
-// falam do dia selecionado — sem esse aviso o professor lê o total de 12
-// semanas como se fosse o número daquele treino.
-const CARDIO_CAPTION = 'Últimas 12 semanas · 1 coluna por treino — não é o total do dia';
-const FORCA_CAPTION  = 'Últimas 12 semanas · 1 ponto por treino — não é o dia selecionado';
-
-// Texto do gráfico de cardio + se vale desenhar o gráfico.
-// Puro de propósito: as regras de "quando um número engana" são o que precisa
-// de teste, não o desenho.
-//   1 sessão  → sem gráfico e sem média/total/máximo (seriam o mesmo número 3x)
-//   2 sessões → gráfico, sem comparação 1ª→última (é o próprio gráfico em texto)
-//   3+        → tudo
-function cardioChartInfo(dates, minutesData) {
-  const n = minutesData.length;
-  const dia = (d) => new Date(d + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-  const row = (label, value, cls) =>
-    `<div class="stat-row"><span class="stat-label">${label}</span><span class="stat-value${cls ? ' ' + cls : ''}">${value}</span></div>`;
-  const caption = `<div class="chart-caption">${CARDIO_CAPTION}</div>`;
-
-  if (n === 0) {
-    return { showChart: false, html: '<div class="no-data">Sem cardio registrado nas últimas 12 semanas</div>' };
-  }
-  if (n === 1) {
-    return {
-      showChart: false,
-      html: caption +
-        row('Única sessão', `${formatMinutes(minutesData[0])} em ${dia(dates[0])}`) +
-        '<div class="no-data">Só 1 sessão na janela — o gráfico aparece a partir da 2ª.</div>'
-    };
-  }
-
-  const total = minutesData.reduce((a, b) => a + b, 0);
-  let html = caption;
-  html += row('Sessões na janela', n);
-  html += row('Total', formatMinutes(total));
-  html += row('Média por sessão', formatMinutes(total / n));
-  html += row('Maior sessão', formatMinutes(Math.max(...minutesData)));
-  if (n >= 3) {
-    const ini = minutesData[0], fim = minutesData[n - 1];
-    const diff = ini > 0 ? Math.round(((fim - ini) / ini) * 100) : 0;
-    const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : '';
-    const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '=';
-    // Rótulo explícito: são duas sessões pontuais, não a inclinação da curva.
-    html += row('1ª → última sessão',
-      `${formatMinutes(ini)} → ${formatMinutes(fim)} ${arrow} ${Math.abs(diff)}%`, cls);
-  }
-  return { showChart: true, html };
-}
-
-// Converte um Date para 'YYYY-MM-DD' no fuso LOCAL.
-// NÃO usar toISOString() para datas: ele converte para UTC e, após ~21h no Brasil,
-// devolve o dia seguinte — o que deslocava a janela da semana/mês em um dia e marcava
-// o dia de amanhã como "faltou".
-function toLocalISO(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
-
-// Fuso fixo do app (Brasil não tem horário de verão desde 2019).
-// Usado ao filtrar colunas timestamptz por um intervalo de DIAS locais — sem o offset
-// explícito o Postgres interpreta o horário no fuso do servidor (UTC) e a janela desloca.
-const TZ = '-03:00';
-
-// 1RM estimado (fórmula de Epley). Normaliza a carga pelas reps, então a curva de
-// força não oscila só porque o aluno fez 5 reps numa sessão e 10 na outra.
-function e1rm(weight, reps) {
-  const w = Number(weight) || 0;
-  const r = Number(reps) || 0;
-  if (w <= 0 || r <= 0) return 0;
-  return w * (1 + r / 30);
-}
-
-// Dias em que o aluno TEM treino prescrito, vindos do plano ativo (chaves de structure).
-// Substitui a regra antiga "todo dia que não é domingo é dia de treino", que fazia um
-// aluno de 4x/semana aparecer com 2 faltas toda semana.
-function prescribedDaySet() {
-  // Dia presente no plano mas sem exercício nenhum NÃO é dia de treino — senão
-  // viraria falta toda semana e zeraria a sequência sem o aluno ter faltado.
-  return new Set(Object.keys(PRESCRIBED_ORDER).filter(d => (PRESCRIBED_ORDER[d] || []).length > 0));
-}
-
-// dateStr no formato 'YYYY-MM-DD' → é dia de treino prescrito?
-function isTrainingDate(dateStr, prescribed) {
-  const d = new Date(dateStr + 'T12:00:00');
-  return prescribed.has(DAYS[d.getDay()]);
-}
 
 // Carregados dinamicamente do plano do aluno
 let PRESCRIBED_REPS = {};
@@ -786,48 +616,15 @@ async function supaFetch(endpoint) {
 
 // =====================================================================
 // SEQUÊNCIA (foguinho)
-// Regra: conta apenas os DIAS DE TREINO PRESCRITOS. Dia de descanso é
-// ignorado — não conta e NÃO quebra a sequência. O dia de hoje, se ainda
-// não tem registro, fica pendente (não quebra: o dia não acabou).
+// O cálculo é computeStreak(), em metrics.js: conta apenas os DIAS DE TREINO
+// PRESCRITOS; dia de descanso é ignorado (não conta e NÃO quebra); o dia de
+// hoje sem registro fica pendente, porque o dia não acabou.
+// A janela padrão (STREAK_WINDOW_DAYS) também vem de lá.
 // =====================================================================
-const STREAK_WINDOW_DAYS = 180;
-
-// Cálculo puro (sem DOM, sem rede) para ser testável.
-// trained: Set de 'YYYY-MM-DD' com treino registrado
-// prescribed: Set de nomes de dia ('Segunda', ...) vindos do plano ativo
-// today: Date de referência
-function computeStreak(trained, prescribed, today) {
-  // sequência atual: caminha de hoje para trás
-  let current = 0;
-  for (let i = 0; i < STREAK_WINDOW_DAYS; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const ds = toLocalISO(d);
-
-    if (!isTrainingDate(ds, prescribed)) continue;   // descanso: pula, não quebra
-    if (trained.has(ds)) { current++; continue; }
-    if (i === 0) continue;                           // hoje ainda pode treinar
-    break;                                           // faltou num dia prescrito
-  }
-
-  // melhor sequência dentro da janela
-  let best = 0, run = 0;
-  for (let i = STREAK_WINDOW_DAYS - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const ds = toLocalISO(d);
-
-    if (!isTrainingDate(ds, prescribed)) continue;
-    if (trained.has(ds)) { run++; if (run > best) best = run; }
-    else if (i > 0) run = 0;
-  }
-
-  return { current, best, hitWindowEdge: current >= STREAK_WINDOW_DAYS - 1 };
-}
 
 async function loadStreak() {
   const bar = document.getElementById('streakBar');
-  const prescribed = prescribedDaySet();
+  const prescribed = prescribedDaySet(PRESCRIBED_ORDER);
 
   // Sem plano ativo não há como saber o que é treino e o que é descanso.
   if (prescribed.size === 0) { bar.classList.add('hidden'); return; }
@@ -1036,11 +833,10 @@ const chartInstances = {};
 function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
-// Janela do gráfico de evolução: 12 semanas.
-// Antes a query baixava o histórico INTEIRO do exercício, sem limite — o que deixava
-// o eixo X ilegível (50+ rótulos num gráfico de 200px) e crescia para sempre.
-const CHART_WINDOW_DAYS = 84;
-const CHART_WINDOW_WEEKS = 12;
+// Janela do gráfico de evolução: 12 semanas (CHART_WINDOW_DAYS/WEEKS em
+// metrics.js). Antes a query baixava o histórico INTEIRO do exercício, sem
+// limite — o que deixava o eixo X ilegível (50+ rótulos num gráfico de 200px)
+// e crescia para sempre.
 
 async function toggleChart(chartId, exerciseName, isCardioExercise) {
   const container = document.getElementById(chartId);
@@ -1358,18 +1154,8 @@ function switchView(view) {
 }
 
 // === WEEKLY ===
+// getWeekRange(offset) vem de metrics.js (semana de segunda a domingo).
 let currentWeekOffset = 0;
-
-function getWeekRange(offset) {
-  const now = new Date();
-  now.setDate(now.getDate() + (offset * 7));
-  const day = now.getDay();
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  return { start: monday, end: sunday };
-}
 
 function navWeek(dir) {
   currentWeekOffset += dir;
@@ -1431,7 +1217,7 @@ async function loadWeekly() {
     }
 
     // Presença semanal
-    const prescribed = prescribedDaySet();
+    const prescribed = prescribedDaySet(PRESCRIBED_ORDER);
     const cardioMinByDate = cardioByDate(data);
     let html = '<div class="weekly-days">';
     const dates = Object.keys(byDay).sort();
@@ -1673,7 +1459,7 @@ async function loadMonthly() {
       });
     }
 
-    const prescribed = prescribedDaySet();
+    const prescribed = prescribedDaySet(PRESCRIBED_ORDER);
 
     // Calendário
     let html = '<div class="resume-card"><h3>Calendário de presença</h3>';

@@ -291,17 +291,6 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
 
-    /* ── Botão de anotações do professor (header) ─────────────── */
-    .notes-btn {
-      position: absolute; bottom: 10px; left: 14px;
-      background: #0a2a3a; border: 1px solid #00bcd4; color: #00bcd4;
-      font-size: 0.65rem; font-weight: 700; padding: 5px 10px;
-      border-radius: 12px; cursor: pointer; display: none;
-      letter-spacing: 0.3px; white-space: nowrap;
-    }
-    .notes-btn:active { opacity: 0.7; }
-    .notes-btn.visible { display: inline-block; }
-
     /* ── Modal de anotações do aluno ─────────────────────────── */
     .notes-modal {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -352,6 +341,121 @@
       font-size: 0.65rem; color: #555; text-align: right;
       margin-top: 8px; padding-top: 8px; border-top: 1px solid #222;
     }
+
+    /* ── Botão hamburger (header) ─────────────────────────────── */
+    .menu-btn {
+      position: absolute; top: 12px; left: 14px;
+      background: #0a2a3a; border: 1px solid #00bcd4;
+      width: 34px; height: 30px; border-radius: 10px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 4px; padding: 0;
+    }
+    .menu-btn:active { opacity: 0.7; }
+    .menu-btn span { display: block; width: 16px; height: 2px; background: #00bcd4; border-radius: 2px; }
+    /* Ponto vermelho: orientação nova que o aluno ainda não abriu.
+       Sem isso, esconder as Orientações dentro do menu faria o aluno
+       perder o recado do professor sem nunca saber que existia. */
+    .menu-btn .menu-badge {
+      position: absolute; top: -3px; right: -3px;
+      width: 9px; height: 9px; border-radius: 50%;
+      background: #f44336; border: none; display: none;
+    }
+    .menu-btn.has-news .menu-badge { display: block; }
+
+    /* ── Menu lateral ─────────────────────────────────────────── */
+    .drawer-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+      z-index: 1100; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .drawer-backdrop.show { opacity: 1; pointer-events: auto; }
+    .drawer {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 82%; max-width: 300px;
+      background: #0d2137; border-right: 1px solid #1a3a4f; z-index: 1101;
+      transform: translateX(-100%); transition: transform 0.22s ease-out;
+      display: flex; flex-direction: column;
+      padding-top: env(safe-area-inset-top);
+    }
+    .drawer.show { transform: translateX(0); }
+    .drawer-header {
+      padding: 16px 16px 12px; border-bottom: 1px solid #132d42;
+      display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+    }
+    .drawer-header .drawer-title { font-size: 0.95rem; font-weight: 700; color: #00bcd4; }
+    .drawer-header .drawer-sub { font-size: 0.68rem; color: #777; margin-top: 3px; }
+    .drawer-close {
+      background: #132d42; border: none; color: #999; font-size: 1rem;
+      width: 28px; height: 28px; border-radius: 50%; cursor: pointer; flex-shrink: 0;
+    }
+    .drawer-items { padding: 8px; overflow-y: auto; flex: 1; }
+    .drawer-item {
+      width: 100%; display: flex; align-items: center; gap: 12px;
+      background: none; border: none; border-radius: 10px;
+      padding: 13px 12px; cursor: pointer; text-align: left; color: #f0f0f0;
+    }
+    .drawer-item:active { background: #132d42; }
+    .drawer-item .di-icon { font-size: 1.15rem; width: 24px; text-align: center; flex-shrink: 0; }
+    .drawer-item .di-text { flex: 1; min-width: 0; }
+    /* label e desc são <span>: sem display:block ficariam na mesma linha */
+    .drawer-item .di-label { display: block; font-size: 0.88rem; font-weight: 600; }
+    .drawer-item .di-desc { display: block; font-size: 0.66rem; color: #777; margin-top: 2px; }
+    .drawer-item .di-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #f44336;
+      flex-shrink: 0; display: none;
+    }
+    .drawer-item.has-news .di-dot { display: block; }
+    .drawer-section {
+      font-size: 0.6rem; color: #555; text-transform: uppercase;
+      letter-spacing: 0.6px; padding: 12px 12px 4px;
+    }
+
+    /* ── Gráfico de evolução do exercício (dentro do histórico) ── */
+    .chart-btn {
+      width: 100%; background: #132d42; border: 1px solid #00bcd4; color: #00bcd4;
+      font-size: 0.78rem; font-weight: 600; padding: 9px; border-radius: 8px;
+      cursor: pointer; margin-top: 12px;
+    }
+    .chart-btn:active { opacity: 0.7; }
+    .chart-btn:disabled { opacity: 0.5; cursor: default; }
+    .chart-container {
+      display: none; background: #0d0d0d; border-radius: 8px;
+      padding: 10px; margin-top: 10px;
+    }
+    .chart-container.show { display: block; }
+    .chart-container canvas { max-height: 200px; }
+    .chart-legend {
+      display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;
+      font-size: 0.66rem; color: #999; margin-top: 6px;
+    }
+    .chart-legend span { display: flex; align-items: center; gap: 4px; }
+    .chart-legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    /* Área de texto do gráfico. Existe separada para que mensagens de
+       erro/vazio NÃO sobrescrevam o <canvas> (isso travava a reabertura). */
+    .chart-info { margin-top: 8px; }
+    .chart-info .stat-row {
+      display: flex; justify-content: space-between; gap: 8px;
+      font-size: 0.72rem; padding: 5px 0; border-bottom: 1px solid #222;
+    }
+    .chart-info .stat-row:last-child { border-bottom: none; }
+    .chart-info .stat-label { color: #999; }
+    .chart-info .stat-value { color: #f0f0f0; font-weight: 600; text-align: right; }
+    .chart-info .stat-value.up { color: #4caf50; }
+    .chart-info .stat-value.down { color: #f44336; }
+    .chart-caption {
+      font-size: 0.62rem; color: #777; text-align: center;
+      padding-bottom: 6px; border-bottom: 1px solid #222; margin-bottom: 4px;
+    }
+    .chart-info .no-data {
+      text-align: center; padding: 16px; color: #666;
+      font-size: 0.8rem; font-style: italic;
+    }
+    .frequency {
+      margin-top: 10px; padding: 8px; background: #0d2137;
+      border-radius: 8px; font-size: 0.72rem; color: #bbb; text-align: center;
+    }
+    .frequency strong { color: #00bcd4; }
+    .freq-dots { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 6px; }
+    .freq-dot { width: 10px; height: 10px; border-radius: 50%; background: #4caf50; }
+    .freq-dot.missed { background: #f44336; }
   </style>
 </head>
 <body>
@@ -360,13 +464,61 @@
     <div class="loading-text">Carregando...</div>
   </div>
   <div class="header">
+    <button class="menu-btn" id="menuBtn" onclick="openDrawer()" aria-label="Abrir menu" aria-expanded="false" aria-controls="drawer">
+      <span></span><span></span><span></span>
+      <span class="menu-badge"></span>
+    </button>
     <button class="logout-btn" onclick="location.href='login.html?logout'">Sair</button>
     <h1 id="greeting">Carregando...</h1>
     <div class="subtitle" id="gymName"></div>
     <div class="plan-title" id="planTitle"></div>
     <div class="plan-dates hidden" id="planDates"></div>
-    <button class="notes-btn" id="notesBtn" onclick="openNotesModal()">Orientações</button>
   </div>
+
+  <!-- Menu lateral do aluno -->
+  <div class="drawer-backdrop" id="drawerBackdrop" onclick="closeDrawer()"></div>
+  <nav class="drawer" id="drawer" aria-label="Menu">
+    <div class="drawer-header">
+      <div>
+        <div class="drawer-title" id="drawerName">Menu</div>
+        <div class="drawer-sub" id="drawerSub"></div>
+      </div>
+      <button class="drawer-close" onclick="closeDrawer()" aria-label="Fechar menu">✕</button>
+    </div>
+    <div class="drawer-items">
+      <div class="drawer-section">Do seu professor</div>
+      <button class="drawer-item" id="drawerNoteItem" onclick="drawerGo('notes')">
+        <span class="di-icon">📋</span>
+        <span class="di-text">
+          <span class="di-label">Orientações</span>
+          <span class="di-desc" id="drawerNoteDesc">Nenhuma orientação no momento</span>
+        </span>
+        <span class="di-dot"></span>
+      </button>
+      <button class="drawer-item" onclick="drawerGo('anamnese')">
+        <span class="di-icon">📊</span>
+        <span class="di-text">
+          <span class="di-label">Resultado da anamnese</span>
+          <span class="di-desc">Suas medidas e a evolução delas</span>
+        </span>
+      </button>
+      <div class="drawer-section">Sua evolução</div>
+      <button class="drawer-item" onclick="drawerGo('weekly')">
+        <span class="di-icon">📈</span>
+        <span class="di-text">
+          <span class="di-label">Evolução semanal</span>
+          <span class="di-desc">Presença, volume, tempo e cardio da semana</span>
+        </span>
+      </button>
+      <button class="drawer-item" onclick="drawerGo('monthly')">
+        <span class="di-icon">🗓</span>
+        <span class="di-text">
+          <span class="di-label">Evolução mensal</span>
+          <span class="di-desc">Calendário de presença e destaques do mês</span>
+        </span>
+      </button>
+    </div>
+  </nav>
 
   <!-- Container sticky: tabs + timer acompanham o scroll -->
   <div class="sticky-top" id="stickyTop">
@@ -389,6 +541,15 @@
     <div class="history-modal-content">
       <h3 id="historyModalTitle">Histórico</h3>
       <div id="historyModalBody"></div>
+      <!-- Gráfico de evolução do exercício. O Chart.js só é baixado quando o
+           aluno toca no botão: no caminho crítico desta tela ele custaria
+           ~200KB para uma tela que a maioria abre só para registrar o treino. -->
+      <button class="chart-btn" id="historyChartBtn" onclick="toggleExerciseChart()">📈 Ver evolução</button>
+      <div class="chart-container" id="historyChart">
+        <canvas></canvas>
+        <div class="chart-legend" id="historyChartLegend"></div>
+        <div class="chart-info"></div>
+      </div>
       <button class="history-modal-close" onclick="closeHistoryModal()">Fechar</button>
     </div>
   </div>
@@ -408,6 +569,9 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth-guard.js"></script>
+<!-- Cálculos compartilhados com as telas do professor (toLocalISO, e1rm,
+     helpers de cardio, janela dos gráficos). Não puxa nada da rede. -->
+<script src="/metrics.js"></script>
 <script>
 // === Estado global ===
 function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
@@ -425,15 +589,9 @@ function getToday() {
   return days[new Date().getDay()];
 }
 
-// Converte um Date para 'YYYY-MM-DD' no fuso LOCAL.
-// NÃO usar toISOString() para datas: ele converte para UTC e, após ~21h no Brasil,
-// devolve o dia seguinte — o que gravava o treino na data errada.
-function toLocalISO(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+// toLocalISO() vem de metrics.js: converte um Date para 'YYYY-MM-DD' no fuso
+// LOCAL. NÃO usar toISOString() para datas — ele converte para UTC e, após ~21h
+// no Brasil, devolve o dia seguinte, gravando o treino na data errada.
 
 function getTodayDate() { return toLocalISO(new Date()); }
 
@@ -764,12 +922,315 @@ async function loadHistory(exerciseName) {
   }
 }
 
-function toggleHistory(exerciseName) {
+// Guarda qual exercício está aberto no modal — o gráfico é carregado só quando
+// o aluno pede, então precisa saber depois do clique inicial.
+let currentHistoryExercise = null;
+let currentHistoryIsCardio = false;
+let historyChartInstance = null;
+
+function toggleHistory(exerciseName, isCardioExercise) {
+  currentHistoryExercise = exerciseName;
+  currentHistoryIsCardio = !!isCardioExercise;
   document.getElementById('historyModal').classList.add('show');
   document.getElementById('historyModalBody').innerHTML = '<div style="color:#888;text-align:center;padding:20px;">Carregando...</div>';
+  resetExerciseChart();
   loadHistory(exerciseName);
 }
-function closeHistoryModal() { document.getElementById('historyModal').classList.remove('show'); }
+
+function closeHistoryModal() {
+  document.getElementById('historyModal').classList.remove('show');
+  resetExerciseChart();
+}
+
+// === Gráfico de evolução do exercício ===
+// Mesma leitura que o professor tem: volume e 1RM estimado por treino (ou
+// minutos por treino, quando o exercício é cardio), na janela de 12 semanas.
+function resetExerciseChart() {
+  if (historyChartInstance) { historyChartInstance.destroy(); historyChartInstance = null; }
+  const box = document.getElementById('historyChart');
+  box.classList.remove('show');
+  box.querySelector('.chart-info').innerHTML = '';
+  document.getElementById('historyChartLegend').innerHTML = '';
+  const canvas = box.querySelector('canvas');
+  canvas.style.display = '';
+  const btn = document.getElementById('historyChartBtn');
+  btn.disabled = false;
+  btn.textContent = currentHistoryIsCardio ? '📈 Ver evolução do cardio' : '📈 Ver evolução';
+}
+
+// Chart.js é injetado na PRIMEIRA vez que o aluno pede o gráfico.
+// No <head> ele custaria ~200KB de download em toda abertura do app, numa tela
+// que a maioria abre apenas para registrar as séries.
+let chartLibPromise = null;
+function loadChartLib() {
+  if (window.Chart) return Promise.resolve();
+  if (!chartLibPromise) {
+    chartLibPromise = new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+      s.onload = () => resolve();
+      s.onerror = () => { chartLibPromise = null; reject(new Error('sem conexão')); };
+      document.head.appendChild(s);
+    });
+  }
+  return chartLibPromise;
+}
+
+async function toggleExerciseChart() {
+  const box = document.getElementById('historyChart');
+  const btn = document.getElementById('historyChartBtn');
+
+  if (box.classList.contains('show')) {
+    box.classList.remove('show');
+    btn.textContent = currentHistoryIsCardio ? '📈 Ver evolução do cardio' : '📈 Ver evolução';
+    return;
+  }
+
+  // Já renderizado: só reexibe (não baixa nem consulta de novo)
+  if (historyChartInstance || box.querySelector('.chart-info').innerHTML) {
+    box.classList.add('show');
+    btn.textContent = 'Esconder evolução';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Carregando gráfico...';
+  try {
+    await loadChartLib();
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = 'Tentar novamente';
+    showToast('Não foi possível carregar o gráfico (' + e.message + ')', true);
+    return;
+  }
+
+  box.classList.add('show');
+  const canvas = box.querySelector('canvas');
+  const setInfo = (html) => { box.querySelector('.chart-info').innerHTML = html; };
+
+  try {
+    if (currentHistoryIsCardio) await renderCardioChart(currentHistoryExercise, canvas, setInfo);
+    else await renderStrengthChart(currentHistoryExercise, canvas, setInfo);
+  } catch (e) {
+    canvas.style.display = 'none';
+    setInfo(`<div class="no-data">Erro ao carregar: ${esc(e.message)}</div>`);
+  }
+  btn.disabled = false;
+  btn.textContent = 'Esconder evolução';
+}
+
+// Volume (kg×reps) e 1RM estimado por treino, só das séries hard.
+// Aquecimento e feeder ficariam no gráfico como queda de carga sem queda de
+// esforço — por isso a query filtra set_type=hard.
+async function renderStrengthChart(exerciseName, canvas, setInfo) {
+  const from = new Date();
+  from.setDate(from.getDate() - (CHART_WINDOW_DAYS - 1));
+
+  const { data, error } = await _sb.from('workout_logs')
+    .select('session_date, weight, reps')
+    .eq('student_id', studentId)
+    .eq('exercise_name', exerciseName)
+    .eq('set_type', 'hard')
+    .gte('session_date', toLocalISO(from))
+    .order('session_date', { ascending: true })
+    .limit(400);
+  if (error) throw error;
+
+  if (!data || data.length === 0) {
+    canvas.style.display = 'none';
+    setInfo('<div class="no-data">Sem registros nas últimas 12 semanas</div>');
+    return;
+  }
+  canvas.style.display = '';
+  document.getElementById('historyChartLegend').innerHTML =
+    '<span><span class="dot" style="background:#00bcd4"></span> Volume (kg×reps)</span>' +
+    '<span><span class="dot" style="background:#4caf50"></span> 1RM estimado (kg)</span>';
+
+  // Agrupa por session_date (não created_at: created_at é UTC e jogava treinos
+  // da noite para o dia seguinte)
+  const byDate = {};
+  data.forEach(r => {
+    if (!byDate[r.session_date]) byDate[r.session_date] = [];
+    byDate[r.session_date].push(r);
+  });
+
+  const labels = [], volumeData = [], e1rmData = [];
+  let bestE1rm = 0, bestSet = null, bestDate = null, maxWeight = 0;
+  const dates = Object.keys(byDate).sort();
+
+  dates.forEach(date => {
+    labels.push(formatDayMonth(date));
+    let volume = 0, dayBest = 0;
+    byDate[date].forEach(s => {
+      const w = Number(s.weight) || 0;
+      const r = Number(s.reps) || 0;
+      volume += w * r;
+      if (w > maxWeight) maxWeight = w;
+      const est = e1rm(w, r);
+      if (est > dayBest) dayBest = est;
+      if (est > bestE1rm) { bestE1rm = est; bestSet = s; bestDate = date; }
+    });
+    volumeData.push(volume);
+    e1rmData.push(Math.round(dayBest));
+  });
+
+  historyChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Volume (kg×reps)', data: volumeData,
+          borderColor: '#00bcd4', backgroundColor: 'rgba(0, 188, 212, 0.1)',
+          borderWidth: 2, tension: 0.3, fill: true, pointRadius: 2, yAxisID: 'y'
+        },
+        {
+          label: '1RM estimado (kg)', data: e1rmData,
+          borderColor: '#4caf50', backgroundColor: 'rgba(76, 175, 80, 0.1)',
+          borderWidth: 2, tension: 0.3, fill: false, pointRadius: 2, yAxisID: 'y1'
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0d2137', titleColor: '#00bcd4', bodyColor: '#f0f0f0',
+          borderColor: '#1a3a4f', borderWidth: 1
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#666', font: { size: 9 }, maxRotation: 45 }, grid: { color: '#222' } },
+        y: { position: 'left', ticks: { color: '#00bcd4', font: { size: 9 } }, grid: { color: '#222' } },
+        y1: { position: 'right', ticks: { color: '#4caf50', font: { size: 9 } }, grid: { display: false } }
+      }
+    }
+  });
+
+  // --- Texto: melhor série da janela, progressão e frequência ---
+  let html = `<div class="chart-caption">${FORCA_CAPTION}</div>`;
+  const row = (label, value, cls) =>
+    `<div class="stat-row"><span class="stat-label">${label}</span><span class="stat-value${cls ? ' ' + cls : ''}">${value}</span></div>`;
+
+  if (bestSet) {
+    // Rótulo honesto: é o melhor das últimas 12 semanas, não recorde histórico —
+    // a query é limitada à janela de propósito.
+    html += row('🏆 Melhor (12 sem.)',
+      `${bestSet.weight} kg × ${bestSet.reps} · 1RM ${Math.round(bestE1rm)} kg <span style="color:#666;font-weight:400;">(${formatDayMonth(bestDate)})</span>`);
+    html += row('Carga máx (12 sem.)', `${maxWeight} kg`);
+  }
+  if (e1rmData.length >= 2) {
+    const ini = e1rmData[0], fim = e1rmData[e1rmData.length - 1];
+    const diff = ini > 0 ? Math.round(((fim - ini) / ini) * 100) : 0;
+    const cls = diff > 0 ? 'up' : diff < 0 ? 'down' : '';
+    const arrow = diff > 0 ? '↑' : diff < 0 ? '↓' : '=';
+    html += row('1º → último treino (1RM est.)', `${ini} → ${fim} kg ${arrow} ${Math.abs(diff)}%`, cls);
+  }
+  html += frequencyHtml(dates);
+  setInfo(html);
+}
+
+// Minutos por treino. Volume e 1RM não existem no cardio — o que evolui é tempo.
+async function renderCardioChart(exerciseName, canvas, setInfo) {
+  const from = new Date();
+  from.setDate(from.getDate() - (CHART_WINDOW_DAYS - 1));
+
+  const { data, error } = await _sb.from('workout_logs')
+    .select('session_date, set_type, duration_minutes')
+    .eq('student_id', studentId)
+    .eq('exercise_name', exerciseName)
+    .eq('set_type', 'cardio')
+    .not('duration_minutes', 'is', null)
+    .gte('session_date', toLocalISO(from))
+    .order('session_date', { ascending: true })
+    .limit(400);
+  if (error) throw error;
+
+  if (!data || data.length === 0) {
+    canvas.style.display = 'none';
+    setInfo(cardioChartInfo([], []).html);
+    return;
+  }
+
+  // O mesmo dia pode ter mais de um set de cardio: soma.
+  const byDate = {};
+  data.forEach(r => {
+    if (!byDate[r.session_date]) byDate[r.session_date] = [];
+    byDate[r.session_date].push(r);
+  });
+
+  const dates = Object.keys(byDate).sort();
+  const labels = dates.map(formatDayMonth);
+  const minutesData = dates.map(d => sumCardioMinutes(byDate[d]));
+
+  const info = cardioChartInfo(dates, minutesData);
+  setInfo(info.html + frequencyHtml(dates));
+  if (!info.showChart) { canvas.style.display = 'none'; return; }
+  canvas.style.display = '';
+  document.getElementById('historyChartLegend').innerHTML =
+    '<span><span class="dot" style="background:#ff9800"></span> Minutos de cardio por treino</span>';
+
+  historyChartInstance = new Chart(canvas.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Minutos', data: minutesData,
+        backgroundColor: 'rgba(255, 152, 0, 0.55)', borderColor: '#ff9800', borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#0d2137', titleColor: '#ff9800', bodyColor: '#f0f0f0',
+          borderColor: '#1a3a4f', borderWidth: 1
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#666', font: { size: 9 }, maxRotation: 45 }, grid: { color: '#222' } },
+        y: { beginAtZero: true, ticks: { color: '#ff9800', font: { size: 9 } }, grid: { color: '#222' } }
+      }
+    }
+  });
+}
+
+// Em quantas das últimas 12 semanas o exercício foi feito.
+// A janela é FIXA (termina nesta semana): contar "da primeira à última sessão"
+// faria quem fez o exercício uma vez e parou aparecer como 1/1 semanas (100%).
+function frequencyHtml(dates) {
+  const weekStartOf = (d) => {
+    const x = new Date(d);
+    const wd = x.getDay();
+    x.setDate(x.getDate() - (wd === 0 ? 6 : wd - 1));
+    x.setHours(12, 0, 0, 0);
+    return toLocalISO(x);
+  };
+  const trainedWeeks = new Set(dates.map(ds => weekStartOf(new Date(ds + 'T12:00:00'))));
+
+  const weeks = [];
+  const cursor = new Date();
+  for (let i = 0; i < CHART_WINDOW_WEEKS; i++) {
+    const wk = new Date(cursor);
+    wk.setDate(cursor.getDate() - i * 7);
+    weeks.push(weekStartOf(wk));
+  }
+  weeks.reverse();
+
+  const attended = weeks.filter(w => trainedWeeks.has(w)).length;
+  const percent = Math.round((attended / CHART_WINDOW_WEEKS) * 100);
+  const dots = weeks.map(w => {
+    const hit = trainedWeeks.has(w);
+    return `<span class="freq-dot${hit ? '' : ' missed'}" title="Semana de ${formatDayMonth(w)}"></span>`;
+  }).join('');
+
+  return `<div class="frequency">Você fez em <strong>${attended}/${CHART_WINDOW_WEEKS} semanas (${percent}%)</strong>` +
+    `<div class="freq-dots">${dots}</div>` +
+    `<div style="margin-top:4px;font-size:0.65rem;">🟢 fez &nbsp; 🔴 não fez &nbsp;·&nbsp; mais antiga → esta semana</div></div>`;
+}
 
 // === Vídeo ===
 function openVideo(url, exerciseName) {
@@ -916,8 +1377,8 @@ function renderExerciseCard(day, exIdx, ex) {
     const chave = descanso.uniform ? 'Descanso' : 'Descansos';
     html += `<div class="rest-line"><span class="rest-pill">⏱ <span class="rest-key">${chave}:</span> <span class="rest-value">${esc(descanso.text)}</span></span></div>`;
   }
-  // Histórico
-  html += `<button class="history-btn" onclick="toggleHistory('${exName.replace(/'/g,"\\'")}')">Ver histórico</button>`;
+  // Histórico (o modal também abre o gráfico de evolução deste exercício)
+  html += `<button class="history-btn" onclick="toggleHistory('${exName.replace(/'/g,"\\'")}', ${allCardio})">Ver histórico</button>`;
   // Exercício sem série: não há o que registrar. Aviso honesto em vez de card vazio.
   if (sets.length === 0) {
     html += `<div class="no-sets">Sem séries definidas — fale com seu personal.</div>`;
@@ -1187,9 +1648,47 @@ async function stopWorkoutSession() {
   showToast('Treino encerrado! ' + formatDuration(durationSeconds));
 }
 
+// === Menu lateral ===
+function openDrawer() {
+  document.getElementById('drawer').classList.add('show');
+  document.getElementById('drawerBackdrop').classList.add('show');
+  document.getElementById('menuBtn').setAttribute('aria-expanded', 'true');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('show');
+  document.getElementById('drawerBackdrop').classList.remove('show');
+  document.getElementById('menuBtn').setAttribute('aria-expanded', 'false');
+  document.body.style.overflow = '';
+}
+
+function drawerGo(destino) {
+  closeDrawer();
+  if (destino === 'notes')    { openNotesModal(); return; }
+  if (destino === 'anamnese') { location.href = 'anamnese.html'; return; }
+  if (destino === 'weekly')   { location.href = 'evolucao.html#weekly'; return; }
+  if (destino === 'monthly')  { location.href = 'evolucao.html#monthly'; return; }
+}
+
+// Fecha o menu com ESC (teclado físico / iPad)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeDrawer();
+});
+
 // === Anotações do professor ===
 let trainerNoteContent  = '';
 let trainerNoteUpdated  = '';
+
+// Chave do "já vi esta orientação". Guardada por aluno porque o mesmo aparelho
+// pode ser usado por mais de uma conta (celular emprestado na academia).
+const noteSeenKey = () => 'noteSeen:' + studentId;
+
+function markNoteAsSeen() {
+  try { localStorage.setItem(noteSeenKey(), trainerNoteUpdated || '1'); } catch (e) {}
+  document.getElementById('menuBtn').classList.remove('has-news');
+  document.getElementById('drawerNoteItem').classList.remove('has-news');
+}
 
 async function loadTrainerNote() {
   try {
@@ -1198,10 +1697,28 @@ async function loadTrainerNote() {
       .eq('student_id', studentId)
       .maybeSingle();
 
-    if (data && data.content && data.content.trim()) {
-      trainerNoteContent = data.content;
-      trainerNoteUpdated = data.updated_at || '';
-      document.getElementById('notesBtn').classList.add('visible');
+    const item = document.getElementById('drawerNoteItem');
+    const desc = document.getElementById('drawerNoteDesc');
+
+    if (!data || !data.content || !data.content.trim()) {
+      desc.textContent = 'Nenhuma orientação no momento';
+      return;
+    }
+
+    trainerNoteContent = data.content;
+    trainerNoteUpdated = data.updated_at || '';
+    desc.textContent = trainerNoteUpdated
+      ? 'Atualizado em ' + new Date(trainerNoteUpdated).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+      : 'Dieta, orientações e recados';
+
+    // Orientação nova (ou nunca aberta) → ponto vermelho no hamburger.
+    // O menu esconde as Orientações atrás de um toque; sem o aviso o aluno
+    // perderia o recado do professor sem saber que existia.
+    let seen = '';
+    try { seen = localStorage.getItem(noteSeenKey()) || ''; } catch (e) {}
+    if (seen !== (trainerNoteUpdated || '1')) {
+      document.getElementById('menuBtn').classList.add('has-news');
+      item.classList.add('has-news');
     }
   } catch (e) {
     console.log('Erro ao carregar orientações:', e);
@@ -1262,6 +1779,7 @@ function openNotesModal() {
   document.getElementById('notesModalBody').innerHTML = renderNoteHtml(trainerNoteContent);
   modal.classList.add('show');
   document.body.style.overflow = 'hidden';
+  markNoteAsSeen();
 }
 
 function closeNotesModal() {
@@ -1279,6 +1797,9 @@ function showBlock(state) {
   hideLoading();
   document.getElementById('tabs').style.display = 'none';
   document.getElementById('content').style.display = 'none';
+  // Sem acesso liberado, o menu não leva a nada útil (as telas de dentro
+  // também bloqueiam) — melhor não oferecer.
+  document.getElementById('menuBtn').style.display = 'none';
   const screen = document.getElementById('blockScreen');
   screen.classList.add('show');
   const map = {
@@ -1300,6 +1821,12 @@ guard('student', {
     // Header: saudação + academia + título do treino
     document.getElementById('greeting').textContent = 'Olá ' + (profile.full_name || '');
     if (profile.gym_name) document.getElementById('gymName').textContent = profile.gym_name;
+    document.getElementById('drawerName').textContent = profile.full_name || 'Menu';
+    document.getElementById('drawerSub').textContent = profile.gym_name || '';
+
+    // Orientações e anamnese existem mesmo sem treino cadastrado, então o menu
+    // é carregado antes de decidir o que mostrar no corpo da tela.
+    loadTrainerNote();
 
     // Carrega plano ativo
     const { data: plan, error } = await _sb.from('workout_plans')
@@ -1364,7 +1891,6 @@ guard('student', {
     loadTodayData(today);
     currentTabDay = today;
     await loadTodaySession();
-    loadTrainerNote(); // carrega em paralelo, não bloqueia
     hideLoading();
   },
   onBlocked: showBlock

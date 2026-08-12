@@ -310,5 +310,54 @@ const rico = [
   eq('re-render destrói as instâncias antigas', primeiros.map(c => c.instance.destroyed), [true, true, true, true, true]);
 }
 
+// ====================================================================
+// MODO ALUNO (somente leitura).
+// A mesma tela serve o professor (lança/edita) e o aluno (consulta). O que o
+// aluno NÃO pode ver ou fazer é regra de produto e precisa estar travada:
+//   · nada de editar/excluir/lançar
+//   · o campo `observacoes` (anotação do professor sobre ele) fica fora da tela
+//     E do PDF que ele exporta
+// ====================================================================
+{
+  const html = fs.readFileSync('anamnese.html', 'utf8');
+
+  eq('anamnese aceita professor e aluno no guard',
+    /guard\(\['trainer',\s*'student'\]/.test(js), true);
+  eq('modo aluno tem flag própria', /let STUDENT_VIEW = false;/.test(js), true);
+  eq('aluno entra pelo caminho somente-leitura',
+    /if \(profile\.role === 'student'\)[\s\S]{0,80}initStudentView\(profile\)/.test(js), true);
+
+  const initAluno = grab('initStudentView');
+  eq('modo aluno liga a flag',            /STUDENT_VIEW = true;/.test(initAluno), true);
+  eq('modo aluno usa o próprio id',       /studentId = profile\.id;/.test(initAluno), true);
+  eq('modo aluno esconde o formulário',   /tabForm'\)\.style\.display = 'none'/.test(initAluno), true);
+  eq('modo aluno esconde editar',         /btnEditAssessment'\)\.style\.display = 'none'/.test(initAluno), true);
+  eq('modo aluno esconde excluir',        /btnDeleteAssessment'\)\.style\.display = 'none'/.test(initAluno), true);
+  eq('modo aluno abre no histórico',      /switchTab\('history'\)/.test(initAluno), true);
+  eq('modo aluno volta para o treino',    /location\.href = 'index\.html'/.test(initAluno), true);
+
+  // O botão de PDF continua para os dois papéis (o aluno pode exportar).
+  eq('botão de PDF não é escondido no modo aluno',
+    /generatePDF\(\)/.test(html) && !/btnPdf'\)\.style\.display = 'none'/.test(js), true);
+
+  // Observações: escondidas na tela e no PDF, pelo mesmo teste.
+  eq('observações condicionadas na tela',
+    /if \(d\.observacoes && !hideObservacoes\(\)\)/.test(js), true);
+  eq('observações condicionadas no PDF',
+    (js.match(/d\.observacoes && !hideObservacoes\(\)/g) || []).length, 2);
+  eq('hideObservacoes é o modo aluno',
+    /function hideObservacoes\(\) \{ return STUDENT_VIEW; \}/.test(js), true);
+
+  // Simula as duas visões para garantir que a condição realmente filtra.
+  const filtro = new Function(`
+    let STUDENT_VIEW = arguments[0];
+    ${grab('hideObservacoes')}
+    const d = { observacoes: 'aluno desmotivado' };
+    return !!(d.observacoes && !hideObservacoes());
+  `);
+  eq('professor vê as observações', filtro(false), true);
+  eq('aluno não vê as observações', filtro(true), false);
+}
+
 console.log(`\n${pass} passaram, ${fail} falharam`);
 process.exit(fail ? 1 : 0);

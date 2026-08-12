@@ -1,4 +1,7 @@
-const CACHE_NAME = 'meutreino-v1';
+// v2: entraram evolucao.html (evolução semanal/mensal do aluno) e metrics.js
+// (cálculos compartilhados). Trocar o nome do cache é o que descarta a lista
+// antiga no activate.
+const CACHE_NAME = 'meutreino-v2';
 const urlsToCache = [
   '/login.html',
   '/index.html',
@@ -9,7 +12,9 @@ const urlsToCache = [
   '/treinador.html',
   '/owner.html',
   '/anotacoes.html',
+  '/evolucao.html',
   '/auth-guard.js',
+  '/metrics.js',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png'

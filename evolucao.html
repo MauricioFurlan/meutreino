@@ -1,0 +1,780 @@
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Minha evolução</title>
+  <meta name="theme-color" content="#00bcd4">
+  <!-- PWA: precisa estar em TODAS as páginas, senão o iOS mostra a barra do
+       Safari ao navegar dentro do app instalado (modo standalone) -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Treino">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body::-webkit-scrollbar, *::-webkit-scrollbar { display: none; }
+    body, * { scrollbar-width: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0d0d0d; color: #f0f0f0; min-height: 100vh; padding-bottom: 40px;
+    }
+    .header {
+      background: #0d2137; padding: 16px; text-align: center;
+      border-bottom: 1px solid #1a3a4f; position: relative;
+    }
+    .header h1 { font-size: 1.1rem; color: #00bcd4; letter-spacing: 1px; }
+    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .nav-btn {
+      position: absolute; top: 14px; background: none; border: 1px solid #555;
+      color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+    }
+    .nav-btn.left { left: 14px; }
+    .nav-btn.right { right: 14px; }
+    .nav-btn:active { opacity: 0.6; }
+
+    /* === Sequência (foguinho) === */
+    .streak-bar {
+      display: flex; align-items: center; justify-content: center; gap: 10px;
+      margin: 12px 14px 0; padding: 10px 14px;
+      background: #0d2137; border: 1px solid #1a3a4f; border-radius: 12px;
+    }
+    .streak-bar.hidden { display: none; }
+    .streak-flame { font-size: 1.6rem; line-height: 1; filter: grayscale(1) opacity(0.4); }
+    .streak-bar.on .streak-flame { filter: none; animation: flame-pulse 2s ease-in-out infinite; }
+    @keyframes flame-pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+    .streak-count { font-size: 1.25rem; font-weight: 700; color: #00bcd4; line-height: 1; }
+    .streak-bar:not(.on) .streak-count { color: #777; }
+    .streak-texts { display: flex; flex-direction: column; gap: 2px; }
+    .streak-label { font-size: 0.7rem; color: #999; }
+    .streak-sub { font-size: 0.62rem; color: #666; }
+    .streak-rest { color: #4caf50; }
+
+    .view-toggle {
+      display: flex; justify-content: center; gap: 0;
+      padding: 12px 16px; background: #0d2137; border-bottom: 1px solid #1a3a4f;
+    }
+    .view-btn {
+      padding: 8px 20px; border: 1px solid #1a3a4f; background: #132d42;
+      color: #888; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+    }
+    .view-btn:first-child { border-radius: 8px 0 0 8px; }
+    .view-btn:last-child { border-radius: 0 8px 8px 0; }
+    .view-btn.active { background: #00bcd4; color: #000; border-color: #00bcd4; }
+
+    .resume-section { display: none; padding: 16px; }
+    .resume-section.active { display: block; }
+    .resume-nav {
+      display: flex; align-items: center; justify-content: center;
+      gap: 16px; margin-bottom: 16px;
+    }
+    .resume-nav button {
+      background: #132d42; border: none; color: #00bcd4; font-size: 1.2rem;
+      width: 36px; height: 36px; border-radius: 50%; cursor: pointer;
+    }
+    .resume-nav button:disabled { color: #333; cursor: not-allowed; }
+    .resume-nav span { font-size: 0.9rem; font-weight: 600; color: #f0f0f0; }
+    .resume-card {
+      background: #0d2137; border-radius: 12px; padding: 14px;
+      margin-bottom: 12px; border: 1px solid #1a3a4f;
+    }
+    .resume-card h3 { font-size: 0.8rem; color: #00bcd4; margin-bottom: 8px; }
+    .stat-row {
+      display: flex; justify-content: space-between; padding: 6px 0;
+      border-bottom: 1px solid #222; font-size: 0.8rem;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .stat-label { color: #999; }
+    .stat-value { color: #f0f0f0; font-weight: 600; }
+    .stat-value.up { color: #4caf50; }
+    .stat-value.down { color: #f44336; }
+    .volume-bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .volume-bar-label { font-size: 0.7rem; color: #999; min-width: 35px; }
+    .volume-bar-track {
+      flex: 1; height: 14px; background: #222; border-radius: 7px; overflow: hidden;
+    }
+    .volume-bar-fill { height: 100%; background: #00bcd4; border-radius: 7px; transition: width 0.3s; }
+    .volume-bar-value { font-size: 0.7rem; color: #bbb; min-width: 55px; text-align: right; }
+    .weekly-days { display: flex; justify-content: space-around; margin-bottom: 16px; }
+    .weekly-day { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .weekly-day-label { font-size: 0.65rem; color: #888; }
+    .weekly-day-dot {
+      width: 24px; height: 24px; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; font-size: 0.7rem; color: #fff;
+    }
+    .weekly-day-dot.trained { background: #4caf50; }
+    .weekly-day-dot.missed { background: #f44336; }
+    .weekly-day-dot.rest { background: #1a3a4f; color: #666; }
+    .weekly-day-dot.future { background: none; border: 1px dashed #444; color: #444; }
+    .presence-calendar {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px;
+      margin: 0 auto 12px; max-width: 280px;
+    }
+    .cal-header { font-size: 0.6rem; color: #888; text-align: center; padding: 2px 0; }
+    .cal-day {
+      width: 100%; aspect-ratio: 1; border-radius: 50%; display: flex;
+      align-items: center; justify-content: center; font-size: 0.55rem;
+      color: #666; max-width: 28px; max-height: 28px; margin: 0 auto;
+    }
+    .cal-day.trained { background: #4caf50; color: #fff; }
+    .cal-day.missed { background: #f44336; color: #fff; }
+    .cal-day.rest { background: #222; color: #555; }
+    .cal-day.future { background: none; color: #1a3a4f; }
+    .loading { text-align: center; padding: 40px; color: #888; }
+    .no-data {
+      text-align: center; padding: 20px; color: #555;
+      font-size: 0.85rem; font-style: italic;
+    }
+    .hint { font-size: 0.62rem; color: #666; margin-top: 6px; }
+    .hint.center { text-align: center; }
+    .hint.warn { color: #00bcd4; }
+    /* Tela de bloqueio */
+    .block-screen { display: none; text-align: center; padding: 60px 24px; }
+    .block-screen.show { display: block; }
+    .block-screen .icon { font-size: 2.4rem; margin-bottom: 12px; }
+    .block-screen h2 { font-size: 1.05rem; color: #00bcd4; margin-bottom: 8px; }
+    .block-screen p { font-size: 0.9rem; color: #ccc; line-height: 1.5; }
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(13,13,13,0.92); z-index: 9999;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 16px; transition: opacity 0.3s;
+    }
+    .loading-overlay.hidden { opacity: 0; pointer-events: none; }
+    .loading-spinner {
+      width: 44px; height: 44px; border: 3px solid #1a3a4f;
+      border-top-color: #00bcd4; border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
+  </style>
+</head>
+<body>
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">Carregando...</div>
+  </div>
+
+  <div class="header">
+    <button class="nav-btn left" onclick="location.href='index.html'">← Treino</button>
+    <button class="nav-btn right" onclick="location.href='login.html?logout'">Sair</button>
+    <h1>Minha evolução</h1>
+    <div class="subtitle" id="subtitle"></div>
+  </div>
+
+  <div id="app">
+    <div class="streak-bar hidden" id="streakBar">
+      <span class="streak-flame" id="streakFlame">🔥</span>
+      <span class="streak-count" id="streakCount">0</span>
+      <span class="streak-texts">
+        <span class="streak-label" id="streakLabel">Sequência</span>
+        <span class="streak-sub" id="streakSub"></span>
+      </span>
+    </div>
+
+    <div class="view-toggle">
+      <button class="view-btn active" id="btnWeekly" onclick="switchView('weekly')">Semanal</button>
+      <button class="view-btn" id="btnMonthly" onclick="switchView('monthly')">Mensal</button>
+    </div>
+
+    <div class="resume-section active" id="weeklyView">
+      <div class="resume-nav">
+        <button onclick="navWeek(-1)">←</button>
+        <span id="weekLabel"></span>
+        <button id="weekNext" onclick="navWeek(1)">→</button>
+      </div>
+      <div id="weeklyContent"></div>
+    </div>
+
+    <div class="resume-section" id="monthlyView">
+      <div class="resume-nav">
+        <button onclick="navMonth(-1)">←</button>
+        <span id="monthLabel"></span>
+        <button id="monthNext" onclick="navMonth(1)">→</button>
+      </div>
+      <div id="monthlyContent"></div>
+    </div>
+  </div>
+
+  <div class="block-screen" id="blockScreen">
+    <div class="icon">🔒</div>
+    <h2 id="blockTitle"></h2>
+    <p id="blockText"></p>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="auth-guard.js"></script>
+<script src="/metrics.js"></script>
+<script>
+// =====================================================================
+// Evolução do ALUNO (semanal e mensal).
+// Mesmas regras da tela do professor (treinador.html) — as contas vivem em
+// metrics.js para não existirem duas versões da verdade. Aqui só desenha.
+// Sem Chart.js de propósito: tudo é barra em <div>, e esta página é aberta
+// no celular na academia.
+// =====================================================================
+function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+
+let studentId = null;
+let PRESCRIBED = new Set();   // dias com treino prescrito no plano ativo
+
+// Datas locais como 'YYYY-MM-DD' (toLocalISO vem de metrics.js).
+const todayISO = () => toLocalISO(new Date());
+
+// Logs de workout no intervalo de datas (inclusivo).
+async function fetchLogs(startStr, endStr) {
+  const { data, error } = await _sb.from('workout_logs')
+    .select('session_date, set_type, weight, reps, duration_minutes')
+    .eq('student_id', studentId)
+    .gte('session_date', startStr)
+    .lte('session_date', endStr)
+    .order('session_date', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+// Sessões encerradas (duration_seconds preenchido) no intervalo.
+// O filtro usa o fuso fixo do app: started_at é timestamptz e sem o offset
+// explícito o Postgres compara no fuso do servidor (UTC), deslocando a janela.
+async function fetchSessions(startStr, endStr) {
+  const { data, error } = await _sb.from('workout_sessions')
+    .select('started_at, duration_seconds')
+    .eq('student_id', studentId)
+    .gte('started_at', startStr + 'T00:00:00' + TZ)
+    .lte('started_at', endStr + 'T23:59:59' + TZ)
+    .not('duration_seconds', 'is', null)
+    .order('started_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+const cmp = (atual, anterior) => {
+  const diff = anterior > 0 ? Math.round(((atual - anterior) / anterior) * 100) : 0;
+  return {
+    cls: diff > 0 ? 'up' : diff < 0 ? 'down' : '',
+    arrow: diff > 0 ? '↑' : diff < 0 ? '↓' : '=',
+    abs: Math.abs(diff)
+  };
+};
+
+const statRow = (label, value, cls) =>
+  `<div class="stat-row"><span class="stat-label">${label}</span><span class="stat-value${cls ? ' ' + cls : ''}">${value}</span></div>`;
+
+const barRow = (label, pct, value, color, labelWidth) =>
+  `<div class="volume-bar-row">` +
+  `<span class="volume-bar-label"${labelWidth ? ` style="min-width:${labelWidth}px;"` : ''}>${label}</span>` +
+  `<div class="volume-bar-track"><div class="volume-bar-fill" style="width:${pct}%${color ? ';background:' + color : ''}"></div></div>` +
+  `<span class="volume-bar-value">${value}</span></div>`;
+
+// =====================================================================
+// SEQUÊNCIA
+// =====================================================================
+async function loadStreak() {
+  const bar = document.getElementById('streakBar');
+  // Sem plano ativo não há como saber o que é treino e o que é descanso.
+  if (PRESCRIBED.size === 0) { bar.classList.add('hidden'); return; }
+
+  const today = new Date();
+  const windowStart = new Date(today);
+  windowStart.setDate(today.getDate() - (STREAK_WINDOW_DAYS - 1));
+
+  let rows;
+  try {
+    const { data, error } = await _sb.from('workout_logs')
+      .select('session_date')
+      .eq('student_id', studentId)
+      .gte('session_date', toLocalISO(windowStart))
+      .order('session_date', { ascending: false });
+    if (error) throw error;
+    rows = data;
+  } catch (e) {
+    bar.classList.add('hidden');
+    return;
+  }
+
+  const trained = new Set((rows || []).map(r => r.session_date));
+  const { current, best, hitWindowEdge } = computeStreak(trained, PRESCRIBED, today);
+
+  const allDates = [...trained].sort();
+  const lastTrained = allDates.length ? allDates[allDates.length - 1] : null;
+
+  const todayStr = toLocalISO(today);
+  const todayIsRest = !isTrainingDate(todayStr, PRESCRIBED);
+  const trainedToday = trained.has(todayStr);
+
+  document.getElementById('streakCount').textContent = current + (hitWindowEdge ? '+' : '');
+  bar.classList.remove('hidden');
+  bar.classList.toggle('on', current > 0);
+
+  const labelEl = document.getElementById('streakLabel');
+  const subEl = document.getElementById('streakSub');
+
+  if (current > 0) {
+    labelEl.innerHTML = `treino${current > 1 ? 's' : ''} seguido${current > 1 ? 's' : ''} sem falhar`;
+    const parts = [];
+    if (todayIsRest) parts.push('<span class="streak-rest">hoje é descanso — sequência preservada</span>');
+    else if (!trainedToday) parts.push('hoje ainda conta se você treinar');
+    if (best > current) parts.push(`seu recorde: ${best}`);
+    subEl.innerHTML = parts.join(' · ');
+  } else {
+    labelEl.textContent = 'Sequência zerada';
+    subEl.innerHTML = lastTrained
+      ? `último treino em ${formatDayMonth(lastTrained)}${best > 0 ? ` · seu recorde: ${best}` : ''}`
+      : 'nenhum treino registrado ainda';
+  }
+}
+
+// =====================================================================
+// TROCA DE VIEW
+// =====================================================================
+function switchView(view) {
+  document.getElementById('btnWeekly').classList.toggle('active', view === 'weekly');
+  document.getElementById('btnMonthly').classList.toggle('active', view === 'monthly');
+  document.getElementById('weeklyView').className = 'resume-section' + (view === 'weekly' ? ' active' : '');
+  document.getElementById('monthlyView').className = 'resume-section' + (view === 'monthly' ? ' active' : '');
+  // Volta sempre para o período atual: o offset de navegação ficava preso
+  // (voltava 5 semanas, trocava de aba e continuava em -5 sem indicação clara).
+  if (view === 'weekly')  { weekOffset = 0;  loadWeekly(); }
+  if (view === 'monthly') { monthOffset = 0; loadMonthly(); }
+  location.hash = view;
+}
+
+// =====================================================================
+// SEMANAL
+// =====================================================================
+let weekOffset = 0;
+
+function navWeek(dir) {
+  // Semana futura não existe: seria uma tela de "?" em todos os dias.
+  if (weekOffset + dir > 0) return;
+  weekOffset += dir;
+  loadWeekly();
+}
+
+async function loadWeekly() {
+  const { start, end } = getWeekRange(weekOffset);
+  const startStr = toLocalISO(start);
+  const endStr = toLocalISO(end);
+
+  document.getElementById('weekNext').disabled = weekOffset >= 0;
+  document.getElementById('weekLabel').textContent =
+    start.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' - ' +
+    end.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  const container = document.getElementById('weeklyContent');
+  container.innerHTML = '<div class="loading">Carregando...</div>';
+
+  try {
+    const prevStart = new Date(start); prevStart.setDate(prevStart.getDate() - 7);
+    const prevEnd   = new Date(end);   prevEnd.setDate(prevEnd.getDate() - 7);
+    const prevStartStr = toLocalISO(prevStart);
+    const prevEndStr   = toLocalISO(prevEnd);
+
+    const [logs, sessions, prevLogs, prevSessions] = await Promise.all([
+      fetchLogs(startStr, endStr),
+      fetchSessions(startStr, endStr),
+      fetchLogs(prevStartStr, prevEndStr),
+      fetchSessions(prevStartStr, prevEndStr)
+    ]);
+
+    // Tempo por data + total da semana
+    const secondsByDate = {};
+    let totalSeconds = 0;
+    sessions.forEach(s => {
+      const d = toLocalISO(new Date(s.started_at));
+      secondsByDate[d] = (secondsByDate[d] || 0) + s.duration_seconds;
+      totalSeconds += s.duration_seconds;
+    });
+
+    // Agrupa os logs pelos 7 dias da semana
+    const byDay = {};
+    const dayNames = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      byDay[toLocalISO(d)] = [];
+    }
+    logs.forEach(r => { if (byDay[r.session_date]) byDay[r.session_date].push(r); });
+
+    const cardioMinByDate = cardioByDate(logs);
+    const dates = Object.keys(byDay).sort();
+    const today = todayISO();
+
+    let html = '<div class="weekly-days">';
+    let totalVolume = 0;
+    const volumeByDay = [], timeByDay = [], cardioDay = [];
+
+    dates.forEach((date, i) => {
+      const records = byDay[date];
+      const isRest = !isTrainingDate(date, PRESCRIBED);
+      const isFuture = date > today;
+      const trained = records.length > 0;
+
+      const dayVolume = hardVolume(records);
+      totalVolume += dayVolume;
+      volumeByDay.push({ label: dayNames[i], volume: dayVolume, trained, isRest, isFuture });
+      timeByDay.push({ label: dayNames[i], seconds: secondsByDate[date] || 0, isRest, isFuture });
+      cardioDay.push({ label: dayNames[i], minutes: cardioMinByDate[date] || 0, isRest, isFuture });
+
+      let dotClass = 'rest', simbolo = '–';
+      if (trained)       { dotClass = 'trained'; simbolo = '✓'; }
+      else if (isFuture) { dotClass = 'future';  simbolo = '?'; }
+      else if (isRest)   { dotClass = 'rest';    simbolo = '–'; }
+      else               { dotClass = 'missed';  simbolo = '✗'; }
+
+      html += `<div class="weekly-day"><span class="weekly-day-label">${dayNames[i]}</span>`;
+      html += `<span class="weekly-day-dot ${dotClass}">${simbolo}</span></div>`;
+    });
+    html += '</div>';
+
+    // Frequência sobre os dias PRESCRITOS que já passaram
+    const trainingDays = volumeByDay.filter(d => !d.isRest && !d.isFuture);
+    const attended = trainingDays.filter(d => d.trained).length;
+    const totalDays = trainingDays.length;
+    const percent = totalDays > 0 ? Math.round((attended / totalDays) * 100) : 0;
+    const extras = PRESCRIBED.size > 0 ? volumeByDay.filter(d => d.isRest && d.trained).length : 0;
+
+    html += `<div class="resume-card"><h3>Frequência</h3>`;
+    html += totalDays > 0
+      ? statRow('Presença', `${attended}/${totalDays} dias do seu plano (${percent}%)`)
+      : statRow('Presença', `${attended} treino${attended !== 1 ? 's' : ''}`);
+    if (extras > 0) html += statRow('Treinos extras', `+${extras} em dia de descanso`, 'up');
+    html += PRESCRIBED.size > 0
+      ? `<div class="hint">Seu plano: ${[...PRESCRIBED].join(', ')}</div>`
+      : `<div class="hint warn">Você ainda não tem treino ativo — sem isso não é possível calcular faltas.</div>`;
+    html += `</div>`;
+
+    // Volume por dia
+    const maxVolume = Math.max(...volumeByDay.map(d => d.volume), 1);
+    html += `<div class="resume-card"><h3>Volume por dia (hard sets)</h3>`;
+    volumeByDay.forEach(d => {
+      if (d.isRest && !d.trained) return;
+      html += barRow(
+        d.label,
+        (d.volume / maxVolume) * 100,
+        d.volume > 0 ? d.volume.toLocaleString('pt-BR') + ' kg' : (d.isFuture ? '-' : 'faltou'),
+        d.trained ? '#00bcd4' : '#f44336'
+      );
+    });
+    html += `<div class="hint">Volume = carga × repetições das séries hard. Aquecimento e feeder ficam fora.</div>`;
+    html += `</div>`;
+
+    // Tempo de treino
+    const maxTime = Math.max(...timeByDay.map(d => d.seconds), 1);
+    html += `<div class="resume-card"><h3>⏱ Tempo de treino</h3>`;
+    html += statRow('Total da semana', formatDurationHM(totalSeconds));
+    timeByDay.forEach(d => {
+      if (d.isRest && d.seconds === 0) return;
+      html += barRow(
+        d.label,
+        (d.seconds / maxTime) * 100,
+        d.seconds > 0 ? formatDurationHM(d.seconds) : (d.isFuture ? '-' : '—'),
+        d.seconds > 0 ? '#4caf50' : (d.isFuture ? '#1a3a4f' : '#f44336')
+      );
+    });
+    html += `</div>`;
+
+    // Cardio (só quando existe registro — card vazio é ruído)
+    const totalCardioMin = cardioDay.reduce((sum, d) => sum + d.minutes, 0);
+    const cardioDias = cardioDay.filter(d => d.minutes > 0).length;
+    if (totalCardioMin > 0) {
+      const maxCardio = Math.max(...cardioDay.map(d => d.minutes), 1);
+      html += `<div class="resume-card"><h3>🏃 Cardio</h3>`;
+      html += statRow('Total da semana', formatMinutes(totalCardioMin));
+      html += statRow('Dias com cardio', `${cardioDias} dia${cardioDias !== 1 ? 's' : ''} · média ${formatMinutes(totalCardioMin / cardioDias)}`);
+      cardioDay.forEach(d => {
+        if (d.minutes === 0) return;
+        html += barRow(d.label, (d.minutes / maxCardio) * 100, formatMinutes(d.minutes), '#ff9800');
+      });
+      html += `</div>`;
+    }
+
+    // Eficiência
+    const sessoesFeitas = timeByDay.filter(d => d.seconds > 0).length;
+    if (totalSeconds > 0 && totalVolume > 0) {
+      const densidade = totalVolume / (totalSeconds / 60);
+      const mediaSessao = totalSeconds / Math.max(sessoesFeitas, 1);
+      html += `<div class="resume-card"><h3>Eficiência</h3>`;
+      html += statRow('Densidade', `${densidade.toFixed(1)} kg/min`);
+      html += statRow('Duração média', `${formatDurationHM(Math.round(mediaSessao))} / treino`);
+      html += statRow('Volume médio', `${Math.round(totalVolume / Math.max(sessoesFeitas, 1)).toLocaleString('pt-BR')} kg / treino`);
+      html += `</div>`;
+    }
+
+    // Comparativo com a semana anterior
+    const prevVolume = hardVolume(prevLogs);
+    const prevAttended = new Set(prevLogs.map(r => r.session_date)).size;
+    const prevCardioMin = sumCardioMinutes(prevLogs);
+    const prevSeconds = prevSessions.reduce((sum, s) => sum + s.duration_seconds, 0);
+
+    const v = cmp(totalVolume, prevVolume);
+    const t = cmp(totalSeconds, prevSeconds);
+    const c = cmp(totalCardioMin, prevCardioMin);
+
+    html += `<div class="resume-card"><h3>vs. Semana anterior</h3>`;
+    html += statRow('Volume total', `${totalVolume.toLocaleString('pt-BR')} kg ${v.arrow} ${v.abs}%`, v.cls);
+    html += statRow('Frequência', `${attended} vs ${prevAttended} dias`);
+    html += statRow('⏱ Tempo', `${formatDurationHM(totalSeconds)} ${t.arrow} ${t.abs}%`, t.cls);
+    if (totalCardioMin > 0 || prevCardioMin > 0) {
+      html += statRow('🏃 Cardio', `${formatMinutes(totalCardioMin)} vs ${formatMinutes(prevCardioMin)} ${c.arrow} ${c.abs}%`, c.cls);
+    }
+    html += `</div>`;
+
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div class="no-data">Não foi possível carregar: ${esc(e.message)}</div>`;
+  }
+}
+
+// =====================================================================
+// MENSAL
+// =====================================================================
+let monthOffset = 0;
+
+function navMonth(dir) {
+  if (monthOffset + dir > 0) return;
+  monthOffset += dir;
+  loadMonthly();
+}
+
+const MONTH_NAMES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
+                     'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+async function loadMonthly() {
+  const now = new Date();
+  const target = new Date(now.getFullYear(), now.getMonth() + monthOffset, 1);
+  const year = target.getFullYear();
+  const month = target.getMonth();
+  const firstDay = new Date(year, month, 1);
+  const lastDay = new Date(year, month + 1, 0);
+
+  document.getElementById('monthNext').disabled = monthOffset >= 0;
+  document.getElementById('monthLabel').textContent = `${MONTH_NAMES[month]} ${year}`;
+
+  const container = document.getElementById('monthlyContent');
+  container.innerHTML = '<div class="loading">Carregando...</div>';
+
+  try {
+    const startStr = toLocalISO(firstDay);
+    const endStr = toLocalISO(lastDay);
+    const prevStartStr = toLocalISO(new Date(year, month - 1, 1));
+    const prevEndStr = toLocalISO(new Date(year, month, 0));
+
+    const [logs, sessions, prevLogs, prevSessions] = await Promise.all([
+      fetchLogs(startStr, endStr),
+      fetchSessions(startStr, endStr),
+      fetchLogs(prevStartStr, prevEndStr),
+      fetchSessions(prevStartStr, prevEndStr)
+    ]);
+
+    let totalSeconds = 0;
+    const sessionDays = new Set();
+    sessions.forEach(s => {
+      totalSeconds += s.duration_seconds;
+      sessionDays.add(toLocalISO(new Date(s.started_at)));
+    });
+
+    // Volume e cardio por faixa de 7 dias do mês
+    const trainedDates = new Set();
+    const volumeByWeek = {}, cardioWeek = {};
+    const cardioDates = new Set();
+    let totalCardioMin = 0;
+
+    logs.forEach(r => {
+      trainedDates.add(r.session_date);
+      const dia = new Date(r.session_date + 'T12:00:00').getDate();
+      const faixa = Math.ceil(dia / 7);
+      volumeByWeek[faixa] = (volumeByWeek[faixa] || 0) + hardVolume([r]);
+      const min = sumCardioMinutes([r]);
+      if (min > 0) {
+        cardioWeek[faixa] = (cardioWeek[faixa] || 0) + min;
+        cardioDates.add(r.session_date);
+        totalCardioMin += min;
+      }
+    });
+
+    // Calendário de presença
+    const today = todayISO();
+    let html = '<div class="resume-card"><h3>Calendário de presença</h3>';
+    html += '<div class="presence-calendar">';
+    ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].forEach(d => { html += `<span class="cal-header">${d}</span>`; });
+
+    let startOffset = firstDay.getDay() - 1;
+    if (startOffset < 0) startOffset = 6;
+    for (let i = 0; i < startOffset; i++) html += '<span class="cal-day"></span>';
+
+    let totalTrainingDays = 0, totalAttended = 0, extras = 0;
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      const date = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const isRest = !isTrainingDate(date, PRESCRIBED);
+      const isFuture = date > today;
+      const trained = trainedDates.has(date);
+
+      let cls;
+      if (trained) {
+        cls = 'trained';
+        if (isRest && PRESCRIBED.size > 0) extras++;
+        else if (!isRest) { totalAttended++; totalTrainingDays++; }
+      } else if (isFuture) { cls = 'future'; }
+      else if (isRest)     { cls = 'rest'; }
+      else                 { cls = 'missed'; totalTrainingDays++; }
+
+      html += `<span class="cal-day ${cls}">${day}</span>`;
+    }
+    html += '</div>';
+
+    const freqPercent = totalTrainingDays > 0 ? Math.round((totalAttended / totalTrainingDays) * 100) : 0;
+    html += totalTrainingDays > 0
+      ? statRow('Frequência', `${totalAttended}/${totalTrainingDays} dias do seu plano (${freqPercent}%)`)
+      : statRow('Treinos', trainedDates.size);
+    if (extras > 0) html += statRow('Treinos extras', `+${extras} em dia de descanso`, 'up');
+    html += `<div class="hint center">🟢 treinou &nbsp; 🔴 faltou &nbsp; ⚫ descanso</div>`;
+    if (PRESCRIBED.size === 0) {
+      html += `<div class="hint center warn">Você ainda não tem treino ativo — sem isso não é possível calcular faltas.</div>`;
+    }
+    html += '</div>';
+
+    // Volume por faixa de dias.
+    // O rótulo mostra o intervalo real: a última faixa costuma ter 1-3 dias e,
+    // rotulada como "Sem 5", a barra curta parecia queda de volume no fim do mês.
+    const diasNoMes = lastDay.getDate();
+    const totalFaixas = Math.ceil(diasNoMes / 7);
+    const maxWeekVol = Math.max(...Object.values(volumeByWeek), 1);
+    html += `<div class="resume-card"><h3>Volume por faixa de dias</h3>`;
+    for (let w = 1; w <= totalFaixas; w++) {
+      const vol = volumeByWeek[w] || 0;
+      const diaIni = (w - 1) * 7 + 1;
+      const diaFim = Math.min(w * 7, diasNoMes);
+      const qtdDias = diaFim - diaIni + 1;
+      html += barRow(`${diaIni}-${diaFim}`, (vol / maxWeekVol) * 100,
+        vol > 0 ? vol.toLocaleString('pt-BR') + ' kg' : '-', null, 52);
+      if (qtdDias < 7 && vol > 0) {
+        html += `<div class="hint" style="margin:-4px 0 6px 60px;">faixa de ${qtdDias} dia${qtdDias > 1 ? 's' : ''} — não comparável às demais</div>`;
+      }
+    }
+    html += '</div>';
+
+    if (totalCardioMin > 0) {
+      const maxCardioWeek = Math.max(...Object.values(cardioWeek), 1);
+      html += `<div class="resume-card"><h3>🏃 Cardio por faixa de dias</h3>`;
+      for (let w = 1; w <= totalFaixas; w++) {
+        const min = cardioWeek[w] || 0;
+        const diaIni = (w - 1) * 7 + 1;
+        const diaFim = Math.min(w * 7, diasNoMes);
+        html += barRow(`${diaIni}-${diaFim}`, (min / maxCardioWeek) * 100,
+          min > 0 ? formatMinutes(min) : '-', '#ff9800', 52);
+      }
+      html += `</div>`;
+    }
+
+    // Destaques
+    const totalVolume = Object.values(volumeByWeek).reduce((a, b) => a + b, 0);
+    const missedDays = totalTrainingDays - totalAttended;
+    const bestWeek = Object.entries(volumeByWeek).sort((a, b) => b[1] - a[1])[0];
+    const sessoesFeitas = Math.max(sessionDays.size, 1);
+
+    html += `<div class="resume-card"><h3>Destaques do mês</h3>`;
+    html += statRow('Volume total', `${totalVolume.toLocaleString('pt-BR')} kg`);
+    html += statRow('⏱ Tempo total', formatDurationHM(totalSeconds));
+    if (totalCardioMin > 0) {
+      html += statRow('🏃 Cardio total', formatMinutes(totalCardioMin));
+      html += statRow('🏃 Dias com cardio', `${cardioDates.size} dia${cardioDates.size !== 1 ? 's' : ''} · média ${formatMinutes(totalCardioMin / cardioDates.size)}`);
+    }
+    if (totalSeconds > 0) {
+      html += statRow('Duração média', `${formatDurationHM(Math.round(totalSeconds / sessoesFeitas))} / treino`);
+      if (totalVolume > 0) {
+        html += statRow('Densidade', `${(totalVolume / (totalSeconds / 60)).toFixed(1)} kg/min`);
+      }
+    }
+    html += statRow('Faltas', `${missedDays} dia${missedDays !== 1 ? 's' : ''}`, missedDays > 0 ? 'down' : '');
+    if (bestWeek) {
+      const bw = parseInt(bestWeek[0]);
+      html += statRow('Melhor faixa', `Dias ${(bw - 1) * 7 + 1}-${Math.min(bw * 7, diasNoMes)} (${Math.round(bestWeek[1]).toLocaleString('pt-BR')} kg)`);
+    }
+    html += '</div>';
+
+    // Comparativo com o mês anterior
+    const prevVolume = hardVolume(prevLogs);
+    const prevTrained = new Set(prevLogs.map(r => r.session_date)).size;
+    const prevSeconds = prevSessions.reduce((sum, s) => sum + s.duration_seconds, 0);
+    const prevCardioMin = sumCardioMinutes(prevLogs);
+
+    const v = cmp(totalVolume, prevVolume);
+    const t = cmp(totalSeconds, prevSeconds);
+    const c = cmp(totalCardioMin, prevCardioMin);
+
+    html += `<div class="resume-card"><h3>vs. Mês anterior</h3>`;
+    html += statRow('Volume', `${v.arrow} ${v.abs}%`, v.cls);
+    html += statRow('Frequência', `${trainedDates.size} vs ${prevTrained} dias`);
+    html += statRow('⏱ Tempo', `${formatDurationHM(totalSeconds)} ${t.arrow} ${t.abs}%`, t.cls);
+    if (totalCardioMin > 0 || prevCardioMin > 0) {
+      html += statRow('🏃 Cardio', `${formatMinutes(totalCardioMin)} vs ${formatMinutes(prevCardioMin)} ${c.arrow} ${c.abs}%`, c.cls);
+    }
+    html += '</div>';
+
+    container.innerHTML = html;
+  } catch (e) {
+    container.innerHTML = `<div class="no-data">Não foi possível carregar: ${esc(e.message)}</div>`;
+  }
+}
+
+const esc = (s) => { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; };
+
+// === Bloqueio (acesso vencido/suspenso) ===
+function showBlock(state) {
+  hideLoading();
+  document.getElementById('app').style.display = 'none';
+  const screen = document.getElementById('blockScreen');
+  screen.classList.add('show');
+  const map = {
+    expired: { t: 'Período encerrado', p: 'Seu período de acompanhamento terminou. Fale com seu personal para renovar.' },
+    unavailable: { t: 'Acesso indisponível', p: 'Seu acesso está indisponível no momento. Fale com seu personal.' },
+    suspended: { t: 'Acesso suspenso', p: 'Seu acesso está suspenso. Entre em contato para regularizar.' }
+  };
+  const m = map[state] || map.unavailable;
+  document.getElementById('blockTitle').textContent = m.t;
+  document.getElementById('blockText').textContent = m.p;
+}
+
+// === Init ===
+guard('student', {
+  onReady: async (session, profile) => {
+    showLoading();
+    studentId = profile.id;
+    document.getElementById('subtitle').textContent = profile.full_name || '';
+
+    // Dias prescritos vêm do plano ativo. Sem plano não há como separar treino
+    // de descanso — a tela continua, mas avisa em vez de inventar faltas.
+    const { data: plan } = await _sb.from('workout_plans')
+      .select('structure')
+      .eq('student_id', studentId)
+      .eq('is_active', true)
+      .maybeSingle();
+    PRESCRIBED = prescribedDaySet(plan && plan.structure);
+
+    const inicial = location.hash === '#monthly' ? 'monthly' : 'weekly';
+    if (inicial === 'monthly') {
+      document.getElementById('btnWeekly').classList.remove('active');
+      document.getElementById('btnMonthly').classList.add('active');
+      document.getElementById('weeklyView').className = 'resume-section';
+      document.getElementById('monthlyView').className = 'resume-section active';
+      await loadMonthly();
+    } else {
+      await loadWeekly();
+    }
+
+    loadStreak(); // não bloqueia o primeiro render
+    hideLoading();
+  },
+  onBlocked: showBlock
+});
+
+if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
+</script>
+</body>
+</html>
