@@ -42,12 +42,12 @@
 /* === Ember (Laranja/Cobre — Energia) === */
 [data-theme="ember"] {
   --bg-body: #0a0a0a;
-  --bg-header: #1a1210;
-  --bg-card: #1a1210;
-  --bg-secondary: #231810;
-  --bg-input: #1e1410;
-  --border: #3d2a1a;
-  --border-light: #2a1c12;
+  --bg-header: #141414;
+  --bg-card: #141414;
+  --bg-secondary: #1a1a1a;
+  --bg-input: #171717;
+  --border: #2a2a2a;
+  --border-light: #222222;
   --accent: #f97316;
   --accent-dark: #c2410c;
   --accent-hover: #fb923c;
@@ -66,7 +66,7 @@
   --warning-light: #fcd34d;
   --info: #fdba74;
   --save-done: #c2410c;
-  --spinner-track: #3d2a1a;
+  --spinner-track: #2a2a2a;
   --spinner-accent: #f97316;
   --logo-color: #f97316;
   --overlay-bg: rgba(10,10,10,0.92);
@@ -75,12 +75,12 @@
 /* === Emerald (Verde Esmeralda — Progresso) === */
 [data-theme="emerald"] {
   --bg-body: #0a0a0a;
-  --bg-header: #0f1a14;
-  --bg-card: #0f1a14;
-  --bg-secondary: #14231a;
-  --bg-input: #112018;
-  --border: #1e3a2a;
-  --border-light: #162d20;
+  --bg-header: #141414;
+  --bg-card: #141414;
+  --bg-secondary: #1a1a1a;
+  --bg-input: #171717;
+  --border: #2a2a2a;
+  --border-light: #222222;
   --accent: #10b981;
   --accent-dark: #059669;
   --accent-hover: #34d399;
@@ -99,7 +99,7 @@
   --warning-light: #fbbf24;
   --info: #6ee7b7;
   --save-done: #059669;
-  --spinner-track: #1e3a2a;
+  --spinner-track: #2a2a2a;
   --spinner-accent: #10b981;
   --logo-color: #10b981;
   --overlay-bg: rgba(10,10,10,0.92);
@@ -147,9 +147,9 @@
   --bg-input: #181f28;
   --border: #2a3442;
   --border-light: #222a36;
-  --accent: #64748b;
+  --accent: #cbd5e1;
   --accent-dark: #475569;
-  --accent-hover: #94a3b8;
+  --accent-hover: #ffffff;
   --text: #f0f0f0;
   --text-muted: #999;
   --text-muted2: #888;
@@ -166,20 +166,20 @@
   --info: #94a3b8;
   --save-done: #475569;
   --spinner-track: #2a3442;
-  --spinner-accent: #94a3b8;
-  --logo-color: #94a3b8;
+  --spinner-accent: #cbd5e1;
+  --logo-color: #cbd5e1;
   --overlay-bg: rgba(15,17,21,0.92);
 }
 
 /* === Neon (Roxo/Elétrico — tema surpresa) === */
 [data-theme="neon"] {
-  --bg-body: #0a0a0f;
-  --bg-header: #12101f;
-  --bg-card: #12101f;
-  --bg-secondary: #1a1530;
-  --bg-input: #15122a;
-  --border: #2e2555;
-  --border-light: #221a40;
+  --bg-body: #0a0a0a;
+  --bg-header: #141414;
+  --bg-card: #141414;
+  --bg-secondary: #1a1a1a;
+  --bg-input: #171717;
+  --border: #2a2a2a;
+  --border-light: #222222;
   --accent: #b388ff;
   --accent-dark: #7c4dff;
   --accent-hover: #d1c4e9;
@@ -198,8 +198,8 @@
   --warning-light: #ffd180;
   --info: #82b1ff;
   --save-done: #7c4dff;
-  --spinner-track: #2e2555;
+  --spinner-track: #2a2a2a;
   --spinner-accent: #b388ff;
   --logo-color: #b388ff;
-  --overlay-bg: rgba(10,10,15,0.92);
+  --overlay-bg: rgba(10,10,10,0.92);
 }
