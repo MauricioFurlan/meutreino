@@ -1,10 +1,9 @@
-// v2: entraram evolucao.html (evolução semanal/mensal do aluno) e metrics.js
-// (cálculos compartilhados). Trocar o nome do cache é o que descarta a lista
-// antiga no activate.
-const CACHE_NAME = 'meutreino-v2';
+// v3: config.html (configurações/temas) e theme.css (variáveis de tema).
+const CACHE_NAME = 'meutreino-v3';
 const urlsToCache = [
   '/login.html',
   '/index.html',
+  '/config.html',
   '/professor.html',
   '/treinos.html',
   '/editor.html',
@@ -15,6 +14,7 @@ const urlsToCache = [
   '/evolucao.html',
   '/auth-guard.js',
   '/metrics.js',
+  '/theme.css',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png'
