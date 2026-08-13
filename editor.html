@@ -1157,14 +1157,17 @@ function addExercise(day) {
 function addSet(btn) {
   const exItem = btn.closest('.exercise-item');
   const container = exItem.querySelector('.sets-container');
-  // Herda o descanso da última série: quem prescreve 90s em tudo não digita
-  // de novo, e quem quer diferente só sobrescreve aquele campo.
-  const anteriores = container.querySelectorAll('.set-rest');
-  const restHerdado = anteriores.length ? anteriores[anteriores.length - 1].value.trim() : '';
+  // Herda TODOS os valores da última série: tipo, reps, descanso e nota.
+  // Quem prescreve 3x hard 8-12 90s não precisa digitar de novo.
+  const lastSet = container.querySelector('.set-item:last-child');
+  const typeHerdado = lastSet ? lastSet.querySelector('.set-type-input').value.trim() : '';
+  const repsHerdado = lastSet ? lastSet.querySelector('.set-reps').value.trim() : '';
+  const restHerdado = lastSet ? lastSet.querySelector('.set-rest').value.trim() : '';
+  const noteHerdado = lastSet ? lastSet.querySelector('.set-note').value.trim() : '';
   const temp = document.createElement('div');
-  temp.innerHTML = renderSetHtml(container.children.length, { type: '', reps: '', rest: restHerdado, note: null });
+  temp.innerHTML = renderSetHtml(container.children.length, { type: typeHerdado, reps: repsHerdado, rest: restHerdado, note: noteHerdado || null });
   container.appendChild(temp.firstElementChild);
-  // Foca no campo de tipo do novo set
+  // Foca no campo de tipo do novo set (professor só muda o que for diferente)
   container.lastElementChild.querySelector('.set-type-input').focus();
 }
 
