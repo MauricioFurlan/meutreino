@@ -407,6 +407,30 @@
     }
     .cyclic-day-tab.active { background: #00bcd4; color: #000; border-color: #00bcd4; }
     .cyclic-day-tab:active { opacity: 0.7; }
+
+    /* Autocomplete da exercise_library */
+    .exercise-top { position: relative; }
+    .ac-list {
+      display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
+      background: #1a2a3a; border: 1px solid #00bcd4; border-radius: 8px;
+      max-height: 180px; overflow-y: auto; margin-top: 4px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+    }
+    .ac-list.show { display: block; }
+    .ac-item {
+      display: flex; align-items: center; gap: 8px; padding: 10px 12px;
+      cursor: pointer; font-size: 0.85rem; color: #f0f0f0;
+      border-bottom: 1px solid #0d2137;
+    }
+    .ac-item:last-child { border-bottom: none; }
+    .ac-item:active, .ac-item:hover { background: #0d2137; }
+    .ac-item .ac-icon { font-size: 0.75rem; flex-shrink: 0; }
+    .ac-item .ac-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ac-item .ac-remove {
+      background: none; border: none; color: #f44336; font-size: 1rem;
+      cursor: pointer; padding: 0 4px; line-height: 1; flex-shrink: 0;
+    }
+    .ac-item .ac-remove:active { opacity: 0.5; }
   </style>
 </head>
 <body>
@@ -846,7 +870,8 @@ function renderExercise(day, idx, ex) {
 
   div.innerHTML = `
     <div class="exercise-top">
-      <input type="text" class="ex-name" value="${esc(ex.name || '')}" placeholder="Nome do exercício">
+      <input type="text" class="ex-name" value="${esc(ex.name || '')}" placeholder="Nome do exercício" autocomplete="off">
+      <div class="ac-list"></div>
     </div>
     <div class="exercise-extras">
       <input type="url" class="ex-video" value="${esc(ex.video_url || '')}" placeholder="Link do vídeo (opcional)">
@@ -1373,17 +1398,26 @@ async function savePlan() {
   btn.disabled = true;
   btn.textContent = 'Salvando...';
 
+  let deactivatedIds = []; // para rollback se o save falhar
   try {
     // Só 1 treino ativo por aluno (índice único no banco): desativa os outros antes
     if (makeActive) {
-      let q = _sb.from('workout_plans')
-        .update({ is_active: false })
+      // Busca IDs que serão desativados (para poder reativar se necessário)
+      let findQ = _sb.from('workout_plans')
+        .select('id')
         .eq('is_active', true);
-      if (studentId) q = q.eq('student_id', studentId);
-      else if (inviteId) q = q.eq('invite_id', inviteId);
-      if (planId) q = q.neq('id', planId);
-      const { error } = await q;
-      if (error) throw error;
+      if (studentId) findQ = findQ.eq('student_id', studentId);
+      else if (inviteId) findQ = findQ.eq('invite_id', inviteId);
+      if (planId) findQ = findQ.neq('id', planId);
+      const { data: toDeactivate } = await findQ;
+      deactivatedIds = (toDeactivate || []).map(r => r.id);
+
+      if (deactivatedIds.length > 0) {
+        const { error } = await _sb.from('workout_plans')
+          .update({ is_active: false })
+          .in('id', deactivatedIds);
+        if (error) throw error;
+      }
     }
 
     const daysPerWeek = currentMode === 'cyclic' ? computeDaysPerWeek() : null;
@@ -1423,10 +1457,22 @@ async function savePlan() {
     otherActivePlan = makeActive ? null : otherActivePlan;
     updateActiveHint();
     showToast(makeActive ? 'Treino salvo e enviado ao aluno!' : 'Treino salvo no histórico (inativo).');
+
+    // Upsert na exercise_library: salva exercícios novos/atualizados
+    upsertExerciseLibrary(structure);
+
     btn.textContent = '✓ Salvo!';
     setTimeout(() => { btn.textContent = 'Salvar Treino'; btn.disabled = false; }, 1500);
   } catch (e) {
+    // Rollback: reativa os planos que foram desativados se o save falhou
+    if (deactivatedIds && deactivatedIds.length > 0) {
+      console.warn('[MeuTreino] Reativando planos desativados após falha no save:', deactivatedIds);
+      await _sb.from('workout_plans')
+        .update({ is_active: true })
+        .in('id', deactivatedIds);
+    }
     showToast('Erro: ' + e.message, true);
+    console.error('[MeuTreino] Erro ao salvar treino:', e.message || e);
     btn.textContent = 'Salvar Treino';
     btn.disabled = false;
   }
@@ -1629,11 +1675,143 @@ function confirmImport() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// =====================================================================
+// Exercise Library — autocomplete
+// Carrega a biblioteca do professor e oferece sugestões ao digitar.
+// =====================================================================
+let exerciseLibrary = []; // [{id, name, name_lower, video_url}]
+
+async function loadExerciseLibrary() {
+  if (!coachId) return;
+  const { data, error } = await _sb.from('exercise_library')
+    .select('id, name, name_lower, video_url')
+    .eq('coach_id', coachId)
+    .order('name_lower');
+  if (!error && data) exerciseLibrary = data;
+}
+
+function filterLibrary(query) {
+  const q = query.toLowerCase().trim();
+  if (q.length < 2) return [];
+  return exerciseLibrary.filter(e => e.name_lower.includes(q)).slice(0, 8);
+}
+
+function showAcList(input, results) {
+  const top = input.closest('.exercise-top');
+  const list = top.querySelector('.ac-list');
+  if (results.length === 0) { list.classList.remove('show'); list.innerHTML = ''; return; }
+  list.innerHTML = results.map(r => `
+    <div class="ac-item" data-id="${r.id}" data-name="${esc(r.name)}" data-url="${esc(r.video_url || '')}">
+      <span class="ac-icon">${r.video_url ? '🎥' : '◻️'}</span>
+      <span class="ac-name">${esc(r.name)}</span>
+      <button class="ac-remove" title="Remover da biblioteca">✕</button>
+    </div>
+  `).join('');
+  list.classList.add('show');
+}
+
+function hideAllAcLists() {
+  document.querySelectorAll('.ac-list.show').forEach(el => el.classList.remove('show'));
+}
+
+// Delegação de eventos para inputs de nome
+document.addEventListener('input', (e) => {
+  if (!e.target.classList.contains('ex-name')) return;
+  const val = e.target.value;
+  const results = filterLibrary(val);
+  showAcList(e.target, results);
+});
+
+document.addEventListener('focusin', (e) => {
+  if (!e.target.classList.contains('ex-name')) return;
+  const val = e.target.value;
+  if (val.trim().length >= 2) {
+    const results = filterLibrary(val);
+    showAcList(e.target, results);
+  }
+});
+
+// Selecionar item ou remover
+document.addEventListener('click', (e) => {
+  // Botão remover ✕
+  const removeBtn = e.target.closest('.ac-remove');
+  if (removeBtn) {
+    e.stopPropagation();
+    const item = removeBtn.closest('.ac-item');
+    const id = item.dataset.id;
+    removeFromLibrary(id);
+    item.remove();
+    // Se lista ficou vazia, esconde
+    const list = removeBtn.closest('.ac-list');
+    if (!list.querySelector('.ac-item')) list.classList.remove('show');
+    return;
+  }
+
+  // Selecionar exercício
+  const acItem = e.target.closest('.ac-item');
+  if (acItem) {
+    const exTop = acItem.closest('.exercise-top');
+    const exItem = exTop.closest('.exercise-item');
+    const nameInput = exTop.querySelector('.ex-name');
+    const videoInput = exItem.querySelector('.ex-video');
+    nameInput.value = acItem.dataset.name;
+    if (acItem.dataset.url) videoInput.value = acItem.dataset.url;
+    hideAllAcLists();
+    return;
+  }
+
+  // Click fora fecha o autocomplete
+  if (!e.target.closest('.exercise-top')) hideAllAcLists();
+});
+
+async function removeFromLibrary(id) {
+  exerciseLibrary = exerciseLibrary.filter(e => e.id !== id);
+  await _sb.from('exercise_library').delete().eq('id', id);
+}
+
+// Upsert: insere exercícios novos ou atualiza video_url se mudou.
+// Roda em background (fire-and-forget) após o treino salvar com sucesso.
+async function upsertExerciseLibrary(structure) {
+  if (!coachId) return;
+  const seen = new Set();
+  const rows = [];
+  for (const exercises of Object.values(structure)) {
+    for (const ex of exercises) {
+      if (!ex.name || !ex.name.trim()) continue;
+      const key = ex.name.trim().toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      rows.push({
+        coach_id: coachId,
+        name: ex.name.trim(),
+        video_url: ex.video_url || null,
+        updated_at: new Date().toISOString()
+      });
+    }
+  }
+  if (rows.length === 0) return;
+
+  const { data, error } = await _sb.from('exercise_library')
+    .upsert(rows, { onConflict: 'coach_id,name_lower', ignoreDuplicates: false })
+    .select('id, name, name_lower, video_url');
+
+  if (!error && data) {
+    // Atualiza cache local com os dados mais recentes
+    for (const row of data) {
+      const idx = exerciseLibrary.findIndex(e => e.id === row.id);
+      if (idx >= 0) exerciseLibrary[idx] = row;
+      else exerciseLibrary.push(row);
+    }
+    exerciseLibrary.sort((a, b) => a.name_lower.localeCompare(b.name_lower));
+  }
+}
+
 // === Inicialização ===
 guard('trainer', {
   onReady: async (session, profile) => {
     showLoading();
     coachId = profile.id;
+    loadExerciseLibrary(); // carrega biblioteca em background (não bloqueia)
     planId = getParam('plan');
     studentId = getParam('aluno');
     inviteId = getParam('invite');
