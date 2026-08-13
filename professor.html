@@ -40,6 +40,8 @@
     /* Alertas */
     .alert-card { background: #0a2a3a; border: 1px solid #00bcd4; border-radius: 10px; padding: 12px; margin-bottom: 8px; }
     .alert-card.expired { background: #2a0000; border-color: #f44336; }
+    .alert-card.plan-expiring { background: #1a1a00; border-color: #ff9800; }
+    .alert-card.plan-expiring.expired { background: #2a0000; border-color: #f44336; }
     .alert-card .name { font-weight: 600; font-size: 0.9rem; }
     .alert-card .info { font-size: 0.75rem; color: #ccc; margin-top: 2px; }
 
@@ -338,6 +340,7 @@ let pendingInvites = [];
 let maxStudents = 20;
 let sessionsMap = {}; // student_id -> { started_at, ended_at, duration_seconds }
 let streakMap = {};   // student_id -> { current, best, hitWindowEdge, lastTrained }
+let planEndMap = {};  // student_id -> plan_end_date (do plano ativo)
 let streakLoadedFor = ''; // assinatura da lista de alunos já processada
 
 // Ordem alfabética tolerante a acento/maiúscula ("Ávila" antes de "Bruno", "ana" antes de "Bruno")
@@ -442,12 +445,18 @@ async function loadStreaks() {
   // Dias prescritos vêm do plano ativo. Sem plano ativo não há como separar treino
   // de descanso, então o aluno fica sem foguinho (em vez de aparecer zerado à toa).
   const { data: plans, error: plansError } = await _sb.from('workout_plans')
-    .select('student_id, structure, mode, days_per_week')
+    .select('student_id, structure, mode, days_per_week, plan_end_date')
     .in('student_id', ids)
     .eq('is_active', true);
 
   // Falhou a rede: solta o cache para a próxima chamada tentar de novo.
   if (plansError) { streakLoadedFor = ''; console.log('Erro ao carregar planos:', plansError); return; }
+
+  // Mapeia plan_end_date para usar nos alertas de vencimento de treino
+  planEndMap = {};
+  (plans || []).forEach(p => {
+    if (p.plan_end_date) planEndMap[p.student_id] = p.plan_end_date;
+  });
 
   const prescribedBy = {};
   const cyclicBy = {};  // student_id → days_per_week (para cálculo cíclico)
@@ -634,13 +643,28 @@ function renderAlerts() {
   const now = new Date();
   const in7days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
-  // Alertas de vencimento
+  // Alertas de vencimento de acesso
   const expiringAlerts = students.filter(s => {
     if (s.status === 'suspended') return false;
     if (!s.access_expires_at) return false;
     const exp = new Date(s.access_expires_at + 'T23:59:59');
     return exp <= in7days;
   }).sort((a, b) => a.access_expires_at.localeCompare(b.access_expires_at));
+
+  // Alertas de vencimento do treino ativo (plan_end_date <= 7 dias)
+  const planExpiringAlerts = students.filter(s => {
+    if (s.status === 'suspended') return false;
+    const endDate = planEndMap[s.id];
+    if (!endDate) return false;
+    const exp = new Date(endDate + 'T23:59:59');
+    return exp <= in7days;
+  }).map(s => {
+    const endDate = planEndMap[s.id];
+    const exp = new Date(endDate + 'T23:59:59');
+    const isExpired = exp < now;
+    const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+    return { ...s, planEndDate: endDate, isExpired, daysLeft };
+  }).sort((a, b) => a.planEndDate.localeCompare(b.planEndDate));
 
   // Alertas de aniversário do dia
   const todayDay = now.getDate();
@@ -653,7 +677,7 @@ function renderAlerts() {
 
   const section = document.getElementById('alertsSection');
   const container = document.getElementById('alertsList');
-  if (expiringAlerts.length === 0 && birthdayAlerts.length === 0) { section.style.display = 'none'; return; }
+  if (expiringAlerts.length === 0 && birthdayAlerts.length === 0 && planExpiringAlerts.length === 0) { section.style.display = 'none'; return; }
   section.style.display = 'block';
 
   let html = '';
@@ -672,7 +696,25 @@ function renderAlerts() {
     }).join('');
   }
 
-  // Vencimentos
+  // Vencimento de treino ativo
+  if (planExpiringAlerts.length > 0) {
+    html += planExpiringAlerts.map(a => {
+      const label = a.isExpired
+        ? 'Treino vencido'
+        : a.daysLeft === 0
+          ? 'Treino vence hoje'
+          : `Treino vence em ${a.daysLeft} dia${a.daysLeft !== 1 ? 's' : ''}`;
+      const dateStr = new Date(a.planEndDate + 'T00:00:00').toLocaleDateString('pt-BR');
+      return `
+        <div class="alert-card plan-expiring ${a.isExpired ? 'expired' : ''}">
+          <div class="name">📋 ${esc(a.full_name)}</div>
+          <div class="info">${label} · ${dateStr}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Vencimentos de acesso
   html += expiringAlerts.map(s => {
     const exp = new Date(s.access_expires_at + 'T23:59:59');
     const isExpired = exp < now;
