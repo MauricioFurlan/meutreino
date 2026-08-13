@@ -1519,7 +1519,7 @@ async function pickImportStudent(sourceStudentId) {
   box.innerHTML = '<div class="modal-empty">Carregando treinos...</div>';
 
   const { data, error } = await _sb.from('workout_plans')
-    .select('id, title, structure, is_active, plan_start_date, plan_end_date, created_at')
+    .select('id, title, structure, is_active, plan_start_date, plan_end_date, created_at, mode, subtitles, cycle_sequence, days_per_week')
     .eq('student_id', sourceStudentId)
     .order('is_active', { ascending: false })
     .order('created_at', { ascending: false });
@@ -1585,13 +1585,30 @@ function confirmImport() {
   if (!importSelectedPlan) return;
   // Cópia profunda: nada do plano de origem fica referenciado
   const copy = JSON.parse(JSON.stringify(importSelectedPlan.structure || {}));
+  const importMode = importSelectedPlan.mode || 'weekly';
+  const importSubtitles = importSelectedPlan.subtitles || {};
+  const importSequence = importSelectedPlan.cycle_sequence || [];
+  const importDaysPerWeek = importSelectedPlan.days_per_week || 5;
+
+  // Ajusta o modo do editor pro modo do treino importado
+  if (importMode === 'cyclic') {
+    const keys = Object.keys(copy).filter(k => Array.isArray(copy[k]) && copy[k].length > 0);
+    cycleLetters = keys.length > 0 ? keys : ['A', 'B', 'C'];
+    cycleSequence = importSequence.length > 0 ? importSequence : [...cycleLetters, 'rest'];
+    document.getElementById('daysPerWeek').value = importDaysPerWeek;
+    setMode('cyclic');
+    renderSequence();
+  } else {
+    setMode('weekly');
+  }
+
   const structure = emptyStructure();
-  DAYS.forEach(d => { if (Array.isArray(copy[d])) structure[d] = copy[d]; });
+  Object.keys(copy).forEach(k => { if (Array.isArray(copy[k])) structure[k] = copy[k]; });
 
   const currentTitle = document.getElementById('planTitle').value.trim();
   if (!currentTitle) document.getElementById('planTitle').value = importSelectedPlan.title || 'Treino';
 
-  renderEditor(structure);
+  renderEditor(structure, importSubtitles);
   closeImport();
   showToast('Treino importado — revise e toque em Salvar.');
   window.scrollTo({ top: 0, behavior: 'smooth' });
