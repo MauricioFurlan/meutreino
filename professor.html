@@ -706,9 +706,9 @@ function renderAlerts() {
           : `Treino vence em ${a.daysLeft} dia${a.daysLeft !== 1 ? 's' : ''}`;
       const dateStr = new Date(a.planEndDate + 'T00:00:00').toLocaleDateString('pt-BR');
       return `
-        <div class="alert-card plan-expiring ${a.isExpired ? 'expired' : ''}">
+        <div class="alert-card plan-expiring ${a.isExpired ? 'expired' : ''}" onclick="location.href='treinos.html?aluno=${a.id}'" style="cursor:pointer;">
           <div class="name">📋 ${esc(a.full_name)}</div>
-          <div class="info">${label} · ${dateStr}</div>
+          <div class="info">${label} · ${dateStr} <span style="float:right;color:#ff9800;font-size:0.7rem;">Editar treino →</span></div>
         </div>
       `;
     }).join('');
