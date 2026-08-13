@@ -736,7 +736,7 @@ async function loadDay(day, date) {
     });
 
     const totalExercises = orderedNames.length;
-    const hardSets = (data || []).filter(r => r.set_type === 'hard');
+    const hardSets = (data || []).filter(r => isEffectiveSet(r.set_type));
     const dayVolume = hardSets.reduce((sum, r) => sum + (Number(r.weight) || 0) * (Number(r.reps) || 0), 0);
     // Cardio fica fora da contagem de sets de musculação: são coisas diferentes
     // e misturar faria "8 sets" significar 5 de força + 3 de bike.
@@ -761,7 +761,7 @@ async function loadDay(day, date) {
       densityText = ` · <strong>${kgPorMin.toFixed(1)} kg/min</strong>`;
     }
 
-    let html = `<div class="summary"><strong>${totalExercises}</strong> exercícios · <strong>${hardSets.length}</strong> sets hard de ${strengthSets.length}${durationText}${startedText}</div>`;
+    let html = `<div class="summary"><strong>${totalExercises}</strong> exercícios · <strong>${hardSets.length}</strong> sets efetivos de ${strengthSets.length}${durationText}${startedText}</div>`;
     // Rótulo do "agora": 'hoje' só quando a data selecionada é realmente hoje —
     // o professor navega em datas passadas e ler "hoje 50min" ali seria mentira.
     const cmpLabel = date === toLocalISO(new Date()) ? 'hoje' : formatDayMonth(date);
@@ -778,16 +778,16 @@ async function loadDay(day, date) {
       const chartId = `chart-${day}-${date}-${exIdx}`;
       const cardioMinEx = sumCardioMinutes(sets);
       const soCardio = sets.length > 0 && sets.every(s => isCardio(s.set_type));
-      const temHard = sets.some(s => s.set_type === 'hard');
-      // Qual gráfico abrir: o de força só plota sets hard, então em exercício
-      // sem nenhum hard ele apareceria vazio — nesse caso o de cardio informa mais.
+      const temHard = sets.some(s => isEffectiveSet(s.set_type));
+      // Qual gráfico abrir: o de força só plota sets efetivos, então em exercício
+      // sem nenhum set efetivo ele apareceria vazio — nesse caso o de cardio informa mais.
       const chartCardio = cardioMinEx > 0 && !temHard;
 
       // Melhor set do dia por 1RM estimado (não pelo peso bruto: 100kg×5 vale mais
       // que 105kg×1, e o peso máximo sozinho não mostra isso)
       let bestSet = null, bestE1rm = 0;
       sets.forEach(s => {
-        if (s.set_type !== 'hard') return;
+        if (!isEffectiveSet(s.set_type)) return;
         const est = e1rm(s.weight, s.reps);
         if (est > bestE1rm) { bestE1rm = est; bestSet = s; }
       });
@@ -884,7 +884,7 @@ async function toggleChart(chartId, exerciseName, isCardioExercise) {
     const data = await supaFetch(
       `workout_logs?student_id=eq.${studentId}` +
       `&exercise_name=eq.${encodeURIComponent(exerciseName)}` +
-      `&set_type=eq.hard` +
+      `&set_type=not.in.(aquec,feeder,cardio)` +
       `&session_date=gte.${toLocalISO(from)}` +
       `&select=session_date,weight,reps` +
       `&order=session_date.asc&limit=400`
@@ -1256,7 +1256,7 @@ async function loadWeekly() {
 
       let dayVolume = 0;
       records.forEach(r => {
-        if (r.set_type === 'hard' && r.weight && r.reps) {
+        if (isEffectiveSet(r.set_type) && r.weight && r.reps) {
           dayVolume += r.weight * r.reps;
         }
       });
@@ -1368,7 +1368,7 @@ async function loadWeekly() {
     const prevDays = new Set();
     if (prevData) {
       prevData.forEach(r => {
-        if (r.set_type === 'hard' && r.weight && r.reps) prevVolume += r.weight * r.reps;
+        if (isEffectiveSet(r.set_type) && r.weight && r.reps) prevVolume += r.weight * r.reps;
         prevDays.add(r.session_date);
       });
     }
@@ -1467,7 +1467,7 @@ async function loadMonthly() {
         const d = new Date(r.session_date + 'T12:00:00');
         const weekNum = Math.ceil(d.getDate() / 7);
         if (!volumeByWeek[weekNum]) volumeByWeek[weekNum] = 0;
-        if (r.set_type === 'hard' && r.weight && r.reps) {
+        if (isEffectiveSet(r.set_type) && r.weight && r.reps) {
           volumeByWeek[weekNum] += r.weight * r.reps;
         }
         const cardioMin = sumCardioMinutes([r]);
@@ -1614,7 +1614,7 @@ async function loadMonthly() {
     const prevTrainedDates = new Set();
     if (prevData) {
       prevData.forEach(r => {
-        if (r.set_type === 'hard' && r.weight && r.reps) prevVolume += r.weight * r.reps;
+        if (isEffectiveSet(r.set_type) && r.weight && r.reps) prevVolume += r.weight * r.reps;
         prevTrainedDates.add(r.session_date);
       });
     }

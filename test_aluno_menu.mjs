@@ -87,7 +87,7 @@ eq('histórico sabe se o exercício é cardio',
 eq('card passa a flag de cardio', /toggleHistory\('\$\{exName\.replace\(\/'\/g,"\\\\'"\)\}', \$\{allCardio\}\)/.test(idxJs), true);
 eq('cardio usa o gráfico de minutos', /renderCardioChart\(currentHistoryExercise/.test(idxJs), true);
 eq('musculação usa volume + 1RM',     /renderStrengthChart\(currentHistoryExercise/.test(idxJs), true);
-eq('só séries hard entram no volume', /\.eq\('set_type', 'hard'\)/.test(idxJs), true);
+eq('sets efetivos: exclui aquec/feeder/cardio do volume', /\.not\('set_type', 'in', '\(aquec,feeder,cardio\)'\)/.test(idxJs), true);
 eq('janela do gráfico é a compartilhada', /CHART_WINDOW_DAYS - 1/.test(idxJs), true);
 eq('fechar o modal destrói o gráfico',
   /resetExerciseChart\(\);/.test(grabFrom(idxJs, 'closeHistoryModal')), true);

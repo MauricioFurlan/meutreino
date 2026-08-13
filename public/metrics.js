@@ -216,11 +216,20 @@ function e1rm(weight, reps) {
   return w * (1 + r / 30);
 }
 
-// Volume dos hard sets (kg × reps). Aquecimento e feeder ficam fora: eles
-// existem para preparar a série, contá-los infla o número sem trabalho novo.
+// Tipos que NÃO entram no volume: existem para preparar a série ou são
+// modalidade diferente (cardio). Qualquer tipo novo (serie, etc.) conta.
+const EXCLUDED_SET_TYPES = new Set(['aquec', 'feeder', 'cardio']);
+
+// Retorna true se o set é "efetivo" (conta para volume e métricas de força).
+function isEffectiveSet(setType) {
+  return !EXCLUDED_SET_TYPES.has(String(setType || '').trim().toLowerCase());
+}
+
+// Volume dos sets efetivos (kg × reps). Aquecimento, feeder e cardio ficam
+// fora: existem para preparar ou são outra modalidade.
 function hardVolume(rows) {
   return (rows || []).reduce((sum, r) => {
-    if (r.set_type !== 'hard') return sum;
+    if (!isEffectiveSet(r.set_type)) return sum;
     const w = Number(r.weight) || 0;
     const reps = Number(r.reps) || 0;
     return sum + w * reps;
@@ -361,10 +370,10 @@ function computeStreak(trained, prescribed, today, windowDays) {
 if (typeof window !== 'undefined') {
   window.Metrics = {
     DAYS, TZ, STREAK_WINDOW_DAYS, CHART_WINDOW_DAYS, CHART_WINDOW_WEEKS,
-    CARDIO_CAPTION, FORCA_CAPTION,
+    CARDIO_CAPTION, FORCA_CAPTION, EXCLUDED_SET_TYPES,
     toLocalISO, formatDayMonth, getWeekRange,
     formatDurationHM, formatMinutes,
-    isCardio, sumCardioMinutes, cardioByDate, previousCardioSession,
+    isCardio, isEffectiveSet, sumCardioMinutes, cardioByDate, previousCardioSession,
     cardioComparison, cardioChartInfo,
     e1rm, hardVolume,
     prescribedDaySet, isTrainingDate, computeStreak, computeStreakCyclic

@@ -614,7 +614,7 @@ eq('ficha: chips de resumo no topo', /class="v-chips"/.test(src['treinos.html'])
   eq('metrics.js expõe as funções esperadas',
     ['toLocalISO', 'computeStreak', 'isTrainingDate', 'prescribedDaySet', 'e1rm',
      'formatMinutes', 'formatDurationHM', 'cardioByDate', 'sumCardioMinutes',
-     'cardioChartInfo', 'getWeekRange', 'hardVolume'].every(n => shared.includes(n)), true);
+     'cardioChartInfo', 'getWeekRange', 'hardVolume', 'isEffectiveSet'].every(n => shared.includes(n)), true);
 
   const PAGES = ['index.html', 'professor.html', 'treinador.html', 'evolucao.html',
                  'editor.html', 'treinos.html', 'anamnese.html', 'anotacoes.html', 'owner.html'];

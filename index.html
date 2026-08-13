@@ -619,7 +619,7 @@
     <!-- Botão iniciar treino (discreto, abaixo das tabs, só no dia atual) -->
     <div class="start-workout-row" id="startWorkoutRow" style="display:none;">
       <button class="start-workout-btn" id="timerStartBtn" onclick="confirmStartWorkout()">▶ Iniciar Treino</button>
-      <span class="workout-timer-inline" id="timerInline" style="display:none;">⏱ <span id="timerDisplay">00:00:00</span></span>
+      <span class="workout-timer-inline" id="timerInline" style="display:none;">⏱ <span id="timerDisplay">00:00:00</span><span id="timerLabel" style="margin-left:8px;font-weight:500;font-size:0.8rem;opacity:0.8;"></span></span>
     </div>
   </div>
 
@@ -1123,8 +1123,8 @@ async function toggleExerciseChart() {
 }
 
 // Volume (kg×reps) e 1RM estimado por treino, só das séries hard.
-// Aquecimento e feeder ficariam no gráfico como queda de carga sem queda de
-// esforço — por isso a query filtra set_type=hard.
+// Aquecimento, feeder e cardio ficariam no gráfico como queda de carga sem
+// queda de esforço — por isso a query exclui esses tipos.
 async function renderStrengthChart(exerciseName, canvas, setInfo) {
   const from = new Date();
   from.setDate(from.getDate() - (CHART_WINDOW_DAYS - 1));
@@ -1133,7 +1133,7 @@ async function renderStrengthChart(exerciseName, canvas, setInfo) {
     .select('session_date, weight, reps')
     .eq('student_id', studentId)
     .eq('exercise_name', exerciseName)
-    .eq('set_type', 'hard')
+    .not('set_type', 'in', '(aquec,feeder,cardio)')
     .gte('session_date', toLocalISO(from))
     .order('session_date', { ascending: true })
     .limit(400);
@@ -1451,7 +1451,7 @@ function openCyclicWorkout(letter) {
   // Esconde tabs e mostra o treino selecionado
   document.getElementById('tabs').style.display = 'none';
 
-  let html = `<div class="cyclic-view">`;
+  let html = `<div class="cyclic-view" id="day-${letter}">`;
   html += `<button class="cyclic-back-btn" onclick="backToCyclicMenu()">← Voltar</button>`;
   html += `<div class="cyclic-day-title">Treino ${letter}</div>`;
   if (subtitle) html += `<div class="cyclic-day-subtitle">${esc(subtitle)}</div>`;
@@ -1689,6 +1689,12 @@ function updateTimerVisibility() {
     row.style.display = 'flex';
     document.getElementById('timerStartBtn').style.display = 'none';
     document.getElementById('timerInline').style.display = 'inline';
+    // Mostra qual treino está em execução
+    const label = document.getElementById('timerLabel');
+    if (label && currentTabDay) {
+      const sub = planSubtitles[currentTabDay] || '';
+      label.textContent = '· Treino ' + currentTabDay + (sub ? ' — ' + sub : '');
+    }
     // Adicionar botão encerrar no final do conteúdo do dia
     appendEndButton();
   } else if (document.querySelector('.session-ended')) {
@@ -1700,11 +1706,14 @@ function updateTimerVisibility() {
     row.style.display = 'flex';
     document.getElementById('timerStartBtn').style.display = 'inline-block';
     document.getElementById('timerInline').style.display = 'none';
+    const label = document.getElementById('timerLabel');
+    if (label) label.textContent = '';
   }
 }
 
 function appendEndButton() {
-  const dayEl = document.getElementById('day-' + getToday());
+  const dayKey = planMode === 'cyclic' ? currentTabDay : getToday();
+  const dayEl = document.getElementById('day-' + dayKey);
   if (!dayEl || dayEl.querySelector('.end-workout-row')) return;
   const div = document.createElement('div');
   div.className = 'end-workout-row';
@@ -1713,7 +1722,8 @@ function appendEndButton() {
 }
 
 function appendDoneMessage() {
-  const dayEl = document.getElementById('day-' + getToday());
+  const dayKey = planMode === 'cyclic' ? currentTabDay : getToday();
+  const dayEl = document.getElementById('day-' + dayKey);
   if (!dayEl || dayEl.querySelector('.workout-done-msg')) return;
   const elapsed = sessionEndDuration || 0;
   const div = document.createElement('div');
@@ -1789,7 +1799,8 @@ function showTimerExpired() {
   document.getElementById('timerInline').style.color = '#888';
 
   // Mostra mensagem no final do dia
-  const dayEl = document.getElementById('day-' + getToday());
+  const dayKey = planMode === 'cyclic' ? currentTabDay : getToday();
+  const dayEl = document.getElementById('day-' + dayKey);
   if (dayEl && !dayEl.querySelector('.workout-done-msg')) {
     const div = document.createElement('div');
     div.className = 'workout-done-msg';
@@ -2061,17 +2072,57 @@ guard('student', {
     // é carregado antes de decidir o que mostrar no corpo da tela.
     loadTrainerNote();
 
-    // Carrega plano ativo
-    const { data: plan, error } = await _sb.from('workout_plans')
-      .select('title, structure, plan_start_date, plan_end_date, mode, subtitles, cycle_sequence')
-      .eq('student_id', studentId)
-      .eq('is_active', true)
-      .maybeSingle();
+    // Carrega plano ativo (com fallback resiliente)
+    let plan = null;
+    {
+      let { data, error } = await _sb.from('workout_plans')
+        .select('title, structure, plan_start_date, plan_end_date, mode, subtitles, cycle_sequence')
+        .eq('student_id', studentId)
+        .eq('is_active', true)
+        .maybeSingle();
 
-    if (error || !plan) {
-      hideLoading();
-      document.getElementById('content').innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Nenhum treino disponível</div><div class="empty-text">Seu personal ainda não cadastrou um treino para você.<br>Aguarde ou entre em contato com ele.</div></div>';
-      return;
+      if (error) {
+        console.error('[MeuTreino] Erro ao carregar plano (tentativa 1):', error.message || error);
+        // Fallback 1: erro de coluna inexistente (migration 17 não rodada) — tenta sem colunas novas
+        if (error.message && (error.message.includes('column') || error.code === '42703')) {
+          const fallback = await _sb.from('workout_plans')
+            .select('title, structure, plan_start_date, plan_end_date')
+            .eq('student_id', studentId)
+            .eq('is_active', true)
+            .maybeSingle();
+          if (!fallback.error && fallback.data) {
+            data = fallback.data;
+            error = null;
+            console.warn('[MeuTreino] Fallback sem colunas cíclicas funcionou. Rode a migration 17_cyclic_mode.sql no Supabase.');
+          } else if (fallback.error) {
+            console.error('[MeuTreino] Fallback também falhou:', fallback.error.message);
+          }
+        }
+        // Fallback 2: múltiplos planos ativos (maybeSingle rejeita >1 row)
+        if (error && error.message && error.message.includes('multiple')) {
+          console.warn('[MeuTreino] Múltiplos planos ativos detectados, usando o mais recente.');
+          const fallback = await _sb.from('workout_plans')
+            .select('title, structure, plan_start_date, plan_end_date, mode, subtitles, cycle_sequence')
+            .eq('student_id', studentId)
+            .eq('is_active', true)
+            .order('updated_at', { ascending: false })
+            .limit(1);
+          if (!fallback.error && fallback.data && fallback.data.length > 0) {
+            data = fallback.data[0];
+            error = null;
+          } else if (fallback.error) {
+            console.error('[MeuTreino] Fallback múltiplos também falhou:', fallback.error.message);
+          }
+        }
+      }
+
+      plan = data;
+      if (!plan) {
+        if (error) console.error('[MeuTreino] Plano não carregado. Erro final:', error.message || error);
+        hideLoading();
+        document.getElementById('content').innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div><div class="empty-title">Nenhum treino disponível</div><div class="empty-text">Seu personal ainda não cadastrou um treino para você.<br>Aguarde ou entre em contato com ele.</div></div>';
+        return;
+      }
     }
 
     if (plan.title) document.getElementById('planTitle').textContent = plan.title;
@@ -2095,6 +2146,15 @@ guard('student', {
     planMode = plan.mode || 'weekly';
     planSubtitles = plan.subtitles || {};
     planCycleSequence = Array.isArray(plan.cycle_sequence) ? plan.cycle_sequence : [];
+
+    // Se o modo é cíclico mas a sequência está vazia, derivar das chaves do structure
+    if (planMode === 'cyclic' && planCycleSequence.length === 0) {
+      const keys = Object.keys(WORKOUT).filter(k => Array.isArray(WORKOUT[k]) && WORKOUT[k].length > 0);
+      if (keys.length > 0) {
+        planCycleSequence = [...keys, 'rest'];
+        console.warn('[MeuTreino] cycle_sequence vazio, derivado do structure:', planCycleSequence);
+      }
+    }
 
     if (planMode === 'cyclic') {
       // Modo cíclico: determinar posição e renderizar menu
