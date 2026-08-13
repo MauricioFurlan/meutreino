@@ -367,7 +367,8 @@
 
     /* Sequência do ciclo */
     .seq-section { margin-top: 10px; }
-    .seq-label { font-size: 0.7rem; color: #888; font-weight: 600; margin-bottom: 8px; }
+    .seq-label { font-size: 0.7rem; color: #888; font-weight: 600; margin-bottom: 4px; }
+    .seq-hint { font-size: 0.62rem; color: #666; margin-bottom: 10px; line-height: 1.4; }
     .seq-items { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
     .seq-item {
       display: flex; align-items: center; gap: 2px; padding: 6px 10px;
@@ -463,18 +464,11 @@
         <button class="mode-tab" id="modeCyclicTab" onclick="setMode('cyclic')">Cíclico</button>
       </div>
       <div class="cyclic-config" id="cyclicConfig">
-        <div class="cyclic-row">
-          <label>Dias/semana</label>
-          <input type="number" id="daysPerWeek" min="1" max="7" value="5" onchange="onDaysPerWeekChange()">
-          <span class="hint">Quantos dias o aluno treina por semana</span>
-        </div>
         <div class="seq-section">
-          <div class="seq-label">Sequência do ciclo (com descanso)</div>
+          <div class="seq-label">Monte a sequência do ciclo</div>
+          <div class="seq-hint">Toque nas letras para montar a ordem. Use "Descanso" para dias de folga.</div>
           <div class="seq-items" id="seqItems"></div>
-          <div class="seq-add-btns">
-            <button class="seq-add-btn" onclick="addCycleLetter()">+ Treino</button>
-            <button class="seq-add-btn rest-btn" onclick="addCycleRest()">+ Descanso</button>
-          </div>
+          <div class="seq-add-btns" id="seqAddBtns"></div>
         </div>
       </div>
     </div>
@@ -584,17 +578,13 @@ function setMode(mode) {
   document.getElementById('modeCyclicTab').classList.toggle('active', mode === 'cyclic');
   document.getElementById('modeCard').classList.toggle('on', mode === 'cyclic');
   document.getElementById('cyclicConfig').classList.toggle('show', mode === 'cyclic');
+  if (mode === 'cyclic') {
+    renderSequence();
+  }
   rebuildDays();
 }
 
-function onDaysPerWeekChange() {
-  // Validar entre 1 e 7
-  const input = document.getElementById('daysPerWeek');
-  let val = parseInt(input.value) || 3;
-  if (val < 1) val = 1;
-  if (val > 7) val = 7;
-  input.value = val;
-}
+function onDaysPerWeekChange() {}
 
 function getNextLetter() {
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -604,12 +594,18 @@ function getNextLetter() {
   return 'Z';
 }
 
+// Adiciona um novo treino (nova letra) às abas
 function addCycleLetter() {
   const letter = getNextLetter();
   cycleLetters.push(letter);
+  rebuildDays();
+  renderSequenceButtons();
+}
+
+// Adiciona uma letra existente à sequência
+function addLetterToSequence(letter) {
   cycleSequence.push(letter);
   renderSequence();
-  rebuildDays();
 }
 
 function addCycleRest() {
@@ -618,26 +614,46 @@ function addCycleRest() {
 }
 
 function removeSeqItem(index) {
-  const item = cycleSequence[index];
   cycleSequence.splice(index, 1);
-  // Se removeu uma letra, remover do cycleLetters se não está mais na sequência
-  if (item !== 'rest' && !cycleSequence.includes(item)) {
-    cycleLetters = cycleLetters.filter(l => l !== item);
-    rebuildDays();
-  }
   renderSequence();
 }
 
 function renderSequence() {
   const container = document.getElementById('seqItems');
-  container.innerHTML = cycleSequence.map((item, i) => {
-    const isRest = item === 'rest';
-    const label = isRest ? 'Descanso' : `Treino ${item}`;
-    return `<div class="seq-item ${isRest ? 'rest' : ''}">
-      <span>${label}</span>
-      <button class="seq-remove" onclick="removeSeqItem(${i})">×</button>
-    </div>`;
-  }).join('');
+  if (cycleSequence.length === 0) {
+    container.innerHTML = '<span style="font-size:0.68rem;color:#666;font-style:italic;">Sequência vazia — adicione abaixo</span>';
+  } else {
+    container.innerHTML = cycleSequence.map((item, i) => {
+      const isRest = item === 'rest';
+      const label = isRest ? 'Descanso' : `Treino ${item}`;
+      return `<div class="seq-item ${isRest ? 'rest' : ''}">
+        <span>${label}</span>
+        <button class="seq-remove" onclick="removeSeqItem(${i})">×</button>
+      </div>`;
+    }).join('');
+  }
+  renderSequenceButtons();
+}
+
+// Renderiza os botões de adicionar baseados nas letras existentes
+function renderSequenceButtons() {
+  const container = document.getElementById('seqAddBtns');
+  if (!container) return;
+  let html = '';
+  cycleLetters.forEach(letter => {
+    html += `<button class="seq-add-btn" onclick="addLetterToSequence('${letter}')">+ ${letter}</button>`;
+  });
+  html += `<button class="seq-add-btn rest-btn" onclick="addCycleRest()">+ Descanso</button>`;
+  html += `<button class="seq-add-btn" onclick="addCycleLetter()" style="border-color:#4caf50;color:#4caf50;">+ Novo treino</button>`;
+  container.innerHTML = html;
+}
+
+// Calcula days_per_week a partir da sequência
+function computeDaysPerWeek() {
+  if (cycleSequence.length === 0) return null;
+  const trainDays = cycleSequence.filter(s => s !== 'rest').length;
+  const totalDays = cycleSequence.length;
+  return Math.round((trainDays / totalDays) * 7);
 }
 
 // Reconstrói os accordions dos dias no editor conforme o modo
@@ -1370,7 +1386,7 @@ async function savePlan() {
       if (error) throw error;
     }
 
-    const daysPerWeek = currentMode === 'cyclic' ? (parseInt(document.getElementById('daysPerWeek').value) || 5) : null;
+    const daysPerWeek = currentMode === 'cyclic' ? computeDaysPerWeek() : null;
 
     const payload = {
       title: title || 'Treino',
@@ -1595,7 +1611,6 @@ function confirmImport() {
     const keys = Object.keys(copy).filter(k => Array.isArray(copy[k]) && copy[k].length > 0);
     cycleLetters = keys.length > 0 ? keys : ['A', 'B', 'C'];
     cycleSequence = importSequence.length > 0 ? importSequence : [...cycleLetters, 'rest'];
-    document.getElementById('daysPerWeek').value = importDaysPerWeek;
     setMode('cyclic');
     renderSequence();
   } else {
@@ -1686,7 +1701,6 @@ guard('trainer', {
         const structKeys = Object.keys(plan.structure || {});
         cycleLetters = structKeys.length > 0 ? structKeys : ['A', 'B', 'C'];
         cycleSequence = Array.isArray(plan.cycle_sequence) ? plan.cycle_sequence : [...cycleLetters, 'rest'];
-        document.getElementById('daysPerWeek').value = plan.days_per_week || 5;
         setMode('cyclic');
       } else {
         setMode('weekly');
