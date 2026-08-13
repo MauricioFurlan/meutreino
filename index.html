@@ -78,6 +78,72 @@
     .tab.active { background: var(--accent); color: var(--text-dark); }
     .day-content { display: none; padding: 16px; }
     .day-content.active { display: block; }
+
+    /* === Modo cíclico: tela do aluno === */
+    .cyclic-view { padding: 16px; }
+    .cyclic-sequence-bar {
+      display: flex; gap: 4px; align-items: center; flex-wrap: wrap;
+      padding: 10px 12px; margin-bottom: 14px;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+      font-size: 0.7rem; color: var(--text-muted2);
+    }
+    .cyclic-sequence-bar .seq-dot {
+      padding: 4px 8px; border-radius: 6px; font-weight: 700;
+      background: var(--bg-secondary); color: var(--text-muted2); font-size: 0.68rem;
+    }
+    .cyclic-sequence-bar .seq-dot.current { background: var(--accent); color: var(--text-dark); }
+    .cyclic-sequence-bar .seq-dot.rest { color: var(--text-muted); font-weight: 400; font-style: italic; }
+    .cyclic-sequence-bar .seq-arrow { color: var(--text-dim); font-size: 0.6rem; }
+
+    .cyclic-suggested {
+      background: var(--bg-card); border: 2px solid var(--accent); border-radius: 14px;
+      padding: 18px 16px; margin-bottom: 14px; text-align: center;
+    }
+    .cyclic-suggested .cs-label { font-size: 0.68rem; color: var(--text-muted2); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .cyclic-suggested .cs-title { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+    .cyclic-suggested .cs-subtitle { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
+    .cyclic-suggested .cs-btn {
+      margin-top: 14px; width: 100%; padding: 14px; border: none; border-radius: 10px;
+      background: var(--accent); color: var(--text-dark); font-weight: 700; font-size: 0.9rem; cursor: pointer;
+    }
+    .cyclic-suggested .cs-btn:active { opacity: 0.7; }
+
+    .cyclic-rest-card {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px;
+      padding: 24px 16px; margin-bottom: 14px; text-align: center;
+    }
+    .cyclic-rest-card .cr-title { font-size: 1rem; font-weight: 700; color: var(--text-muted); margin-bottom: 4px; }
+    .cyclic-rest-card .cr-sub { font-size: 0.75rem; color: var(--text-muted2); }
+
+    .cyclic-others-label { font-size: 0.72rem; color: var(--text-muted2); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .cyclic-option {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+      padding: 14px; margin-bottom: 8px; cursor: pointer; transition: border-color 0.2s;
+    }
+    .cyclic-option:active { border-color: var(--accent); }
+    .cyclic-option .co-letter {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--bg-secondary); display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.85rem; color: var(--accent); flex-shrink: 0;
+    }
+    .cyclic-option .co-body { flex: 1; min-width: 0; }
+    .cyclic-option .co-title { font-size: 0.85rem; font-weight: 600; color: var(--text); }
+    .cyclic-option .co-subtitle { font-size: 0.7rem; color: var(--text-muted2); margin-top: 2px; }
+    .cyclic-option .co-arrow { color: var(--text-dim); font-size: 0.8rem; }
+
+    /* Quando o aluno está dentro de um treino cíclico (exercícios abertos) */
+    .cyclic-back-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: none; border: 1px solid var(--border); color: var(--text-muted);
+      font-size: 0.72rem; font-weight: 600; padding: 6px 12px;
+      border-radius: 8px; cursor: pointer; margin-bottom: 12px;
+    }
+    .cyclic-back-btn:active { opacity: 0.6; }
+    .cyclic-day-title {
+      font-size: 1rem; font-weight: 700; color: var(--accent); margin-bottom: 4px;
+    }
+    .cyclic-day-subtitle { font-size: 0.78rem; color: var(--text-muted); margin-bottom: 14px; }
     .exercise-card {
       background: var(--bg-card);
       border-radius: 12px;
@@ -605,6 +671,10 @@ function showLoading() { document.getElementById('loadingOverlay').classList.rem
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 let WORKOUT = {};  // carregado do banco
 let studentId = null;
+let planMode = 'weekly';      // 'weekly' | 'cyclic'
+let planSubtitles = {};       // subtítulos por dia/letra
+let planCycleSequence = [];   // sequência do ciclo (ex: ['A','B','rest','C'])
+let cyclicPosition = 0;       // posição atual na sequência (derivada do último log)
 
 // === Helpers ===
 const esc = (s) => { // escape HTML (proteção XSS)
@@ -625,8 +695,11 @@ function getTodayDate() { return toLocalISO(new Date()); }
 // Retorna a data mais recente para o dia da semana informado
 // Ex: se hoje é Domingo e day='Segunda', retorna a segunda passada (há 6 dias)
 // Se day é o dia de hoje, retorna hoje
+// No modo cíclico (letras), sempre retorna hoje
 function getDateForDay(day) {
+  if (planMode === 'cyclic') return getTodayDate();
   const dayIndex = ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'].indexOf(day);
+  if (dayIndex < 0) return getTodayDate(); // letra cíclica ou desconhecido
   const now = new Date();
   const todayIndex = now.getDay();
   let diff = todayIndex - dayIndex;
@@ -645,9 +718,12 @@ function showToast(text, isError) {
 
 // === Reset dos inputs de um dia (evita acúmulo de placeholder ao trocar tabs) ===
 function resetDayInputs(day) {
-  const dayEl = document.getElementById('day-' + day);
-  if (!dayEl) return;
-  dayEl.querySelectorAll('.set-row:not(.set-header)').forEach(row => {
+  // No modo cíclico não temos div#day-X, buscamos cards por data-day
+  let dayEl = document.getElementById('day-' + day);
+  const rows = dayEl
+    ? dayEl.querySelectorAll('.set-row:not(.set-header)')
+    : document.querySelectorAll(`[data-day="${day}"] .set-row:not(.set-header)`);
+  rows.forEach(row => {
     const wi = row.querySelector('.weight-input');
     const ri = row.querySelector('.reps-input');
     const mi = row.querySelector('.minutes-input');
@@ -1272,6 +1348,129 @@ function toggleNote(id) {
 }
 
 // === Render ===
+// === Modo cíclico: determinar próximo treino ===
+async function determineCyclicPosition() {
+  // Busca o último log do aluno para saber qual foi o último treino feito
+  const { data } = await _sb.from('workout_logs')
+    .select('weekday, session_date')
+    .eq('student_id', studentId)
+    .order('session_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(1);
+
+  if (!data || data.length === 0) {
+    cyclicPosition = 0;
+    return;
+  }
+
+  const lastLabel = data[0].weekday; // No modo cíclico armazena a letra (A, B, C...)
+  // Encontra a posição do último treino na sequência e avança para o próximo
+  const lastIdx = planCycleSequence.indexOf(lastLabel);
+  if (lastIdx >= 0) {
+    cyclicPosition = (lastIdx + 1) % planCycleSequence.length;
+  } else {
+    cyclicPosition = 0;
+  }
+}
+
+function renderCyclicView() {
+  const contentEl = document.getElementById('content');
+  contentEl.innerHTML = '';
+
+  const div = document.createElement('div');
+  div.className = 'cyclic-view';
+  div.id = 'cyclicView';
+
+  // Barra de sequência visual
+  let seqHtml = '<div class="cyclic-sequence-bar">';
+  planCycleSequence.forEach((item, i) => {
+    if (i > 0) seqHtml += '<span class="seq-arrow">›</span>';
+    const isRest = item === 'rest';
+    const isCurrent = i === cyclicPosition;
+    const label = isRest ? 'Desc.' : item;
+    seqHtml += `<span class="seq-dot${isCurrent ? ' current' : ''}${isRest ? ' rest' : ''}">${label}</span>`;
+  });
+  seqHtml += '</div>';
+  div.innerHTML = seqHtml;
+
+  // Card principal: sugerido ou descanso
+  const currentItem = planCycleSequence[cyclicPosition];
+  if (currentItem === 'rest') {
+    // Próximo treino após o descanso
+    let nextTrainIdx = -1;
+    for (let i = 1; i < planCycleSequence.length; i++) {
+      const idx = (cyclicPosition + i) % planCycleSequence.length;
+      if (planCycleSequence[idx] !== 'rest') { nextTrainIdx = idx; break; }
+    }
+    const nextLabel = nextTrainIdx >= 0 ? planCycleSequence[nextTrainIdx] : '';
+    const nextSub = nextLabel ? (planSubtitles[nextLabel] || '') : '';
+
+    div.innerHTML += `
+      <div class="cyclic-rest-card">
+        <div class="cr-title">Dia de descanso</div>
+        <div class="cr-sub">${nextLabel ? `Próximo treino: ${nextLabel}${nextSub ? ' — ' + esc(nextSub) : ''}` : ''}</div>
+      </div>
+      <div class="cyclic-others-label">Ou escolha um treino</div>
+    `;
+  } else {
+    const subtitle = planSubtitles[currentItem] || '';
+    div.innerHTML += `
+      <div class="cyclic-suggested">
+        <div class="cs-label">Sugerido</div>
+        <div class="cs-title">Treino ${currentItem}</div>
+        ${subtitle ? `<div class="cs-subtitle">${esc(subtitle)}</div>` : ''}
+        <button class="cs-btn" onclick="openCyclicWorkout('${currentItem}')">Iniciar Treino ${currentItem}</button>
+      </div>
+      <div class="cyclic-others-label">Outros treinos</div>
+    `;
+  }
+
+  // Lista dos outros treinos disponíveis
+  const letters = Object.keys(WORKOUT).filter(k => (WORKOUT[k] || []).length > 0);
+  letters.forEach(letter => {
+    if (letter === currentItem && currentItem !== 'rest') return; // já está no sugerido
+    const subtitle = planSubtitles[letter] || '';
+    div.innerHTML += `
+      <div class="cyclic-option" onclick="openCyclicWorkout('${letter}')">
+        <div class="co-letter">${letter}</div>
+        <div class="co-body">
+          <div class="co-title">Treino ${letter}</div>
+          ${subtitle ? `<div class="co-subtitle">${esc(subtitle)}</div>` : ''}
+        </div>
+        <span class="co-arrow">›</span>
+      </div>
+    `;
+  });
+
+  contentEl.appendChild(div);
+}
+
+function openCyclicWorkout(letter) {
+  const contentEl = document.getElementById('content');
+  const subtitle = planSubtitles[letter] || '';
+  // Esconde tabs e mostra o treino selecionado
+  document.getElementById('tabs').style.display = 'none';
+
+  let html = `<div class="cyclic-view">`;
+  html += `<button class="cyclic-back-btn" onclick="backToCyclicMenu()">← Voltar</button>`;
+  html += `<div class="cyclic-day-title">Treino ${letter}</div>`;
+  if (subtitle) html += `<div class="cyclic-day-subtitle">${esc(subtitle)}</div>`;
+  html += renderDay(letter);
+  html += `</div>`;
+
+  contentEl.innerHTML = html;
+  currentTabDay = letter;
+  updateTimerVisibility();
+  loadTodayData(letter);
+}
+
+function backToCyclicMenu() {
+  document.getElementById('tabs').style.display = '';
+  renderCyclicView();
+  currentTabDay = null;
+  updateTimerVisibility();
+}
+
 function renderDay(day) {
   const exercises = WORKOUT[day];
   if (!exercises || exercises.length === 0) {
@@ -1469,6 +1668,7 @@ function updateTimerDisplay() {
 }
 
 function isCurrentTabToday() {
+  if (planMode === 'cyclic') return !!currentTabDay; // no cíclico, treino é sempre "hoje"
   return currentTabDay === getToday();
 }
 
@@ -1623,10 +1823,10 @@ async function confirmStartWorkout() {
 async function startWorkoutSession() {
   const btn = document.getElementById('timerStartBtn');
   btn.disabled = true;
-  const today = getToday();
+  const weekday = planMode === 'cyclic' ? (currentTabDay || getToday()) : getToday();
 
   const { data, error } = await _sb.from('workout_sessions')
-    .insert({ student_id: studentId, weekday: today, started_at: new Date().toISOString() })
+    .insert({ student_id: studentId, weekday: weekday, started_at: new Date().toISOString() })
     .select()
     .single();
 
@@ -1863,7 +2063,7 @@ guard('student', {
 
     // Carrega plano ativo
     const { data: plan, error } = await _sb.from('workout_plans')
-      .select('title, structure, plan_start_date, plan_end_date')
+      .select('title, structure, plan_start_date, plan_end_date, mode, subtitles, cycle_sequence')
       .eq('student_id', studentId)
       .eq('is_active', true)
       .maybeSingle();
@@ -1892,39 +2092,59 @@ guard('student', {
       datesEl.classList.remove('hidden');
     }
     WORKOUT = plan.structure || {};
+    planMode = plan.mode || 'weekly';
+    planSubtitles = plan.subtitles || {};
+    planCycleSequence = Array.isArray(plan.cycle_sequence) ? plan.cycle_sequence : [];
 
-    // Renderiza tabs e dias
-    const today = getToday();
-    const days = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
-    const tabsEl = document.getElementById('tabs');
-    const contentEl = document.getElementById('content');
+    if (planMode === 'cyclic') {
+      // Modo cíclico: determinar posição e renderizar menu
+      await determineCyclicPosition();
+      // Esconde tabs (o menu cíclico substitui)
+      document.getElementById('tabs').style.display = 'none';
+      renderCyclicView();
+      currentTabDay = null;
+      await loadTodaySession();
+      hideLoading();
+    } else {
+      // Modo semanal: renderiza tabs normais com subtítulos
+      const today = getToday();
+      const days = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+      const tabsEl = document.getElementById('tabs');
+      const contentEl = document.getElementById('content');
 
-    days.forEach(day => {
-      const tab = document.createElement('button');
-      tab.className = 'tab' + (day === today ? ' active' : '');
-      tab.textContent = day.substring(0, 3);
-      tab.onclick = () => {
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.day-content').forEach(d => d.classList.remove('active'));
-        tab.classList.add('active');
-        document.getElementById('day-' + day).classList.add('active');
-        currentTabDay = day;
-        updateTimerVisibility();
-        loadTodayData(day);
-      };
-      tabsEl.appendChild(tab);
+      days.forEach(day => {
+        const tab = document.createElement('button');
+        tab.className = 'tab' + (day === today ? ' active' : '');
+        const subtitle = planSubtitles[day] || '';
+        tab.textContent = day.substring(0, 3);
+        if (subtitle) tab.title = subtitle;
+        tab.onclick = () => {
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.day-content').forEach(d => d.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById('day-' + day).classList.add('active');
+          currentTabDay = day;
+          updateTimerVisibility();
+          loadTodayData(day);
+        };
+        tabsEl.appendChild(tab);
 
-      const div = document.createElement('div');
-      div.className = 'day-content' + (day === today ? ' active' : '');
-      div.id = 'day-' + day;
-      div.innerHTML = renderDay(day);
-      contentEl.appendChild(div);
-    });
+        const div = document.createElement('div');
+        div.className = 'day-content' + (day === today ? ' active' : '');
+        div.id = 'day-' + day;
+        // Adiciona subtítulo acima dos exercícios
+        let dayHtml = '';
+        if (subtitle) dayHtml += `<div class="cyclic-day-subtitle">${esc(subtitle)}</div>`;
+        dayHtml += renderDay(day);
+        div.innerHTML = dayHtml;
+        contentEl.appendChild(div);
+      });
 
-    loadTodayData(today);
-    currentTabDay = today;
-    await loadTodaySession();
-    hideLoading();
+      loadTodayData(today);
+      currentTabDay = today;
+      await loadTodaySession();
+      hideLoading();
+    }
   },
   onBlocked: showBlock
 });

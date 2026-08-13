@@ -596,6 +596,8 @@ const esc = (s) => { const d = document.createElement('div'); d.textContent = s 
 let PRESCRIBED_REPS = {};
 let PRESCRIBED_ORDER = {};
 let studentId = null;
+let planMode = 'weekly';
+let planDaysPerWeek = null;
 
 async function supaFetch(endpoint) {
   const session = (await _sb.auth.getSession()).data.session;
@@ -624,10 +626,13 @@ async function supaFetch(endpoint) {
 
 async function loadStreak() {
   const bar = document.getElementById('streakBar');
-  const prescribed = prescribedDaySet(PRESCRIBED_ORDER);
+  const prescribed = planMode === 'cyclic'
+    ? new Set(['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'])
+    : prescribedDaySet(PRESCRIBED_ORDER);
 
   // Sem plano ativo não há como saber o que é treino e o que é descanso.
-  if (prescribed.size === 0) { bar.classList.add('hidden'); return; }
+  if (prescribed.size === 0 && planMode !== 'cyclic') { bar.classList.add('hidden'); return; }
+  if (planMode === 'cyclic' && !planDaysPerWeek) { bar.classList.add('hidden'); return; }
 
   const today = new Date();
   const windowStart = new Date(today);
@@ -646,7 +651,21 @@ async function loadStreak() {
   }
 
   const trained = new Set((rows || []).map(r => r.session_date));
-  const { current, best, hitWindowEdge } = computeStreak(trained, prescribed, today);
+  
+  let current, best, hitWindowEdge, todayIsRest;
+  if (planMode === 'cyclic') {
+    const result = computeStreakCyclic(trained, planDaysPerWeek, today);
+    current = result.current;
+    best = result.best;
+    hitWindowEdge = false;
+    todayIsRest = false;
+  } else {
+    const result = computeStreak(trained, prescribed, today);
+    current = result.current;
+    best = result.best;
+    hitWindowEdge = result.hitWindowEdge;
+    todayIsRest = !isTrainingDate(toLocalISO(today), prescribed);
+  }
 
   // --- última vez que treinou ---
   const allDates = [...trained].sort();
@@ -654,7 +673,6 @@ async function loadStreak() {
 
   // --- render ---
   const todayStr = toLocalISO(today);
-  const todayIsRest = !isTrainingDate(todayStr, prescribed);
   const trainedToday = trained.has(todayStr);
 
   document.getElementById('streakCount').textContent = current + (hitWindowEdge ? '+' : '');
@@ -1217,7 +1235,9 @@ async function loadWeekly() {
     }
 
     // Presença semanal
-    const prescribed = prescribedDaySet(PRESCRIBED_ORDER);
+    const prescribed = planMode === 'cyclic'
+      ? new Set(['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'])
+      : prescribedDaySet(PRESCRIBED_ORDER);
     const cardioMinByDate = cardioByDate(data);
     let html = '<div class="weekly-days">';
     const dates = Object.keys(byDay).sort();
@@ -1459,7 +1479,9 @@ async function loadMonthly() {
       });
     }
 
-    const prescribed = prescribedDaySet(PRESCRIBED_ORDER);
+    const prescribed = planMode === 'cyclic'
+      ? new Set(['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'])
+      : prescribedDaySet(PRESCRIBED_ORDER);
 
     // Calendário
     let html = '<div class="resume-card"><h3>Calendário de presença</h3>';
@@ -1634,12 +1656,14 @@ async function initApp() {
 
   // Carregar plano do aluno → extrair PRESCRIBED_REPS e PRESCRIBED_ORDER
   const { data: plan } = await _sb.from('workout_plans')
-    .select('structure')
+    .select('structure, mode, days_per_week')
     .eq('student_id', studentId)
     .eq('is_active', true)
     .maybeSingle();
 
   if (plan && plan.structure) {
+    planMode = plan.mode || 'weekly';
+    planDaysPerWeek = plan.days_per_week || null;
     for (const [day, exercises] of Object.entries(plan.structure)) {
       PRESCRIBED_ORDER[day] = exercises.map(ex => ex.name);
       exercises.forEach(ex => {

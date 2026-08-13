@@ -225,6 +225,8 @@ function hideLoading() { document.getElementById('loadingOverlay').classList.add
 
 let studentId = null;
 let PRESCRIBED = new Set();   // dias com treino prescrito no plano ativo
+let PLAN_MODE = 'weekly';     // 'weekly' | 'cyclic'
+let PLAN_DAYS_PER_WEEK = null; // só usado no modo cíclico
 
 // Datas locais como 'YYYY-MM-DD' (toLocalISO vem de metrics.js).
 const todayISO = () => toLocalISO(new Date());
@@ -280,7 +282,8 @@ const barRow = (label, pct, value, color, labelWidth) =>
 async function loadStreak() {
   const bar = document.getElementById('streakBar');
   // Sem plano ativo não há como saber o que é treino e o que é descanso.
-  if (PRESCRIBED.size === 0) { bar.classList.add('hidden'); return; }
+  if (PRESCRIBED.size === 0 && PLAN_MODE !== 'cyclic') { bar.classList.add('hidden'); return; }
+  if (PLAN_MODE === 'cyclic' && !PLAN_DAYS_PER_WEEK) { bar.classList.add('hidden'); return; }
 
   const today = new Date();
   const windowStart = new Date(today);
@@ -301,34 +304,64 @@ async function loadStreak() {
   }
 
   const trained = new Set((rows || []).map(r => r.session_date));
-  const { current, best, hitWindowEdge } = computeStreak(trained, PRESCRIBED, today);
-
   const allDates = [...trained].sort();
   const lastTrained = allDates.length ? allDates[allDates.length - 1] : null;
-
   const todayStr = toLocalISO(today);
-  const todayIsRest = !isTrainingDate(todayStr, PRESCRIBED);
   const trainedToday = trained.has(todayStr);
 
-  document.getElementById('streakCount').textContent = current + (hitWindowEdge ? '+' : '');
-  bar.classList.remove('hidden');
-  bar.classList.toggle('on', current > 0);
+  let current, best, hitWindowEdge, todayIsRest, labelText, subText;
 
-  const labelEl = document.getElementById('streakLabel');
-  const subEl = document.getElementById('streakSub');
+  if (PLAN_MODE === 'cyclic') {
+    const result = computeStreakCyclic(trained, PLAN_DAYS_PER_WEEK, today);
+    current = result.current;
+    best = result.best;
+    hitWindowEdge = false;
+    todayIsRest = false; // no cíclico não sabemos se é descanso sem a sequência completa
 
-  if (current > 0) {
-    labelEl.innerHTML = `treino${current > 1 ? 's' : ''} seguido${current > 1 ? 's' : ''} sem falhar`;
-    const parts = [];
-    if (todayIsRest) parts.push('<span class="streak-rest">hoje é descanso — sequência preservada</span>');
-    else if (!trainedToday) parts.push('hoje ainda conta se você treinar');
-    if (best > current) parts.push(`seu recorde: ${best}`);
-    subEl.innerHTML = parts.join(' · ');
+    document.getElementById('streakCount').textContent = current;
+    bar.classList.remove('hidden');
+    bar.classList.toggle('on', current > 0);
+
+    const labelEl = document.getElementById('streakLabel');
+    const subEl = document.getElementById('streakSub');
+
+    if (current > 0) {
+      labelEl.innerHTML = `semana${current > 1 ? 's' : ''} seguida${current > 1 ? 's' : ''} com meta atingida`;
+      const parts = [`Meta: ${PLAN_DAYS_PER_WEEK}x/sem · esta semana: ${result.thisWeekCount}/${PLAN_DAYS_PER_WEEK}`];
+      if (best > current) parts.push(`recorde: ${best} semanas`);
+      subEl.innerHTML = parts.join(' · ');
+    } else {
+      labelEl.textContent = 'Sequência zerada';
+      subEl.innerHTML = `Meta: ${PLAN_DAYS_PER_WEEK}x/sem · esta semana: ${result.thisWeekCount}/${PLAN_DAYS_PER_WEEK}` +
+        (best > 0 ? ` · recorde: ${best} semanas` : '');
+    }
   } else {
-    labelEl.textContent = 'Sequência zerada';
-    subEl.innerHTML = lastTrained
-      ? `último treino em ${formatDayMonth(lastTrained)}${best > 0 ? ` · seu recorde: ${best}` : ''}`
-      : 'nenhum treino registrado ainda';
+    const streakResult = computeStreak(trained, PRESCRIBED, today);
+    current = streakResult.current;
+    best = streakResult.best;
+    hitWindowEdge = streakResult.hitWindowEdge;
+    todayIsRest = !isTrainingDate(todayStr, PRESCRIBED);
+
+    document.getElementById('streakCount').textContent = current + (hitWindowEdge ? '+' : '');
+    bar.classList.remove('hidden');
+    bar.classList.toggle('on', current > 0);
+
+    const labelEl = document.getElementById('streakLabel');
+    const subEl = document.getElementById('streakSub');
+
+    if (current > 0) {
+      labelEl.innerHTML = `treino${current > 1 ? 's' : ''} seguido${current > 1 ? 's' : ''} sem falhar`;
+      const parts = [];
+      if (todayIsRest) parts.push('<span class="streak-rest">hoje é descanso — sequência preservada</span>');
+      else if (!trainedToday) parts.push('hoje ainda conta se você treinar');
+      if (best > current) parts.push(`seu recorde: ${best}`);
+      subEl.innerHTML = parts.join(' · ');
+    } else {
+      labelEl.textContent = 'Sequência zerada';
+      subEl.innerHTML = lastTrained
+        ? `último treino em ${formatDayMonth(lastTrained)}${best > 0 ? ` · seu recorde: ${best}` : ''}`
+        : 'nenhum treino registrado ainda';
+    }
   }
 }
 
@@ -754,11 +787,20 @@ guard('student', {
     // Dias prescritos vêm do plano ativo. Sem plano não há como separar treino
     // de descanso — a tela continua, mas avisa em vez de inventar faltas.
     const { data: plan } = await _sb.from('workout_plans')
-      .select('structure')
+      .select('structure, mode, days_per_week')
       .eq('student_id', studentId)
       .eq('is_active', true)
       .maybeSingle();
     PRESCRIBED = prescribedDaySet(plan && plan.structure);
+    PLAN_MODE = (plan && plan.mode) || 'weekly';
+    PLAN_DAYS_PER_WEEK = (plan && plan.days_per_week) || null;
+
+    // No modo cíclico, qualquer dia pode ser dia de treino (o aluno escolhe).
+    // PRESCRIBED com todos os 7 dias faz isTrainingDate retornar true sempre —
+    // o gráfico semanal mostra presença/ausência sem marcar "descanso" fixo.
+    if (PLAN_MODE === 'cyclic' && PLAN_DAYS_PER_WEEK) {
+      PRESCRIBED = new Set(['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo']);
+    }
 
     const inicial = location.hash === '#monthly' ? 'monthly' : 'weekly';
     if (inicial === 'monthly') {

@@ -352,17 +352,17 @@ function fmtShort(d) {
 
 function countExercises(structure) {
   if (!structure) return 0;
-  return DAYS.reduce((sum, d) => sum + (Array.isArray(structure[d]) ? structure[d].length : 0), 0);
+  return Object.values(structure).reduce((sum, d) => sum + (Array.isArray(d) ? d.length : 0), 0);
 }
 function activeDays(structure) {
   if (!structure) return [];
-  return DAYS.filter(d => Array.isArray(structure[d]) && structure[d].length > 0);
+  return Object.keys(structure).filter(d => Array.isArray(structure[d]) && structure[d].length > 0);
 }
 
 // === Carregar treinos do aluno ===
 async function loadPlans() {
   let query = _sb.from('workout_plans')
-    .select('id, title, structure, is_active, plan_start_date, plan_end_date, created_at, updated_at');
+    .select('id, title, structure, is_active, plan_start_date, plan_end_date, created_at, updated_at, mode, subtitles, cycle_sequence');
 
   if (studentId) {
     query = query.eq('student_id', studentId);
@@ -395,15 +395,21 @@ function renderPlans() {
   container.innerHTML = plans.map(p => {
     const total = countExercises(p.structure);
     const days = activeDays(p.structure);
+    const isCyclic = p.mode === 'cyclic';
     const period = (p.plan_start_date || p.plan_end_date)
       ? `📅 ${fmtShort(p.plan_start_date) || '...'} — ${fmtShort(p.plan_end_date) || '...'}`
       : null;
     const created = new Date(p.created_at).toLocaleDateString('pt-BR');
+    const modeLabel = isCyclic ? 'Cíclico' : `${days.length} dia${days.length !== 1 ? 's' : ''}`;
     const meta = [
       `${total} exercício${total !== 1 ? 's' : ''}`,
-      `${days.length} dia${days.length !== 1 ? 's' : ''}`,
+      modeLabel,
       period
     ].filter(Boolean).join(' <span class="sep">·</span> ');
+
+    const daysLabel = isCyclic
+      ? `Sequência: ${(p.cycle_sequence || days).filter(s => s !== 'rest').join(' → ')}`
+      : (days.length ? esc(days.join(' · ')) : 'Sem exercícios');
 
     return `
       <div class="plan-card ${p.is_active ? 'active' : ''}">
@@ -412,7 +418,7 @@ function renderPlans() {
             <div class="plan-title">${esc(p.title || 'Treino')}</div>
             <span class="plan-badge ${p.is_active ? 'on' : 'off'}">${p.is_active ? '● Ativo para o aluno' : 'Inativo'}</span>
             <div class="plan-meta">${meta}</div>
-            <div class="plan-days">${days.length ? esc(days.join(' · ')) : 'Sem exercícios'} <span class="sep">·</span> criado ${created}</div>
+            <div class="plan-days">${daysLabel} <span class="sep">·</span> criado ${created}</div>
           </div>
           <div class="toggle-wrap">
             <span class="toggle-label">${p.is_active ? 'On' : 'Off'}</span>
@@ -574,22 +580,39 @@ function viewPlan(planId) {
   const st = p.structure || {};
   const total = countExercises(st);
   const dias = activeDays(st);
+  const isCyclic = p.mode === 'cyclic';
+  const subs = p.subtitles || {};
 
   const chips = [
     `<span class="v-chip ${p.is_active ? 'on' : 'off'}">${p.is_active ? '● Ativo para o aluno' : 'Inativo'}</span>`,
     `<span class="v-chip">${total} exercício${total !== 1 ? 's' : ''}</span>`,
-    `<span class="v-chip">${dias.length} dia${dias.length !== 1 ? 's' : ''} de treino</span>`
+    `<span class="v-chip">${isCyclic ? 'Cíclico' : dias.length + ' dia' + (dias.length !== 1 ? 's' : '') + ' de treino'}</span>`
   ];
+  if (isCyclic && p.cycle_sequence) {
+    chips.push(`<span class="v-chip">Seq: ${p.cycle_sequence.map(s => s === 'rest' ? 'Desc.' : s).join(' → ')}</span>`);
+  }
   if (p.plan_start_date || p.plan_end_date) {
     chips.push(`<span class="v-chip">📅 ${fmtDate(p.plan_start_date) || '...'} — ${fmtDate(p.plan_end_date) || '...'}</span>`);
   }
 
   let html = '';
-  DAYS.forEach(day => {
-    const list = Array.isArray(st[day]) ? st[day] : [];
-    if (list.length === 0) return;
-    html += renderViewDay(day, list);
-  });
+  if (isCyclic) {
+    // Modo cíclico: itera sobre as letras presentes no structure
+    dias.forEach(letter => {
+      const list = Array.isArray(st[letter]) ? st[letter] : [];
+      if (list.length === 0) return;
+      const dayLabel = `Treino ${letter}${subs[letter] ? ' — ' + subs[letter] : ''}`;
+      html += renderViewDay(dayLabel, list);
+    });
+  } else {
+    // Modo semanal: itera sobre dias da semana
+    DAYS.forEach(day => {
+      const list = Array.isArray(st[day]) ? st[day] : [];
+      if (list.length === 0) return;
+      const dayLabel = day + (subs[day] ? ' — ' + subs[day] : '');
+      html += renderViewDay(dayLabel, list);
+    });
+  }
 
   document.getElementById('viewBody').innerHTML =
     `<div class="v-chips">${chips.join('')}</div>` +

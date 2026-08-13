@@ -337,6 +337,75 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
+
+    /* Modo cíclico */
+    .mode-section { padding: 0 12px 12px; }
+    .mode-card {
+      background: #0d2137; border: 1px solid #1a3a4f; border-radius: 12px; padding: 12px 14px;
+    }
+    .mode-card.on { border-color: #00bcd4; }
+    .mode-top { display: flex; align-items: center; gap: 12px; }
+    .mode-top .opt-text { flex: 1; min-width: 0; }
+    .mode-tabs { display: flex; gap: 0; margin-top: 12px; border-radius: 8px; overflow: hidden; border: 1px solid #1a3a4f; }
+    .mode-tab {
+      flex: 1; padding: 10px 8px; border: none; background: #0a1929; color: #888;
+      font-size: 0.75rem; font-weight: 600; cursor: pointer; text-align: center;
+      transition: background 0.2s, color 0.2s;
+    }
+    .mode-tab.active { background: #00bcd4; color: #000; }
+    .mode-tab:active { opacity: 0.7; }
+    .cyclic-config { margin-top: 12px; display: none; }
+    .cyclic-config.show { display: block; }
+    .cyclic-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+    .cyclic-row label { font-size: 0.7rem; color: #888; font-weight: 600; white-space: nowrap; min-width: 90px; }
+    .cyclic-row input[type="number"] {
+      width: 60px; padding: 8px; border-radius: 8px; border: 1px solid #1a3a4f;
+      background: #0d2137; color: #fff; font-size: 0.85rem; text-align: center;
+    }
+    .cyclic-row input[type="number"]:focus { outline: none; border-color: #00bcd4; }
+    .cyclic-row .hint { font-size: 0.6rem; color: #666; }
+
+    /* Sequência do ciclo */
+    .seq-section { margin-top: 10px; }
+    .seq-label { font-size: 0.7rem; color: #888; font-weight: 600; margin-bottom: 8px; }
+    .seq-items { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .seq-item {
+      display: flex; align-items: center; gap: 2px; padding: 6px 10px;
+      border-radius: 8px; border: 1px solid #1a3a4f; background: #0a1929;
+      font-size: 0.75rem; font-weight: 600; color: #00bcd4; cursor: grab;
+    }
+    .seq-item.rest { border-color: #333; color: #888; background: #111; }
+    .seq-item .seq-remove {
+      background: none; border: none; color: #f44336; font-size: 0.8rem;
+      cursor: pointer; padding: 0 2px; line-height: 1;
+    }
+    .seq-item .seq-remove:active { opacity: 0.5; }
+    .seq-add-btns { display: flex; gap: 6px; margin-top: 8px; }
+    .seq-add-btn {
+      padding: 6px 12px; border: 1px dashed #555; border-radius: 8px;
+      background: none; color: #888; font-size: 0.7rem; font-weight: 600; cursor: pointer;
+    }
+    .seq-add-btn:active { border-color: #00bcd4; color: #00bcd4; }
+    .seq-add-btn.rest-btn { border-style: dotted; }
+
+    /* Subtítulo no accordion do dia */
+    .day-subtitle-input {
+      width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid #1a3a4f;
+      background: #0a1929; color: #ccc; font-size: 14px; box-sizing: border-box;
+      margin-bottom: 10px;
+    }
+    .day-subtitle-input:focus { outline: none; border-color: #00bcd4; }
+    .day-subtitle-input::placeholder { color: #555; }
+
+    /* Cyclic letter tabs */
+    .cyclic-days-tabs { display: flex; gap: 6px; padding: 0 12px 10px; flex-wrap: wrap; }
+    .cyclic-day-tab {
+      padding: 8px 14px; border-radius: 8px; border: 1px solid #1a3a4f;
+      background: #0d2137; color: #00bcd4; font-size: 0.8rem; font-weight: 700;
+      cursor: pointer; min-width: 42px; text-align: center;
+    }
+    .cyclic-day-tab.active { background: #00bcd4; color: #000; border-color: #00bcd4; }
+    .cyclic-day-tab:active { opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -378,6 +447,37 @@
       </label>
     </div>
     <button class="import-open-btn" id="importOpenBtn" onclick="openImport()">⬇ Importar treino de outro aluno</button>
+  </div>
+
+  <!-- Modo do treino -->
+  <div class="mode-section">
+    <div class="mode-card" id="modeCard">
+      <div class="mode-top">
+        <div class="opt-text">
+          <div class="opt-title">Tipo de montagem</div>
+          <div class="opt-sub">Semanal: dias fixos. Cíclico: sequência rotativa (AB, ABC...).</div>
+        </div>
+      </div>
+      <div class="mode-tabs">
+        <button class="mode-tab active" id="modeWeeklyTab" onclick="setMode('weekly')">Semanal</button>
+        <button class="mode-tab" id="modeCyclicTab" onclick="setMode('cyclic')">Cíclico</button>
+      </div>
+      <div class="cyclic-config" id="cyclicConfig">
+        <div class="cyclic-row">
+          <label>Dias/semana</label>
+          <input type="number" id="daysPerWeek" min="1" max="7" value="5" onchange="onDaysPerWeekChange()">
+          <span class="hint">Quantos dias o aluno treina por semana</span>
+        </div>
+        <div class="seq-section">
+          <div class="seq-label">Sequência do ciclo (com descanso)</div>
+          <div class="seq-items" id="seqItems"></div>
+          <div class="seq-add-btns">
+            <button class="seq-add-btn" onclick="addCycleLetter()">+ Treino</button>
+            <button class="seq-add-btn rest-btn" onclick="addCycleRest()">+ Descanso</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="daysContainer"></div>
@@ -424,6 +524,9 @@ function showLoading() { document.getElementById('loadingOverlay').classList.rem
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
 const DAYS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
+let currentMode = 'weekly';  // 'weekly' | 'cyclic'
+let cycleLetters = ['A', 'B', 'C']; // letras ativas no modo cíclico
+let cycleSequence = ['A', 'B', 'C', 'rest']; // sequência com descansos
 let studentId = null;
 let inviteId = null; // invite pendente (aluno ainda sem login)
 let coachId = null;
@@ -474,31 +577,138 @@ function updateActiveHint() {
   }
 }
 
+// === Modo cíclico / semanal ===
+function setMode(mode) {
+  currentMode = mode;
+  document.getElementById('modeWeeklyTab').classList.toggle('active', mode === 'weekly');
+  document.getElementById('modeCyclicTab').classList.toggle('active', mode === 'cyclic');
+  document.getElementById('modeCard').classList.toggle('on', mode === 'cyclic');
+  document.getElementById('cyclicConfig').classList.toggle('show', mode === 'cyclic');
+  rebuildDays();
+}
+
+function onDaysPerWeekChange() {
+  // Validar entre 1 e 7
+  const input = document.getElementById('daysPerWeek');
+  let val = parseInt(input.value) || 3;
+  if (val < 1) val = 1;
+  if (val > 7) val = 7;
+  input.value = val;
+}
+
+function getNextLetter() {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (let i = 0; i < alphabet.length; i++) {
+    if (!cycleLetters.includes(alphabet[i])) return alphabet[i];
+  }
+  return 'Z';
+}
+
+function addCycleLetter() {
+  const letter = getNextLetter();
+  cycleLetters.push(letter);
+  cycleSequence.push(letter);
+  renderSequence();
+  rebuildDays();
+}
+
+function addCycleRest() {
+  cycleSequence.push('rest');
+  renderSequence();
+}
+
+function removeSeqItem(index) {
+  const item = cycleSequence[index];
+  cycleSequence.splice(index, 1);
+  // Se removeu uma letra, remover do cycleLetters se não está mais na sequência
+  if (item !== 'rest' && !cycleSequence.includes(item)) {
+    cycleLetters = cycleLetters.filter(l => l !== item);
+    rebuildDays();
+  }
+  renderSequence();
+}
+
+function renderSequence() {
+  const container = document.getElementById('seqItems');
+  container.innerHTML = cycleSequence.map((item, i) => {
+    const isRest = item === 'rest';
+    const label = isRest ? 'Descanso' : `Treino ${item}`;
+    return `<div class="seq-item ${isRest ? 'rest' : ''}">
+      <span>${label}</span>
+      <button class="seq-remove" onclick="removeSeqItem(${i})">×</button>
+    </div>`;
+  }).join('');
+}
+
+// Reconstrói os accordions dos dias no editor conforme o modo
+function rebuildDays() {
+  // Salvar dados atuais
+  const savedData = {};
+  const savedSubtitles = {};
+  const container = document.getElementById('daysContainer');
+  container.querySelectorAll('.day-accordion').forEach(acc => {
+    const dayId = acc.querySelector('.day-body').id.replace('body-', '');
+    savedData[dayId] = readDay(dayId);
+    const subInput = acc.querySelector('.day-subtitle-input');
+    if (subInput) savedSubtitles[dayId] = subInput.value;
+  });
+
+  container.innerHTML = '';
+  const keys = currentMode === 'weekly' ? DAYS : cycleLetters;
+
+  keys.forEach(key => {
+    const exercises = savedData[key] || [];
+    const subtitle = savedSubtitles[key] || '';
+    const acc = document.createElement('div');
+    acc.className = 'day-accordion';
+    const displayName = currentMode === 'weekly' ? key : `Treino ${key}`;
+    acc.innerHTML = `
+      <div class="day-header" onclick="this.parentElement.classList.toggle('open')">
+        <span class="day-name">${displayName}</span>
+        <span class="day-count">0 exercícios</span>
+        <span class="arrow">▼</span>
+      </div>
+      <div class="day-body" id="body-${key}">
+        <input type="text" class="day-subtitle-input" placeholder="Subtítulo (ex: Peito · Ombro · Tríceps)" value="${esc(subtitle)}">
+      </div>
+    `;
+    container.appendChild(acc);
+    renderDayBody(key, exercises);
+  });
+}
+
 // === Estrutura padrão vazia ===
 function emptyStructure() {
   const s = {};
-  DAYS.forEach(d => s[d] = []);
+  const keys = currentMode === 'weekly' ? DAYS : cycleLetters;
+  keys.forEach(d => s[d] = []);
   return s;
 }
 
 // === Renderizar editor ===
-function renderEditor(structure) {
+function renderEditor(structure, subtitles) {
   const container = document.getElementById('daysContainer');
   container.innerHTML = '';
-  DAYS.forEach(day => {
-    const exercises = structure[day] || [];
+  const keys = currentMode === 'weekly' ? DAYS : cycleLetters;
+  const subs = subtitles || {};
+  keys.forEach(key => {
+    const exercises = structure[key] || [];
+    const subtitle = subs[key] || '';
     const acc = document.createElement('div');
     acc.className = 'day-accordion';
+    const displayName = currentMode === 'weekly' ? key : `Treino ${key}`;
     acc.innerHTML = `
       <div class="day-header" onclick="this.parentElement.classList.toggle('open')">
-        <span class="day-name">${day}</span>
+        <span class="day-name">${displayName}</span>
         <span class="day-count">0 exercícios</span>
         <span class="arrow">▼</span>
       </div>
-      <div class="day-body" id="body-${day}"></div>
+      <div class="day-body" id="body-${key}">
+        <input type="text" class="day-subtitle-input" placeholder="Subtítulo (ex: Peito · Ombro · Tríceps)" value="${esc(subtitle)}">
+      </div>
     `;
     container.appendChild(acc);
-    renderDayBody(day, exercises);
+    renderDayBody(key, exercises);
   });
 }
 
@@ -510,7 +720,18 @@ function renderDayBody(day, exercises) {
   // O seletor de descanso aponta para um input desta subtree: reconstruir
   // sem fechar deixaria ele preso a um campo que não existe mais.
   closeRestPicker();
+  // Preservar valor do subtítulo antes de limpar
+  const subInput = body.querySelector('.day-subtitle-input');
+  const subValue = subInput ? subInput.value : '';
   body.innerHTML = '';
+
+  // Re-adicionar o subtítulo
+  const newSub = document.createElement('input');
+  newSub.type = 'text';
+  newSub.className = 'day-subtitle-input';
+  newSub.placeholder = 'Subtítulo (ex: Peito · Ombro · Tríceps)';
+  newSub.value = subValue;
+  body.appendChild(newSub);
 
   let i = 0;
   while (i < exercises.length) {
@@ -1037,9 +1258,11 @@ function updateDayCount(day) {
 // === Coletar structure do DOM ===
 function collectStructure() {
   const structure = {};
-  DAYS.forEach(day => {
-    const body = document.getElementById('body-' + day);
-    structure[day] = [];
+  const keys = currentMode === 'weekly' ? DAYS : cycleLetters;
+  keys.forEach(key => {
+    const body = document.getElementById('body-' + key);
+    if (!body) { structure[key] = []; return; }
+    structure[key] = [];
 
     // Itera pelos filhos diretos do body (exercícios soltos e grupos)
     const children = [...body.children].filter(el =>
@@ -1052,15 +1275,28 @@ function collectStructure() {
         const items = child.querySelectorAll('.exercise-item');
         items.forEach(item => {
           const ex = extractExerciseData(item);
-          if (ex.name) { ex.group = groupId; structure[day].push(ex); }
+          if (ex.name) { ex.group = groupId; structure[key].push(ex); }
         });
       } else {
         const ex = extractExerciseData(child);
-        if (ex.name) structure[day].push(ex);
+        if (ex.name) structure[key].push(ex);
       }
     });
   });
   return structure;
+}
+
+// === Coletar subtítulos do DOM ===
+function collectSubtitles() {
+  const subtitles = {};
+  const keys = currentMode === 'weekly' ? DAYS : cycleLetters;
+  keys.forEach(key => {
+    const body = document.getElementById('body-' + key);
+    if (!body) return;
+    const input = body.querySelector('.day-subtitle-input');
+    if (input && input.value.trim()) subtitles[key] = input.value.trim();
+  });
+  return subtitles;
 }
 
 function extractExerciseData(item) {
@@ -1080,9 +1316,11 @@ function extractExerciseData(item) {
 // aluno aparece vazio e não há o que registrar. Bloqueia o salvamento.
 function emptySetOffenders(structure) {
   const out = [];
-  DAYS.forEach(day => {
-    (structure[day] || []).forEach(ex => {
-      if (!ex.sets || ex.sets.length === 0) out.push({ day, name: ex.name || 'sem nome' });
+  const keys = currentMode === 'weekly' ? DAYS : cycleLetters;
+  keys.forEach(key => {
+    (structure[key] || []).forEach(ex => {
+      const label = currentMode === 'weekly' ? key : `Treino ${key}`;
+      if (!ex.sets || ex.sets.length === 0) out.push({ day: label, name: ex.name || 'sem nome' });
     });
   });
   return out;
@@ -1092,6 +1330,7 @@ function emptySetOffenders(structure) {
 async function savePlan() {
   const title = document.getElementById('planTitle').value.trim();
   const structure = collectStructure();
+  const subtitles = collectSubtitles();
   const planStartDate = document.getElementById('planStartDate').value || null;
   const planEndDate = document.getElementById('planEndDate').value || null;
   const makeActive = document.getElementById('planActive').checked;
@@ -1106,6 +1345,12 @@ async function savePlan() {
     const resto = semSets.length > 1 ? ` (e mais ${semSets.length - 1})` : '';
     showToast(`"${primeiro.name}" em ${primeiro.day} está sem série${resto}. Adicione ao menos 1 ou remova o exercício.`, true);
     return;
+  }
+
+  // Validação cíclica
+  if (currentMode === 'cyclic') {
+    const trainLetters = cycleSequence.filter(s => s !== 'rest');
+    if (trainLetters.length === 0) { showToast('Adicione pelo menos um treino à sequência.', true); return; }
   }
 
   const btn = document.getElementById('saveBtn');
@@ -1125,30 +1370,31 @@ async function savePlan() {
       if (error) throw error;
     }
 
+    const daysPerWeek = currentMode === 'cyclic' ? (parseInt(document.getElementById('daysPerWeek').value) || 5) : null;
+
+    const payload = {
+      title: title || 'Treino',
+      structure,
+      subtitles,
+      mode: currentMode,
+      days_per_week: daysPerWeek,
+      cycle_sequence: currentMode === 'cyclic' ? cycleSequence : null,
+      is_active: makeActive,
+      plan_start_date: planStartDate,
+      plan_end_date: planEndDate
+    };
+
     if (planId) {
       // Edição: atualiza o treino existente (mantém o histórico limpo)
-      const { error } = await _sb.from('workout_plans').update({
-        title: title || 'Treino',
-        structure,
-        is_active: makeActive,
-        plan_start_date: planStartDate,
-        plan_end_date: planEndDate
-      }).eq('id', planId);
+      const { error } = await _sb.from('workout_plans').update(payload).eq('id', planId);
       if (error) throw error;
     } else {
       // Criação: insere um novo treino no histórico do aluno
-      const insertData = {
-        coach_id: coachId,
-        title: title || 'Treino',
-        structure,
-        is_active: makeActive,
-        plan_start_date: planStartDate,
-        plan_end_date: planEndDate
-      };
-      if (studentId) insertData.student_id = studentId;
-      else if (inviteId) insertData.invite_id = inviteId;
+      payload.coach_id = coachId;
+      if (studentId) payload.student_id = studentId;
+      else if (inviteId) payload.invite_id = inviteId;
 
-      const { data, error } = await _sb.from('workout_plans').insert(insertData).select('id').maybeSingle();
+      const { data, error } = await _sb.from('workout_plans').insert(payload).select('id').maybeSingle();
       if (error) throw error;
       // Passa para modo edição: salvar de novo não duplica o treino
       if (data && data.id) {
@@ -1304,12 +1550,12 @@ async function pickImportStudent(sourceStudentId) {
 
 function countExercises(structure) {
   if (!structure) return 0;
-  return DAYS.reduce((sum, d) => sum + (Array.isArray(structure[d]) ? structure[d].length : 0), 0);
+  return Object.values(structure).reduce((sum, d) => sum + (Array.isArray(d) ? d.length : 0), 0);
 }
 
 function activeDays(structure) {
   if (!structure) return [];
-  return DAYS.filter(d => Array.isArray(structure[d]) && structure[d].length > 0);
+  return Object.keys(structure).filter(d => Array.isArray(structure[d]) && structure[d].length > 0);
 }
 
 function pickImportPlan(sourcePlanId) {
@@ -1365,7 +1611,7 @@ guard('trainer', {
     if (planId) {
       // Modo edição: o aluno vem do próprio treino
       const { data } = await _sb.from('workout_plans')
-        .select('id, student_id, invite_id, title, structure, is_active, plan_start_date, plan_end_date')
+        .select('id, student_id, invite_id, title, structure, is_active, plan_start_date, plan_end_date, mode, days_per_week, subtitles, cycle_sequence')
         .eq('id', planId)
         .maybeSingle();
       if (!data) {
@@ -1416,13 +1662,28 @@ guard('trainer', {
       document.getElementById('planStartDate').value = plan.plan_start_date || '';
       document.getElementById('planEndDate').value = plan.plan_end_date || '';
       document.getElementById('planActive').checked = !!plan.is_active;
-      renderEditor(plan.structure || emptyStructure());
+
+      // Restaurar modo
+      if (plan.mode === 'cyclic') {
+        // Derivar letras do structure
+        const structKeys = Object.keys(plan.structure || {});
+        cycleLetters = structKeys.length > 0 ? structKeys : ['A', 'B', 'C'];
+        cycleSequence = Array.isArray(plan.cycle_sequence) ? plan.cycle_sequence : [...cycleLetters, 'rest'];
+        document.getElementById('daysPerWeek').value = plan.days_per_week || 5;
+        setMode('cyclic');
+      } else {
+        setMode('weekly');
+      }
+
+      renderEditor(plan.structure || emptyStructure(), plan.subtitles || {});
+      if (plan.mode === 'cyclic') renderSequence();
     } else {
       document.getElementById('planTitle').value = '';
       document.getElementById('planStartDate').value = today;
       document.getElementById('planEndDate').value = '';
       document.getElementById('planActive').checked = true;
-      renderEditor(emptyStructure());
+      setMode('weekly');
+      renderEditor(emptyStructure(), {});
     }
     onActiveChange();
 

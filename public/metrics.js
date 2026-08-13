@@ -243,9 +243,78 @@ function prescribedDaySet(structure) {
 }
 
 // dateStr no formato 'YYYY-MM-DD' → é dia de treino prescrito?
+// No modo cíclico, prescribed é um número (days_per_week), não um Set de dias.
+// Para manter compatibilidade, isTrainingDate aceita ambos.
 function isTrainingDate(dateStr, prescribed) {
+  if (typeof prescribed === 'number') {
+    // Modo cíclico: não temos dias fixos, delega para isTrainingDateCyclic
+    return true; // no modo cíclico, qualquer dia pode ser treino — a aderência é calculada por semana
+  }
   const d = new Date(dateStr + 'T12:00:00');
   return prescribed.has(DAYS[d.getDay()]);
+}
+
+// === MODO CÍCLICO: aderência e streak ===
+// No modo cíclico não existe dia fixo de treino. A aderência é:
+//   esperado por semana = days_per_week
+//   realizado por semana = dias distintos com log
+// O streak funciona diferente: conta semanas consecutivas em que o aluno
+// atingiu pelo menos days_per_week treinos.
+
+// Calcula streak para modo cíclico.
+// trained: Set de 'YYYY-MM-DD' com treino registrado
+// daysPerWeek: número de treinos esperados por semana
+// today: Date de referência
+function computeStreakCyclic(trained, daysPerWeek, today) {
+  const dpw = daysPerWeek || 5;
+  const weekWindow = 26; // 6 meses de semanas
+
+  // Agrupa treinos por semana (segunda a domingo)
+  function weekStart(date) {
+    const d = new Date(date);
+    const wd = d.getDay();
+    d.setDate(d.getDate() - (wd === 0 ? 6 : wd - 1));
+    return toLocalISO(d);
+  }
+
+  const trainedByWeek = {};
+  trained.forEach(dateStr => {
+    const wk = weekStart(new Date(dateStr + 'T12:00:00'));
+    trainedByWeek[wk] = (trainedByWeek[wk] || 0) + 1;
+  });
+
+  // Conta dias de treino nesta semana
+  const thisWeekStart = weekStart(today);
+  const thisWeekCount = trainedByWeek[thisWeekStart] || 0;
+
+  // Sequência: conta semanas consecutivas que atingiram a meta
+  let current = 0;
+  // A semana atual conta como "em andamento" — não penaliza
+  for (let w = 1; w <= weekWindow; w++) {
+    const wk = new Date(today);
+    wk.setDate(today.getDate() - w * 7);
+    const ws = weekStart(wk);
+    if ((trainedByWeek[ws] || 0) >= dpw) {
+      current++;
+    } else {
+      break;
+    }
+  }
+
+  let best = 0, run = 0;
+  for (let w = weekWindow; w >= 1; w--) {
+    const wk = new Date(today);
+    wk.setDate(today.getDate() - w * 7);
+    const ws = weekStart(wk);
+    if ((trainedByWeek[ws] || 0) >= dpw) {
+      run++;
+      if (run > best) best = run;
+    } else {
+      run = 0;
+    }
+  }
+
+  return { current, best, thisWeekCount, daysPerWeek: dpw };
 }
 
 // Sequência (foguinho).
@@ -298,6 +367,6 @@ if (typeof window !== 'undefined') {
     isCardio, sumCardioMinutes, cardioByDate, previousCardioSession,
     cardioComparison, cardioChartInfo,
     e1rm, hardVolume,
-    prescribedDaySet, isTrainingDate, computeStreak
+    prescribedDaySet, isTrainingDate, computeStreak, computeStreakCyclic
   };
 }

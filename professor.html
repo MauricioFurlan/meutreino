@@ -442,7 +442,7 @@ async function loadStreaks() {
   // Dias prescritos vêm do plano ativo. Sem plano ativo não há como separar treino
   // de descanso, então o aluno fica sem foguinho (em vez de aparecer zerado à toa).
   const { data: plans, error: plansError } = await _sb.from('workout_plans')
-    .select('student_id, structure')
+    .select('student_id, structure, mode, days_per_week')
     .in('student_id', ids)
     .eq('is_active', true);
 
@@ -450,11 +450,18 @@ async function loadStreaks() {
   if (plansError) { streakLoadedFor = ''; console.log('Erro ao carregar planos:', plansError); return; }
 
   const prescribedBy = {};
+  const cyclicBy = {};  // student_id → days_per_week (para cálculo cíclico)
   (plans || []).forEach(p => {
     const st = p.structure || {};
-    // Dia com lista vazia não é dia de treino — senão viraria falta toda semana.
-    const days = DAYS.filter(d => Array.isArray(st[d]) && st[d].length > 0);
-    if (days.length > 0) prescribedBy[p.student_id] = new Set(days);
+    if (p.mode === 'cyclic' && p.days_per_week) {
+      // Modo cíclico: qualquer dia pode ser treino
+      prescribedBy[p.student_id] = new Set(DAYS);
+      cyclicBy[p.student_id] = p.days_per_week;
+    } else {
+      // Modo semanal: dia com lista vazia não é dia de treino
+      const days = DAYS.filter(d => Array.isArray(st[d]) && st[d].length > 0);
+      if (days.length > 0) prescribedBy[p.student_id] = new Set(days);
+    }
   });
 
   const withPlan = ids.filter(id => prescribedBy[id]);
@@ -480,7 +487,13 @@ async function loadStreaks() {
     const { data, error } = results[i];
     if (error || !data) { streakLoadedFor = ''; return; }  // tenta de novo na próxima
     const trained = new Set(data.map(r => r.session_date));
-    const st = computeStreak(trained, prescribedBy[id], today, STREAK_WINDOW_LIST_DAYS);
+    let st;
+    if (cyclicBy[id]) {
+      const result = computeStreakCyclic(trained, cyclicBy[id], today);
+      st = { current: result.current, best: result.best, hitWindowEdge: false };
+    } else {
+      st = computeStreak(trained, prescribedBy[id], today, STREAK_WINDOW_LIST_DAYS);
+    }
     const sorted = [...trained].sort();
     st.lastTrained = sorted.length ? sorted[sorted.length - 1] : null;
     streakMap[id] = st;
