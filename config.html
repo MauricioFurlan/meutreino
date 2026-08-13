@@ -109,10 +109,10 @@
     .theme-card[data-theme="light"].active { border-color: #18181b; }
     .theme-card[data-theme="light"].active::after { color: #18181b; }
 
-    .theme-card[data-theme="highvis"] { background: #1c1c1c; border-color: #ffd600; }
+    .theme-card[data-theme="highvis"] { background: #0c0c0c; border-color: rgba(255,255,255,0.15); }
     .theme-card[data-theme="highvis"] .theme-name { color: #ffd600; font-size: 0.85rem; }
-    .theme-card[data-theme="highvis"] .theme-desc { color: #e0e0e0; }
-    .theme-card[data-theme="highvis"].active { border-color: #ffd600; box-shadow: 0 0 8px rgba(255,214,0,0.3); }
+    .theme-card[data-theme="highvis"] .theme-desc { color: #999; }
+    .theme-card[data-theme="highvis"].active { border-color: #ffd600; }
     .theme-card[data-theme="highvis"].active::after { color: #ffd600; }
 
     .toast {
@@ -226,9 +226,9 @@
 
     <div class="theme-card" data-theme="highvis" onclick="selectTheme('highvis')">
       <div class="theme-preview">
-        <span style="background:#0a0a0a"></span>
+        <span style="background:#0c0c0c"></span>
         <span style="background:#ffd600"></span>
-        <span style="background:#1c1c1c"></span>
+        <span style="background:#050505"></span>
       </div>
       <div class="theme-name">Ampliado</div>
       <div class="theme-desc">Fontes grandes & alto contraste</div>
