@@ -1159,7 +1159,8 @@ function addSet(btn) {
   const container = exItem.querySelector('.sets-container');
   // Herda TODOS os valores da última série: tipo, reps, descanso e nota.
   // Quem prescreve 3x hard 8-12 90s não precisa digitar de novo.
-  const lastSet = container.querySelector('.set-item:last-child');
+  const allSets = container.querySelectorAll('.set-item');
+  const lastSet = allSets.length > 0 ? allSets[allSets.length - 1] : null;
   const typeHerdado = lastSet ? lastSet.querySelector('.set-type-input').value.trim() : '';
   const repsHerdado = lastSet ? lastSet.querySelector('.set-reps').value.trim() : '';
   const restHerdado = lastSet ? lastSet.querySelector('.set-rest').value.trim() : '';
