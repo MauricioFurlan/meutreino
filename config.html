@@ -109,6 +109,12 @@
     .theme-card[data-theme="light"].active { border-color: #18181b; }
     .theme-card[data-theme="light"].active::after { color: #18181b; }
 
+    .theme-card[data-theme="highvis"] { background: #1c1c1c; border-color: #ffd600; }
+    .theme-card[data-theme="highvis"] .theme-name { color: #ffd600; font-size: 0.85rem; }
+    .theme-card[data-theme="highvis"] .theme-desc { color: #e0e0e0; }
+    .theme-card[data-theme="highvis"].active { border-color: #ffd600; box-shadow: 0 0 8px rgba(255,214,0,0.3); }
+    .theme-card[data-theme="highvis"].active::after { color: #ffd600; }
+
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       background: var(--accent); color: var(--text-dark); padding: 10px 20px;
@@ -216,6 +222,16 @@
       </div>
       <div class="theme-name">Claro</div>
       <div class="theme-desc">Minimalista & limpo</div>
+    </div>
+
+    <div class="theme-card" data-theme="highvis" onclick="selectTheme('highvis')">
+      <div class="theme-preview">
+        <span style="background:#0a0a0a"></span>
+        <span style="background:#ffd600"></span>
+        <span style="background:#1c1c1c"></span>
+      </div>
+      <div class="theme-name">Ampliado</div>
+      <div class="theme-desc">Fontes grandes & alto contraste</div>
     </div>
   </div>
 

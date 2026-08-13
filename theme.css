@@ -204,6 +204,62 @@
   --overlay-bg: rgba(10,10,10,0.92);
 }
 
+/* === High Visibility (Amarelo/Preto — Acessibilidade Visual) === */
+[data-theme="highvis"] {
+  --bg-body: #0a0a0a;
+  --bg-header: #1a1a1a;
+  --bg-card: #1c1c1c;
+  --bg-secondary: #222222;
+  --bg-input: #1a1a1a;
+  --border: #ffd600;
+  --border-light: #bba000;
+  --accent: #ffd600;
+  --accent-dark: #c6a700;
+  --accent-hover: #ffea00;
+  --text: #ffffff;
+  --text-muted: #e0e0e0;
+  --text-muted2: #cccccc;
+  --text-muted3: #aaaaaa;
+  --text-dim: #bbbbbb;
+  --text-bright: #ffffff;
+  --text-dark: #000000;
+  --success: #c6a700;
+  --success-light: #ffd600;
+  --error: #ff5252;
+  --error-light: #ff8a80;
+  --warning: #ffab40;
+  --warning-light: #ffd180;
+  --info: #ffea00;
+  --save-done: #c6a700;
+  --spinner-track: #333333;
+  --spinner-accent: #ffd600;
+  --logo-color: #ffd600;
+  --overlay-bg: rgba(10,10,10,0.95);
+}
+
+/* Fontes ampliadas e placeholders bem visíveis para acessibilidade visual */
+[data-theme="highvis"] html,
+html[data-theme="highvis"] {
+  font-size: 120%;
+}
+[data-theme="highvis"] body,
+html[data-theme="highvis"] body {
+  letter-spacing: 0.3px;
+  line-height: 1.5;
+}
+html[data-theme="highvis"] ::placeholder,
+[data-theme="highvis"] ::placeholder {
+  color: #e0c200 !important;
+  opacity: 1 !important;
+}
+html[data-theme="highvis"] input::placeholder,
+html[data-theme="highvis"] textarea::placeholder,
+[data-theme="highvis"] input::placeholder,
+[data-theme="highvis"] textarea::placeholder {
+  color: #e0c200 !important;
+  opacity: 1 !important;
+}
+
 /* === Light (Claro — Minimalista) === */
 [data-theme="light"] {
   --bg-body: #f4f4f5;
