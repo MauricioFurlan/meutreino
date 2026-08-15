@@ -240,12 +240,44 @@
 /* Fontes ampliadas e placeholders bem visíveis para acessibilidade visual */
 [data-theme="highvis"] html,
 html[data-theme="highvis"] {
-  font-size: 120%;
+  font-size: 140%;
 }
 [data-theme="highvis"] body,
 html[data-theme="highvis"] body {
-  letter-spacing: 0.3px;
-  line-height: 1.5;
+  letter-spacing: 0.4px;
+  line-height: 1.6;
+}
+/* Botões e inputs maiores */
+html[data-theme="highvis"] button,
+html[data-theme="highvis"] input,
+html[data-theme="highvis"] select,
+html[data-theme="highvis"] textarea,
+[data-theme="highvis"] button,
+[data-theme="highvis"] input,
+[data-theme="highvis"] select,
+[data-theme="highvis"] textarea {
+  font-size: 1.05rem !important;
+  min-height: 48px;
+}
+html[data-theme="highvis"] h1,
+html[data-theme="highvis"] h2,
+html[data-theme="highvis"] h3,
+[data-theme="highvis"] h1,
+[data-theme="highvis"] h2,
+[data-theme="highvis"] h3 {
+  font-size: 1.4rem !important;
+}
+html[data-theme="highvis"] .stat-value,
+[data-theme="highvis"] .stat-value {
+  font-size: 2rem !important;
+}
+html[data-theme="highvis"] .label,
+html[data-theme="highvis"] label,
+html[data-theme="highvis"] .meta,
+[data-theme="highvis"] .label,
+[data-theme="highvis"] label,
+[data-theme="highvis"] .meta {
+  font-size: 0.95rem !important;
 }
 html[data-theme="highvis"] ::placeholder,
 [data-theme="highvis"] ::placeholder {
