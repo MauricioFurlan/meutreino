@@ -257,7 +257,33 @@ html[data-theme="highvis"] textarea,
 [data-theme="highvis"] select,
 [data-theme="highvis"] textarea {
   font-size: 1.05rem !important;
+}
+/* Apenas inputs e botões de ação grandes recebem min-height;
+   botões-ícone (edit, delete, etc) ficam de fora. */
+html[data-theme="highvis"] input,
+html[data-theme="highvis"] select,
+html[data-theme="highvis"] textarea,
+[data-theme="highvis"] input,
+[data-theme="highvis"] select,
+[data-theme="highvis"] textarea {
   min-height: 48px;
+}
+html[data-theme="highvis"] .edit-icon,
+html[data-theme="highvis"] .delete-x,
+html[data-theme="highvis"] .remove-btn,
+html[data-theme="highvis"] .ac-remove,
+html[data-theme="highvis"] .seq-remove,
+html[data-theme="highvis"] .modal-x,
+html[data-theme="highvis"] .ungroup-btn,
+[data-theme="highvis"] .edit-icon,
+[data-theme="highvis"] .delete-x,
+[data-theme="highvis"] .remove-btn,
+[data-theme="highvis"] .ac-remove,
+[data-theme="highvis"] .seq-remove,
+[data-theme="highvis"] .modal-x,
+[data-theme="highvis"] .ungroup-btn {
+  min-height: unset !important;
+  font-size: inherit !important;
 }
 html[data-theme="highvis"] h1,
 html[data-theme="highvis"] h2,
