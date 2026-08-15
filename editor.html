@@ -431,6 +431,8 @@
       cursor: pointer; padding: 0 4px; line-height: 1; flex-shrink: 0;
     }
     .ac-item .ac-remove:active { opacity: 0.5; }
+    .ac-item.ac-default { opacity: 0.75; }
+    .ac-item.ac-default .ac-name { font-style: italic; }
   </style>
 </head>
 <body>
@@ -1682,7 +1684,61 @@ function confirmImport() {
 // =====================================================================
 // Exercise Library — autocomplete
 // Carrega a biblioteca do professor e oferece sugestões ao digitar.
+// Lista padrão de exercícios populares por grupo muscular (sugestões).
 // =====================================================================
+
+const DEFAULT_EXERCISES = [
+  // Peito
+  'Supino Reto com Barra','Supino Inclinado com Halteres','Supino Declinado','Crucifixo Reto',
+  'Crucifixo Inclinado','Crossover','Flexão de Braço','Supino Reto com Halteres',
+  'Peck Deck','Pullover','Supino na Máquina','Chest Press',
+  // Costas
+  'Puxada Frontal','Puxada Triângulo','Remada Curvada','Remada Unilateral com Halter',
+  'Remada Cavalinho','Remada Baixa (Triângulo)','Remada Baixa (Barra Reta)','Pulldown',
+  'Barra Fixa','Pullover na Polia','Remada Alta','Levantamento Terra',
+  'Remada Serrote','Puxada Supinada',
+  // Ombros
+  'Desenvolvimento com Halteres','Desenvolvimento com Barra','Desenvolvimento Arnold',
+  'Elevação Lateral','Elevação Frontal','Face Pull','Crucifixo Inverso',
+  'Encolhimento com Halteres','Encolhimento com Barra','Elevação Lateral na Polia',
+  'Desenvolvimento na Máquina',
+  // Bíceps
+  'Rosca Direta com Barra','Rosca Alternada com Halteres','Rosca Martelo',
+  'Rosca Scott','Rosca Concentrada','Rosca na Polia','Rosca 21',
+  'Rosca Inversa','Rosca Spider','Rosca Banco Inclinado',
+  // Tríceps
+  'Tríceps Pulley (Corda)','Tríceps Pulley (Barra Reta)','Tríceps Testa',
+  'Tríceps Francês','Mergulho','Tríceps Coice','Tríceps Banco',
+  'Tríceps Pulley (Barra V)','Tríceps Unilateral na Polia',
+  // Quadríceps
+  'Agachamento Livre','Leg Press 45°','Cadeira Extensora','Agachamento Hack',
+  'Agachamento no Smith','Passada','Afundo','Bulgarian Split Squat',
+  'Leg Press Horizontal','Agachamento Frontal','Sissy Squat',
+  // Posterior de Coxa
+  'Mesa Flexora','Cadeira Flexora','Stiff','Levantamento Terra Romeno',
+  'Good Morning','Stiff Unilateral','Flexora em Pé',
+  // Glúteos
+  'Hip Thrust','Elevação Pélvica','Abdução na Máquina','Abdução na Polia',
+  'Kickback na Polia','Agachamento Sumô','Glúteo na Máquina','Coice na Polia',
+  'Abdução com Faixa',
+  // Panturrilha
+  'Panturrilha em Pé','Panturrilha Sentado','Panturrilha no Leg Press',
+  'Panturrilha no Smith','Panturrilha Unilateral',
+  // Abdômen
+  'Abdominal Crunch','Abdominal Infra','Prancha','Prancha Lateral',
+  'Abdominal na Polia','Elevação de Pernas','Abdominal Bicicleta',
+  'Abdominal Canivete','Roda Abdominal','Abdominal Máquina',
+  // Antebraço
+  'Rosca de Punho','Rosca de Punho Inversa','Farmer Walk',
+  // Cardio
+  'Esteira','Bicicleta Ergométrica','Elíptico','Transport','Escada',
+  'Remo Ergométrico','Corda (Pular)','Caminhada Inclinada','HIIT Bike',
+  'Battle Rope'
+];
+
+// Cache normalizado para busca
+const DEFAULT_EXERCISES_LOWER = DEFAULT_EXERCISES.map(n => ({ name: n, name_lower: n.toLowerCase().trim() }));
+
 let exerciseLibrary = []; // [{id, name, name_lower, video_url}]
 
 async function loadExerciseLibrary() {
@@ -1697,20 +1753,31 @@ async function loadExerciseLibrary() {
 function filterLibrary(query) {
   const q = query.toLowerCase().trim();
   if (q.length < 2) return [];
-  return exerciseLibrary.filter(e => e.name_lower.includes(q)).slice(0, 8);
+  // Primeiro: resultados da biblioteca pessoal do professor
+  const personal = exerciseLibrary.filter(e => e.name_lower.includes(q));
+  const personalNames = new Set(personal.map(e => e.name_lower));
+  // Segundo: exercícios padrão que não estão na biblioteca pessoal
+  const defaults = DEFAULT_EXERCISES_LOWER
+    .filter(e => e.name_lower.includes(q) && !personalNames.has(e.name_lower))
+    .map(e => ({ id: null, name: e.name, name_lower: e.name_lower, video_url: null, _default: true }));
+  return [...personal, ...defaults].slice(0, 10);
 }
 
 function showAcList(input, results) {
   const top = input.closest('.exercise-top');
   const list = top.querySelector('.ac-list');
   if (results.length === 0) { list.classList.remove('show'); list.innerHTML = ''; return; }
-  list.innerHTML = results.map(r => `
-    <div class="ac-item" data-id="${r.id}" data-name="${esc(r.name)}" data-url="${esc(r.video_url || '')}">
-      <span class="ac-icon">${r.video_url ? '🎥' : '◻️'}</span>
+  list.innerHTML = results.map(r => {
+    const isDefault = r._default;
+    const icon = r.video_url ? '🎥' : (isDefault ? '💡' : '◻️');
+    const removeHtml = isDefault ? '' : `<button class="ac-remove" title="Remover da biblioteca">✕</button>`;
+    return `
+    <div class="ac-item${isDefault ? ' ac-default' : ''}" data-id="${r.id || ''}" data-name="${esc(r.name)}" data-url="${esc(r.video_url || '')}">
+      <span class="ac-icon">${icon}</span>
       <span class="ac-name">${esc(r.name)}</span>
-      <button class="ac-remove" title="Remover da biblioteca">✕</button>
-    </div>
-  `).join('');
+      ${removeHtml}
+    </div>`;
+  }).join('');
   list.classList.add('show');
 }
 
