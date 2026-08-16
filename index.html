@@ -1686,6 +1686,14 @@ function updateTimerVisibility() {
     return;
   }
 
+  // Dia de descanso (sem exercícios) — não mostrar botão iniciar
+  const dayKey = planMode === 'cyclic' ? currentTabDay : getToday();
+  const exercises = WORKOUT[dayKey];
+  if (!exercises || exercises.length === 0) {
+    row.style.display = 'none';
+    return;
+  }
+
   // Dia atual: mostrar conforme estado
   if (currentSessionId && !document.querySelector('.session-ended')) {
     // Sessão em andamento
