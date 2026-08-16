@@ -7,12 +7,13 @@
   <meta name="theme-color" content="#00bcd4">
   <!-- PWA: precisa estar em TODAS as páginas, senão o iOS mostra a barra do
        Safari ao navegar dentro do app instalado (modo standalone) -->
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="/manifest-pro.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Treino">
-  <link rel="apple-touch-icon" href="/icon-192.png">
+  <meta name="apple-mobile-web-app-title" content="MeuTreino Pro">
+  <link rel="icon" type="image/png" href="/icon-pro-192.png">
+  <link rel="apple-touch-icon" href="/icon-pro-192.png">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
   <style>
@@ -153,6 +154,21 @@
     .preview-ex { font-size: 0.76rem; color: #ddd; padding: 4px 0; border-bottom: 1px solid #222; }
     .preview-ex .sets { color: #888; font-size: 0.68rem; }
     .modal-empty { text-align: center; padding: 26px 12px; color: #666; font-size: 0.8rem; line-height: 1.6; }
+
+    /* Seletor de tipo de montagem — só aparece quando o editor foi aberto sem
+       modo definido (link direto ou importação cancelada). O caminho normal
+       é escolher em treinos.html, antes de chegar aqui. */
+    .mode-pick {
+      display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left;
+      background: #0d0d0d; border: 1px solid #1a3a4f; border-radius: 12px;
+      padding: 14px; margin-bottom: 10px; cursor: pointer; color: inherit; font: inherit;
+    }
+    .mode-pick:active { border-color: #00bcd4; }
+    .mode-pick-icon { font-size: 1.3rem; line-height: 1; flex-shrink: 0; }
+    .mode-pick-body { flex: 1; min-width: 0; }
+    .mode-pick-title { display: block; font-size: 0.85rem; font-weight: 700; color: #00bcd4; margin-bottom: 4px; }
+    .mode-pick-desc { display: block; font-size: 0.7rem; color: #999; line-height: 1.5; }
+    .mode-pick-ex { display: block; font-size: 0.66rem; color: #777; margin-top: 5px; font-style: italic; }
 
     /* Accordion dias */
     .day-accordion { margin: 0 12px 8px; border: 1px solid #1a3a4f; border-radius: 12px; background: #0d2137; }
@@ -346,14 +362,15 @@
     .mode-card.on { border-color: #00bcd4; }
     .mode-top { display: flex; align-items: center; gap: 12px; }
     .mode-top .opt-text { flex: 1; min-width: 0; }
-    .mode-tabs { display: flex; gap: 0; margin-top: 12px; border-radius: 8px; overflow: hidden; border: 1px solid #1a3a4f; }
-    .mode-tab {
-      flex: 1; padding: 10px 8px; border: none; background: #0a1929; color: #888;
-      font-size: 0.75rem; font-weight: 600; cursor: pointer; text-align: center;
-      transition: background 0.2s, color 0.2s;
+    /* Selo do modo — o tipo de montagem é escolhido antes de abrir o editor
+       (treinos.html) e fica travado aqui: mudar de semanal para cíclico
+       descartaria a estrutura já montada e quebraria o histórico do aluno. */
+    .mode-badge {
+      flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px;
+      padding: 7px 12px; border-radius: 20px; background: #00bcd4; color: #000;
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.3px;
     }
-    .mode-tab.active { background: #00bcd4; color: #000; }
-    .mode-tab:active { opacity: 0.7; }
+    .mode-badge.pending { background: #132d42; color: #888; }
     .cyclic-config { margin-top: 12px; display: none; }
     .cyclic-config.show { display: block; }
     .cyclic-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
@@ -390,10 +407,10 @@
     .seq-add-btn.rest-btn { border-style: dotted; }
 
     /* Subtítulo no accordion do dia */
+    .subtitle-field { position: relative; margin-bottom: 10px; }
     .day-subtitle-input {
       width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid #1a3a4f;
       background: #0a1929; color: #ccc; font-size: 14px; box-sizing: border-box;
-      margin-bottom: 10px;
     }
     .day-subtitle-input:focus { outline: none; border-color: #00bcd4; }
     .day-subtitle-input::placeholder { color: #555; }
@@ -408,7 +425,7 @@
     .cyclic-day-tab.active { background: #00bcd4; color: #000; border-color: #00bcd4; }
     .cyclic-day-tab:active { opacity: 0.7; }
 
-    /* Autocomplete da exercise_library */
+    /* Autocomplete da exercise_library e da subtitle_library */
     .exercise-top { position: relative; }
     .ac-list {
       display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
@@ -473,21 +490,18 @@
         <span class="toggle-slider"></span>
       </label>
     </div>
-    <button class="import-open-btn" id="importOpenBtn" onclick="openImport()">⬇ Importar treino de outro aluno</button>
+    <button class="import-open-btn" id="importOpenBtn" onclick="openImport(false)">⬇ Importar treino de outro aluno</button>
   </div>
 
-  <!-- Modo do treino -->
+  <!-- Modo do treino — escolhido antes de abrir o editor e travado aqui -->
   <div class="mode-section">
     <div class="mode-card" id="modeCard">
       <div class="mode-top">
         <div class="opt-text">
           <div class="opt-title">Tipo de montagem</div>
-          <div class="opt-sub">Semanal: dias fixos. Cíclico: sequência rotativa (AB, ABC...).</div>
+          <div class="opt-sub" id="modeHint">Definido na criação — não muda depois.</div>
         </div>
-      </div>
-      <div class="mode-tabs">
-        <button class="mode-tab active" id="modeWeeklyTab" onclick="setMode('weekly')">Semanal</button>
-        <button class="mode-tab" id="modeCyclicTab" onclick="setMode('cyclic')">Cíclico</button>
+        <span class="mode-badge pending" id="modeBadge">—</span>
       </div>
       <div class="cyclic-config" id="cyclicConfig">
         <div class="seq-section">
@@ -535,6 +549,36 @@
     </div>
   </div>
 
+  <!-- Modal: tipo de montagem (fallback quando o editor abre sem modo) -->
+  <div class="modal" id="modeModal">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3>Como montar este treino?</h3>
+      </div>
+      <div class="modal-sub">O tipo define a estrutura da ficha e <strong>não pode ser trocado depois</strong>.</div>
+
+      <button class="mode-pick" onclick="chooseMode('weekly')">
+        <span class="mode-pick-icon">📅</span>
+        <span class="mode-pick-body">
+          <span class="mode-pick-title">Semanal</span>
+          <span class="mode-pick-desc">Cada dia da semana tem um treino fixo.</span>
+          <span class="mode-pick-ex">Segunda: Peito · Quarta: Costas · Sexta: Perna</span>
+        </span>
+      </button>
+
+      <button class="mode-pick" onclick="chooseMode('cyclic')">
+        <span class="mode-pick-icon">🔄</span>
+        <span class="mode-pick-body">
+          <span class="mode-pick-title">Cíclico</span>
+          <span class="mode-pick-desc">Sequência rotativa de treinos com dias de descanso, independente do dia da semana.</span>
+          <span class="mode-pick-ex">A · B · Descanso · C · D · Descanso</span>
+        </span>
+      </button>
+
+      <button class="modal-close" onclick="goBack()">Voltar para a lista de treinos</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -544,7 +588,7 @@ function showLoading() { document.getElementById('loadingOverlay').classList.rem
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
 const DAYS = ['Segunda','Terça','Quarta','Quinta','Sexta','Sábado','Domingo'];
-let currentMode = 'weekly';  // 'weekly' | 'cyclic'
+let currentMode = null;  // 'weekly' | 'cyclic' — null até o modo ser definido
 let cycleLetters = ['A', 'B', 'C']; // letras ativas no modo cíclico
 let cycleSequence = ['A', 'B', 'C', 'rest']; // sequência com descansos
 let studentId = null;
@@ -553,6 +597,8 @@ let coachId = null;
 let planId = null;              // preenchido quando editando um treino existente
 let otherActivePlan = null;     // treino ativo do aluno diferente do que está aberto
 let importStudentsCache = [];   // alunos do professor (exceto o alvo)
+let importStudentsCacheMode = undefined; // modo usado para montar o cache (null = sem filtro)
+let importFreeMode = false;     // true = pode importar qualquer tipo de montagem
 let importPlansCache = [];      // treinos do aluno escolhido no modal
 let importSelectedPlan = null;  // treino escolhido para importar
 
@@ -597,17 +643,36 @@ function updateActiveHint() {
   }
 }
 
-// === Modo cíclico / semanal ===
-function setMode(mode) {
-  currentMode = mode;
-  document.getElementById('modeWeeklyTab').classList.toggle('active', mode === 'weekly');
-  document.getElementById('modeCyclicTab').classList.toggle('active', mode === 'cyclic');
-  document.getElementById('modeCard').classList.toggle('on', mode === 'cyclic');
-  document.getElementById('cyclicConfig').classList.toggle('show', mode === 'cyclic');
-  if (mode === 'cyclic') {
-    renderSequence();
-  }
-  rebuildDays();
+// === Tipo de montagem (semanal / cíclico) ===
+// O modo é decidido UMA vez — em treinos.html ao criar, ou herdado do treino
+// ao editar — e não muda mais. Trocar de semanal para cíclico reorganizaria as
+// chaves do structure ("Segunda" → "A") e desalinharia os workout_logs já
+// registrados pelo aluno, então aqui ele é só exibido.
+const MODE_LABELS = { weekly: '📅 Semanal', cyclic: '🔄 Cíclico' };
+
+function applyMode(mode) {
+  currentMode = mode === 'cyclic' ? 'cyclic' : 'weekly';
+  const badge = document.getElementById('modeBadge');
+  badge.textContent = MODE_LABELS[currentMode];
+  badge.classList.remove('pending');
+  document.getElementById('modeCard').classList.toggle('on', currentMode === 'cyclic');
+  document.getElementById('cyclicConfig').classList.toggle('show', currentMode === 'cyclic');
+  if (currentMode === 'cyclic') renderSequence();
+}
+
+function openModePicker() { document.getElementById('modeModal').classList.add('show'); }
+function closeModePicker() { document.getElementById('modeModal').classList.remove('show'); }
+
+// Escolha feita no fallback dentro do editor (link direto ou import cancelado)
+function chooseMode(mode) {
+  closeModePicker();
+  applyMode(mode);
+  renderEditor(emptyStructure(), {});
+  // Reflete na URL: recarregar a página mantém o modo escolhido
+  const qs = new URLSearchParams(location.search);
+  qs.set('mode', currentMode);
+  qs.delete('importar');
+  history.replaceState(null, '', location.pathname + '?' + qs.toString());
 }
 
 function onDaysPerWeekChange() {}
@@ -711,7 +776,7 @@ function rebuildDays() {
         <span class="arrow">▼</span>
       </div>
       <div class="day-body" id="body-${key}">
-        <input type="text" class="day-subtitle-input" placeholder="Subtítulo (ex: Peito · Ombro · Tríceps)" value="${esc(subtitle)}">
+        <input type="text" class="day-subtitle-input" placeholder="Subtítulo (ex: Peito + Ombro + Tríceps)" value="${esc(subtitle)}">
       </div>
     `;
     container.appendChild(acc);
@@ -746,12 +811,30 @@ function renderEditor(structure, subtitles) {
         <span class="arrow">▼</span>
       </div>
       <div class="day-body" id="body-${key}">
-        <input type="text" class="day-subtitle-input" placeholder="Subtítulo (ex: Peito · Ombro · Tríceps)" value="${esc(subtitle)}">
+        <input type="text" class="day-subtitle-input" placeholder="Subtítulo (ex: Peito + Ombro + Tríceps)" value="${esc(subtitle)}">
       </div>
     `;
     container.appendChild(acc);
     renderDayBody(key, exercises);
   });
+}
+
+// === Campo de subtítulo do dia (com sugestões de região muscular) ===
+// O wrapper existe para ancorar a lista de autocomplete (position: absolute).
+function buildSubtitleField(value) {
+  const wrap = document.createElement('div');
+  wrap.className = 'subtitle-field';
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'day-subtitle-input';
+  input.placeholder = 'Subtítulo (ex: Peito + Ombro + Tríceps)';
+  input.setAttribute('autocomplete', 'off');
+  input.value = value || '';
+  const list = document.createElement('div');
+  list.className = 'ac-list ac-subtitle';
+  wrap.appendChild(input);
+  wrap.appendChild(list);
+  return wrap;
 }
 
 // === Renderiza (ou re-renderiza) o corpo de um dia a partir da lista de exercícios ===
@@ -768,12 +851,7 @@ function renderDayBody(day, exercises) {
   body.innerHTML = '';
 
   // Re-adicionar o subtítulo
-  const newSub = document.createElement('input');
-  newSub.type = 'text';
-  newSub.className = 'day-subtitle-input';
-  newSub.placeholder = 'Subtítulo (ex: Peito · Ombro · Tríceps)';
-  newSub.value = subValue;
-  body.appendChild(newSub);
+  body.appendChild(buildSubtitleField(subValue));
 
   let i = 0;
   while (i < exercises.length) {
@@ -1375,6 +1453,9 @@ function emptySetOffenders(structure) {
 
 // === Salvar ===
 async function savePlan() {
+  // Sem tipo de montagem não há estrutura de dias para ler
+  if (!currentMode) { openModePicker(); return; }
+
   const title = document.getElementById('planTitle').value.trim();
   const structure = collectStructure();
   const subtitles = collectSubtitles();
@@ -1464,8 +1545,9 @@ async function savePlan() {
     updateActiveHint();
     showToast(makeActive ? 'Treino salvo e enviado ao aluno!' : 'Treino salvo no histórico (inativo).');
 
-    // Upsert na exercise_library: salva exercícios novos/atualizados
+    // Upsert nas bibliotecas de sugestão: exercícios e subtítulos novos
     upsertExerciseLibrary(structure);
+    upsertSubtitleLibrary(subtitles);
 
     btn.textContent = '✓ Salvo!';
     setTimeout(() => { btn.textContent = 'Salvar Treino'; btn.disabled = false; }, 1500);
@@ -1489,14 +1571,27 @@ async function savePlan() {
 // Copia apenas a PRESCRIÇÃO (título + estrutura). Nenhum registro de
 // execução (workout_logs) é copiado — o histórico do aluno é dele.
 // =====================================================================
-function openImport() {
+function openImport(free) {
+  // free = true apenas no fluxo "um nível antes" (botão Importar de
+  // treinos.html), onde o tipo de montagem ainda não existe. Aberto de dentro
+  // do editor, a lista só mostra treinos do mesmo tipo da ficha atual.
+  importFreeMode = !!free && !currentMode;
   document.getElementById('importModal').classList.add('show');
   showImportStep(1);
-  if (importStudentsCache.length === 0) loadImportStudents();
+  const wantMode = importFreeMode ? null : currentMode;
+  if (importStudentsCache.length === 0 || importStudentsCacheMode !== wantMode) {
+    importStudentsCacheMode = wantMode;
+    loadImportStudents();
+  } else {
+    renderImportStudents();
+  }
 }
 
 function closeImport() {
   document.getElementById('importModal').classList.remove('show');
+  // Importação cancelada no fluxo "um nível antes": o editor ficaria sem tipo
+  // de montagem, então pede a escolha em vez de assumir um padrão.
+  if (!currentMode) openModePicker();
 }
 
 function showImportStep(n) {
@@ -1529,13 +1624,19 @@ async function loadImportStudents() {
   // Exclui o aluno alvo da lista
   const others = (data || []).filter(s => s.id !== studentId);
 
-  // Mantém só quem tem treino cadastrado (evita beco sem saída no fluxo)
+  // Mantém só quem tem treino COMPATÍVEL cadastrado (evita beco sem saída no
+  // fluxo): quando o modo já está travado, um aluno que só tem treino do outro
+  // tipo não deve nem aparecer.
+  const wantMode = importFreeMode ? null : currentMode;
   if (others.length > 0) {
     const { data: rows } = await _sb.from('workout_plans')
-      .select('student_id')
+      .select('student_id, mode')
       .in('student_id', others.map(s => s.id));
     const counts = {};
-    (rows || []).forEach(r => { counts[r.student_id] = (counts[r.student_id] || 0) + 1; });
+    (rows || []).forEach(r => {
+      if (wantMode && (r.mode || 'weekly') !== wantMode) return;
+      counts[r.student_id] = (counts[r.student_id] || 0) + 1;
+    });
     importStudentsCache = others
       .filter(s => counts[s.id])
       .map(s => Object.assign({}, s, { plan_count: counts[s.id] }));
@@ -1554,7 +1655,10 @@ function renderImportStudents() {
     : importStudentsCache;
 
   if (importStudentsCache.length === 0) {
-    box.innerHTML = '<div class="modal-empty">Nenhum outro aluno seu tem treino cadastrado ainda.</div>';
+    const modeWord = currentMode === 'cyclic' ? 'cíclico' : 'semanal';
+    box.innerHTML = importFreeMode
+      ? '<div class="modal-empty">Nenhum outro aluno seu tem treino cadastrado ainda.</div>'
+      : `<div class="modal-empty">Nenhum outro aluno seu tem treino <strong>${modeWord}</strong> cadastrado.<br>Só é possível importar treinos do mesmo tipo desta ficha.</div>`;
     return;
   }
   if (list.length === 0) {
@@ -1594,9 +1698,14 @@ async function pickImportStudent(sourceStudentId) {
 
   if (error) { box.innerHTML = '<div class="modal-empty">Erro ao carregar treinos.</div>'; return; }
 
-  importPlansCache = data || [];
+  // Mesmo tipo de montagem da ficha atual — trocar semanal por cíclico
+  // reorganizaria as chaves do structure e quebraria o histórico do aluno.
+  const wantMode = importFreeMode ? null : currentMode;
+  importPlansCache = (data || []).filter(p => !wantMode || (p.mode || 'weekly') === wantMode);
   if (importPlansCache.length === 0) {
-    box.innerHTML = '<div class="modal-empty">Esse aluno não tem treino cadastrado.<br>Escolha outro aluno.</div>';
+    box.innerHTML = wantMode
+      ? `<div class="modal-empty">Esse aluno não tem treino <strong>${wantMode === 'cyclic' ? 'cíclico' : 'semanal'}</strong>.<br>Escolha outro aluno.</div>`
+      : '<div class="modal-empty">Esse aluno não tem treino cadastrado.<br>Escolha outro aluno.</div>';
     return;
   }
 
@@ -1604,11 +1713,12 @@ async function pickImportStudent(sourceStudentId) {
     const total = countExercises(p.structure);
     const days = activeDays(p.structure);
     const created = new Date(p.created_at).toLocaleDateString('pt-BR');
+    const modeLabel = (p.mode || 'weekly') === 'cyclic' ? 'Cíclico' : 'Semanal';
     return `
       <button class="pick-item" onclick="pickImportPlan('${p.id}')">
         <span class="pick-body">
           <span class="pick-title">${esc(p.title || 'Treino')}${p.is_active ? '<span class="pick-badge">ATIVO</span>' : ''}</span>
-          <span class="pick-meta">${total} exercício${total !== 1 ? 's' : ''} · ${days.length} dia${days.length !== 1 ? 's' : ''} · ${created}</span>
+          <span class="pick-meta">${modeLabel} · ${total} exercício${total !== 1 ? 's' : ''} · ${days.length} dia${days.length !== 1 ? 's' : ''} · ${created}</span>
         </span>
         <span class="pick-arrow">›</span>
       </button>
@@ -1633,8 +1743,15 @@ function pickImportPlan(sourcePlanId) {
   showImportStep(3);
 
   const st = p.structure || {};
+  const isCyclic = (p.mode || 'weekly') === 'cyclic';
+  // Treino cíclico usa letras como chave ("A","B"), não dias da semana:
+  // iterar só DAYS deixava o preview vazio.
+  const previewKeys = isCyclic
+    ? Object.keys(st).filter(k => Array.isArray(st[k]))
+    : DAYS;
+  const subs = p.subtitles || {};
   let html = `<div class="pick-title" style="margin-bottom:10px;">${esc(p.title || 'Treino')}</div>`;
-  DAYS.forEach(day => {
+  previewKeys.forEach(day => {
     const list = Array.isArray(st[day]) ? st[day] : [];
     if (list.length === 0) return;
     let exHtml = '';
@@ -1644,7 +1761,7 @@ function pickImportPlan(sourcePlanId) {
       const meta = [sets, descanso.text ? '⏱ ' + descanso.text : ''].filter(Boolean).join(' · ');
       exHtml += `<div class="preview-ex">${ex.group ? '🔗 ' : ''}${esc(ex.name || '')}${meta ? `<div class="sets">${esc(meta)}</div>` : ''}</div>`;
     });
-    html += `<div class="preview-day"><h4>${day} · ${list.length} ex.</h4>${exHtml}</div>`;
+    html += `<div class="preview-day"><h4>${isCyclic ? 'Treino ' + esc(day) : day}${subs[day] ? ' · ' + esc(subs[day]) : ''} · ${list.length} ex.</h4>${exHtml}</div>`;
   });
   document.getElementById('importPreview').innerHTML = html;
 }
@@ -1656,18 +1773,22 @@ function confirmImport() {
   const importMode = importSelectedPlan.mode || 'weekly';
   const importSubtitles = importSelectedPlan.subtitles || {};
   const importSequence = importSelectedPlan.cycle_sequence || [];
-  const importDaysPerWeek = importSelectedPlan.days_per_week || 5;
 
-  // Ajusta o modo do editor pro modo do treino importado
+  // Rede de segurança: a lista já é filtrada pelo modo quando ele está
+  // definido, então um treino incompatível aqui só chegaria por bug.
+  if (currentMode && importMode !== currentMode) {
+    showToast('Este treino é ' + (importMode === 'cyclic' ? 'cíclico' : 'semanal') + ' e não pode entrar numa ficha ' + (currentMode === 'cyclic' ? 'cíclica' : 'semanal') + '.', true);
+    return;
+  }
+
+  // Fluxo "um nível antes" (Importar direto de treinos.html): o modo ainda não
+  // existe e é o treino copiado que o define — a partir daqui fica travado.
   if (importMode === 'cyclic') {
     const keys = Object.keys(copy).filter(k => Array.isArray(copy[k]) && copy[k].length > 0);
     cycleLetters = keys.length > 0 ? keys : ['A', 'B', 'C'];
     cycleSequence = importSequence.length > 0 ? importSequence : [...cycleLetters, 'rest'];
-    setMode('cyclic');
-    renderSequence();
-  } else {
-    setMode('weekly');
   }
+  applyMode(importMode);
 
   const structure = emptyStructure();
   Object.keys(copy).forEach(k => { if (Array.isArray(copy[k])) structure[k] = copy[k]; });
@@ -1785,20 +1906,22 @@ function hideAllAcLists() {
   document.querySelectorAll('.ac-list.show').forEach(el => el.classList.remove('show'));
 }
 
-// Delegação de eventos para inputs de nome
+// Delegação de eventos: um mesmo par input/focusin serve os dois
+// autocompletes (nome do exercício e subtítulo do dia).
 document.addEventListener('input', (e) => {
-  if (!e.target.classList.contains('ex-name')) return;
-  const val = e.target.value;
-  const results = filterLibrary(val);
-  showAcList(e.target, results);
+  if (e.target.classList.contains('ex-name')) {
+    showAcList(e.target, filterLibrary(e.target.value));
+  } else if (e.target.classList.contains('day-subtitle-input')) {
+    showSubtitleAcList(e.target, filterSubtitles(e.target.value));
+  }
 });
 
 document.addEventListener('focusin', (e) => {
-  if (!e.target.classList.contains('ex-name')) return;
-  const val = e.target.value;
-  if (val.trim().length >= 2) {
-    const results = filterLibrary(val);
-    showAcList(e.target, results);
+  if (e.target.classList.contains('ex-name')) {
+    if (e.target.value.trim().length >= 2) showAcList(e.target, filterLibrary(e.target.value));
+  } else if (e.target.classList.contains('day-subtitle-input')) {
+    // Campo vazio já mostra as regiões mais usadas — não exige adivinhar
+    showSubtitleAcList(e.target, filterSubtitles(e.target.value));
   }
 });
 
@@ -1809,30 +1932,40 @@ document.addEventListener('click', (e) => {
   if (removeBtn) {
     e.stopPropagation();
     const item = removeBtn.closest('.ac-item');
+    const list = removeBtn.closest('.ac-list');
     const id = item.dataset.id;
-    removeFromLibrary(id);
+    if (list.classList.contains('ac-subtitle')) removeSubtitleFromLibrary(id);
+    else removeFromLibrary(id);
     item.remove();
     // Se lista ficou vazia, esconde
-    const list = removeBtn.closest('.ac-list');
     if (!list.querySelector('.ac-item')) list.classList.remove('show');
     return;
   }
 
-  // Selecionar exercício
   const acItem = e.target.closest('.ac-item');
   if (acItem) {
+    // Selecionar subtítulo do dia
+    const subField = acItem.closest('.subtitle-field');
+    if (subField) {
+      subField.querySelector('.day-subtitle-input').value = acItem.dataset.name;
+      hideAllAcLists();
+      return;
+    }
+    // Selecionar exercício
     const exTop = acItem.closest('.exercise-top');
-    const exItem = exTop.closest('.exercise-item');
-    const nameInput = exTop.querySelector('.ex-name');
-    const videoInput = exItem.querySelector('.ex-video');
-    nameInput.value = acItem.dataset.name;
-    if (acItem.dataset.url) videoInput.value = acItem.dataset.url;
+    if (exTop) {
+      const exItem = exTop.closest('.exercise-item');
+      const nameInput = exTop.querySelector('.ex-name');
+      const videoInput = exItem.querySelector('.ex-video');
+      nameInput.value = acItem.dataset.name;
+      if (acItem.dataset.url) videoInput.value = acItem.dataset.url;
+    }
     hideAllAcLists();
     return;
   }
 
   // Click fora fecha o autocomplete
-  if (!e.target.closest('.exercise-top')) hideAllAcLists();
+  if (!e.target.closest('.exercise-top') && !e.target.closest('.subtitle-field')) hideAllAcLists();
 });
 
 async function removeFromLibrary(id) {
@@ -1877,12 +2010,164 @@ async function upsertExerciseLibrary(structure) {
   }
 }
 
+// =====================================================================
+// Subtitle Library — autocomplete do subtítulo do dia
+// Mesma mecânica da exercise_library: uma lista padrão de regiões
+// musculares e combinações populares serve de partida, e tudo que o
+// professor digita entra na biblioteca dele para aparecer na próxima vez.
+// =====================================================================
+
+// Regiões isoladas e combinações mais usadas na prática.
+const DEFAULT_SUBTITLES = [
+  // Regiões isoladas
+  'Peito', 'Costas', 'Ombro', 'Bíceps', 'Tríceps', 'Antebraço', 'Trapézio',
+  'Perna', 'Quadríceps', 'Posterior de Perna', 'Glúteo', 'Panturrilha',
+  'Abdômen', 'Core', 'Lombar', 'Cardio', 'Mobilidade', 'Alongamento',
+  // Agrupamentos amplos
+  'Superiores', 'Inferiores', 'Membros Superiores', 'Membros Inferiores',
+  'Corpo Inteiro', 'Full Body', 'Braços', 'Perna Completa',
+  'Push (Empurrar)', 'Pull (Puxar)', 'Upper', 'Lower', 'Funcional', 'HIIT',
+  // Combinações de empurrar
+  'Peito + Tríceps', 'Peito + Ombro', 'Peito + Ombro + Tríceps',
+  'Peito + Bíceps', 'Ombro + Tríceps', 'Ombro + Peito',
+  'Ombro + Peito + Tríceps', 'Ombro + Peito + Bíceps', 'Ombro + Trapézio',
+  // Combinações de puxar
+  'Costas + Bíceps', 'Costas + Ombro', 'Costas + Trapézio',
+  'Costas + Bíceps + Antebraço', 'Ombro + Costas', 'Costas + Posterior de Perna',
+  // Braços e tronco
+  'Bíceps + Tríceps', 'Bíceps + Tríceps + Antebraço', 'Peito + Costas',
+  'Peito + Costas + Ombro', 'Ombro + Braços',
+  // Inferiores
+  'Quadríceps + Glúteo', 'Quadríceps + Panturrilha',
+  'Posterior de Perna + Glúteo', 'Glúteo + Posterior de Perna',
+  'Perna + Glúteo', 'Perna + Panturrilha',
+  'Quadríceps + Posterior de Perna + Glúteo',
+  // Com abdômen / cardio
+  'Peito + Tríceps + Abdômen', 'Costas + Bíceps + Abdômen',
+  'Superiores + Abdômen', 'Inferiores + Abdômen', 'Perna + Abdômen',
+  'Cardio + Abdômen', 'Abdômen + Lombar',
+];
+
+// Normaliza para busca: minúsculo, sem acento, espaços colapsados. Assim
+// "biceps" encontra "Bíceps" e "ombro  +peito" encontra "Ombro + Peito".
+function normKey(s) {
+  return String(s || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().trim().replace(/\s+/g, ' ');
+}
+
+const DEFAULT_SUBTITLES_NORM = DEFAULT_SUBTITLES.map(n => ({ name: n, norm: normKey(n) }));
+
+let subtitleLibrary = []; // [{id, name, use_count, _norm}]
+
+async function loadSubtitleLibrary() {
+  if (!coachId) return;
+  const { data, error } = await _sb.from('subtitle_library')
+    .select('id, name, use_count')
+    .eq('coach_id', coachId)
+    .order('use_count', { ascending: false });
+  if (error) {
+    // Tabela ainda não criada (19_subtitle_library.sql não rodou): as
+    // sugestões padrão continuam funcionando, só não há aprendizado.
+    console.warn('[MeuTreino] subtitle_library indisponível:', error.message);
+    return;
+  }
+  if (data) subtitleLibrary = data.map(r => Object.assign({}, r, { _norm: normKey(r.name) }));
+}
+
+// Ranqueia: quem começa com o que foi digitado primeiro, depois o que o
+// professor já usou (mais usado antes) e por fim as sugestões padrão.
+function filterSubtitles(query) {
+  const q = normKey(query);
+  const rank = (norm) => (norm.startsWith(q) ? 0 : 1);
+
+  const personal = subtitleLibrary
+    .filter(s => !q || s._norm.includes(q))
+    .map(s => ({ id: s.id, name: s.name, uses: s.use_count || 1, rank: rank(s._norm) }));
+
+  const taken = new Set(personal.map(p => normKey(p.name)));
+  const defaults = DEFAULT_SUBTITLES_NORM
+    .filter(s => (!q || s.norm.includes(q)) && !taken.has(s.norm))
+    .map(s => ({ id: null, name: s.name, uses: 0, rank: rank(s.norm), _default: true }));
+
+  return [...personal, ...defaults]
+    .sort((a, b) =>
+      a.rank - b.rank ||
+      (a._default ? 1 : 0) - (b._default ? 1 : 0) ||
+      b.uses - a.uses ||
+      a.name.localeCompare(b.name, 'pt-BR'))
+    .slice(0, 8);
+}
+
+function showSubtitleAcList(input, results) {
+  const list = input.closest('.subtitle-field').querySelector('.ac-list');
+  if (results.length === 0) { list.classList.remove('show'); list.innerHTML = ''; return; }
+  list.innerHTML = results.map(r => {
+    const isDefault = r._default;
+    const removeHtml = isDefault ? '' : `<button class="ac-remove" title="Remover das sugestões">✕</button>`;
+    return `
+    <div class="ac-item${isDefault ? ' ac-default' : ''}" data-id="${r.id || ''}" data-name="${esc(r.name)}">
+      <span class="ac-icon">${isDefault ? '💡' : '★'}</span>
+      <span class="ac-name">${esc(r.name)}</span>
+      ${removeHtml}
+    </div>`;
+  }).join('');
+  list.classList.add('show');
+}
+
+async function removeSubtitleFromLibrary(id) {
+  if (!id) return;
+  subtitleLibrary = subtitleLibrary.filter(s => s.id !== id);
+  await _sb.from('subtitle_library').delete().eq('id', id);
+}
+
+// Aprende os subtítulos usados no treino salvo. use_count vem do cache local
+// +1: o professor é o único a escrever nas próprias linhas, então não há
+// corrida de escrita para se preocupar.
+// Roda em background (fire-and-forget) após o treino salvar com sucesso.
+async function upsertSubtitleLibrary(subtitles) {
+  if (!coachId) return;
+  const seen = new Set();
+  const rows = [];
+  for (const raw of Object.values(subtitles || {})) {
+    const name = String(raw || '').trim();
+    if (!name) continue;
+    const key = normKey(name);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const existing = subtitleLibrary.find(s => s._norm === key);
+    rows.push({
+      coach_id: coachId,
+      name,
+      use_count: (existing ? existing.use_count || 0 : 0) + 1,
+      updated_at: new Date().toISOString()
+    });
+  }
+  if (rows.length === 0) return;
+
+  const { data, error } = await _sb.from('subtitle_library')
+    .upsert(rows, { onConflict: 'coach_id,name_lower', ignoreDuplicates: false })
+    .select('id, name, use_count');
+
+  if (error) { console.warn('[MeuTreino] Falha ao salvar subtítulos:', error.message); return; }
+
+  for (const row of (data || [])) {
+    const entry = Object.assign({}, row, { _norm: normKey(row.name) });
+    const idx = subtitleLibrary.findIndex(s => s.id === row.id);
+    if (idx >= 0) subtitleLibrary[idx] = entry;
+    else subtitleLibrary.push(entry);
+  }
+  subtitleLibrary.sort((a, b) => (b.use_count || 0) - (a.use_count || 0));
+}
+
 // === Inicialização ===
 guard('trainer', {
   onReady: async (session, profile) => {
     showLoading();
     coachId = profile.id;
-    loadExerciseLibrary(); // carrega biblioteca em background (não bloqueia)
+    // Bibliotecas de sugestão em background (não bloqueiam o editor)
+    loadExerciseLibrary();
+    loadSubtitleLibrary();
     planId = getParam('plan');
     studentId = getParam('aluno');
     inviteId = getParam('invite');
@@ -1944,33 +2229,46 @@ guard('trainer', {
       document.getElementById('planEndDate').value = plan.plan_end_date || '';
       document.getElementById('planActive').checked = !!plan.is_active;
 
-      // Restaurar modo
+      // Editar herda o modo do próprio treino — sem opção de trocar
       if (plan.mode === 'cyclic') {
         // Derivar letras do structure
         const structKeys = Object.keys(plan.structure || {});
         cycleLetters = structKeys.length > 0 ? structKeys : ['A', 'B', 'C'];
         cycleSequence = Array.isArray(plan.cycle_sequence) ? plan.cycle_sequence : [...cycleLetters, 'rest'];
-        setMode('cyclic');
-      } else {
-        setMode('weekly');
       }
+      applyMode(plan.mode === 'cyclic' ? 'cyclic' : 'weekly');
+      document.getElementById('modeHint').textContent = 'Herdado deste treino — não pode ser alterado.';
 
       renderEditor(plan.structure || emptyStructure(), plan.subtitles || {});
-      if (plan.mode === 'cyclic') renderSequence();
     } else {
       document.getElementById('planTitle').value = '';
       document.getElementById('planStartDate').value = today;
       document.getElementById('planEndDate').value = '';
       document.getElementById('planActive').checked = true;
-      setMode('weekly');
-      renderEditor(emptyStructure(), {});
+
+      // Novo treino: o modo vem da escolha feita em treinos.html (?mode=).
+      const urlMode = getParam('mode');
+      const importing = getParam('importar') === '1';
+      if (urlMode === 'weekly' || urlMode === 'cyclic') {
+        applyMode(urlMode);
+        renderEditor(emptyStructure(), {});
+      } else if (importing) {
+        // Importação "um nível antes": quem define o modo é o treino copiado.
+        document.getElementById('modeHint').textContent = 'Será definido pelo treino que você importar.';
+        document.getElementById('daysContainer').innerHTML =
+          '<div class="modal-empty">Escolha um treino para importar — o tipo de montagem vem dele.</div>';
+      } else {
+        // Sem modo na URL (link direto/atalho antigo): pergunta antes de montar.
+        openModePicker();
+      }
     }
     onActiveChange();
 
     hideLoading();
 
-    // Abertura direta do modal de importação (vindo de treinos.html)
-    if (getParam('importar') === '1') openImport();
+    // Abertura direta do modal de importação (vindo de treinos.html): aqui o
+    // professor ainda pode escolher qualquer tipo de treino.
+    if (getParam('importar') === '1' && !planId) openImport(true);
   },
   onBlocked: () => { location.replace('login.html'); }
 });

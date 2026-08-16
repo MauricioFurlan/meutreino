@@ -1,7 +1,7 @@
-// v2: entraram evolucao.html (evolução semanal/mensal do aluno) e metrics.js
-// (cálculos compartilhados). Trocar o nome do cache é o que descarta a lista
-// antiga no activate.
-const CACHE_NAME = 'meutreino-v2';
+// v3: ícones novos (mira + halter) com variante do professor e manifest-pro.json.
+// Trocar o nome do cache é o que descarta a lista antiga no activate — sem isso
+// o celular continuaria servindo o ícone "MF" antigo do cache.
+const CACHE_NAME = 'meutreino-v3';
 const urlsToCache = [
   '/login.html',
   '/index.html',
@@ -16,8 +16,11 @@ const urlsToCache = [
   '/auth-guard.js',
   '/metrics.js',
   '/manifest.json',
+  '/manifest-pro.json',
   '/icon-192.png',
-  '/icon-512.png'
+  '/icon-512.png',
+  '/icon-pro-192.png',
+  '/icon-pro-512.png'
 ];
 
 self.addEventListener('install', event => {

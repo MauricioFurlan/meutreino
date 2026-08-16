@@ -7,12 +7,13 @@
   <meta name="theme-color" content="#00bcd4">
   <!-- PWA: precisa estar em TODAS as páginas, senão o iOS mostra a barra do
        Safari ao navegar dentro do app instalado (modo standalone) -->
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="/manifest-pro.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Treino">
-  <link rel="apple-touch-icon" href="/icon-192.png">
+  <meta name="apple-mobile-web-app-title" content="MeuTreino Pro">
+  <link rel="icon" type="image/png" href="/icon-pro-192.png">
+  <link rel="apple-touch-icon" href="/icon-pro-192.png">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
   <style>
@@ -138,6 +139,23 @@
       border: 1px solid #1a3a4f; padding-bottom: calc(18px + env(safe-area-inset-bottom));
     }
     .modal-content h3 { color: #00bcd4; font-size: 0.95rem; margin-bottom: 14px; }
+    .modal-sub { font-size: 0.72rem; color: #888; line-height: 1.5; margin: -8px 0 14px; }
+
+    /* === Escolha do tipo de montagem (antes de abrir o editor) ===
+       O tipo define a estrutura do treino e não pode mudar depois, então
+       a decisão fica aqui, uma tela antes, e não como aba dentro do editor. */
+    .mode-pick {
+      display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left;
+      background: #132d42; border: 1px solid #1a3a4f; border-radius: 12px;
+      padding: 14px; margin-bottom: 10px; cursor: pointer; color: inherit; font: inherit;
+    }
+    .mode-pick:active { opacity: 0.65; }
+    .mode-pick-icon { font-size: 1.3rem; line-height: 1; flex-shrink: 0; }
+    .mode-pick-body { flex: 1; min-width: 0; }
+    .mode-pick-title { font-size: 0.85rem; font-weight: 700; color: #00bcd4; margin-bottom: 4px; }
+    .mode-pick-desc { font-size: 0.7rem; color: #999; line-height: 1.5; }
+    .mode-pick-ex { font-size: 0.66rem; color: #777; margin-top: 5px; font-style: italic; }
+    .mode-pick-arrow { color: #00bcd4; font-size: 1.1rem; flex-shrink: 0; align-self: center; }
     .modal-close {
       width: 100%; min-height: 46px; border: none; border-radius: 10px;
       background: #132d42; color: #999; font-weight: 600; font-size: 0.85rem;
@@ -270,6 +288,36 @@
     </div>
   </div>
 
+  <!-- Modal: tipo de montagem do novo treino -->
+  <div class="modal" id="modeModal">
+    <div class="modal-content">
+      <h3>Como montar este treino?</h3>
+      <div class="modal-sub">O tipo define a estrutura da ficha e <strong>não pode ser trocado depois</strong>.</div>
+
+      <button class="mode-pick" onclick="startNewPlan('weekly')">
+        <span class="mode-pick-icon">📅</span>
+        <span class="mode-pick-body">
+          <span class="mode-pick-title">Semanal</span>
+          <span class="mode-pick-desc">Cada dia da semana tem um treino fixo.</span>
+          <span class="mode-pick-ex">Segunda: Peito · Quarta: Costas · Sexta: Perna</span>
+        </span>
+        <span class="mode-pick-arrow">›</span>
+      </button>
+
+      <button class="mode-pick" onclick="startNewPlan('cyclic')">
+        <span class="mode-pick-icon">🔄</span>
+        <span class="mode-pick-body">
+          <span class="mode-pick-title">Cíclico</span>
+          <span class="mode-pick-desc">Sequência rotativa de treinos com dias de descanso, independente do dia da semana.</span>
+          <span class="mode-pick-ex">A · B · Descanso · C · D · Descanso</span>
+        </span>
+        <span class="mode-pick-arrow">›</span>
+      </button>
+
+      <button class="modal-close" onclick="closeModePick()">Cancelar</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -280,6 +328,7 @@ let studentId = null;
 let inviteId = null; // invite pendente (aluno ainda sem login)
 let plans = [];
 let busy = false;
+let newPlanEditorParam = ''; // 'aluno=<id>' ou 'invite=<id>' — usado pelo seletor de modo
 
 function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
@@ -621,6 +670,17 @@ function viewPlan(planId) {
 }
 function closeView() { document.getElementById('viewModal').classList.remove('show'); }
 
+// === Tipo de montagem do novo treino ===
+// A escolha acontece aqui, antes do editor, e viaja na URL. Dentro do editor
+// o modo fica travado — trocar depois invalidaria a estrutura já montada.
+function openModePick() { document.getElementById('modeModal').classList.add('show'); }
+function closeModePick() { document.getElementById('modeModal').classList.remove('show'); }
+
+function startNewPlan(mode) {
+  closeModePick();
+  location.href = 'editor.html?' + newPlanEditorParam + '&mode=' + mode;
+}
+
 // === Excluir treino ===
 async function deletePlan(planId) {
   const p = plans.find(x => x.id === planId);
@@ -658,7 +718,10 @@ guard('trainer', {
     const editorParam = studentId
       ? 'aluno=' + encodeURIComponent(studentId)
       : 'invite=' + encodeURIComponent(inviteId);
-    document.getElementById('newBtn').onclick = () => location.href = 'editor.html?' + editorParam;
+    newPlanEditorParam = editorParam;
+    document.getElementById('newBtn').onclick = openModePick;
+    // Importar daqui é "um nível antes": o tipo de montagem vem do treino
+    // copiado, então não há o que escolher.
     document.getElementById('importBtn').onclick = () => location.href = 'editor.html?' + editorParam + '&importar=1';
 
     // Nome do aluno (do profile ou do invite)

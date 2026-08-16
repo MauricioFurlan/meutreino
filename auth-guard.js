@@ -44,6 +44,10 @@ async function guard(requiredRole, opts = {}) {
 
   if (!profile) { location.replace('login.html'); return; }
 
+  // Lembra o papel deste dispositivo para que login.html ofereça o manifest
+  // (ícone/nome) certo na instalação do PWA — aluno ou professor.
+  try { localStorage.setItem('mt_last_role', profile.role); } catch (e) { /* storage bloqueado */ }
+
   if (!allowed.includes(profile.role)) {
     const dest = _ROUTES[profile.role] || 'login.html';
     location.replace(dest);

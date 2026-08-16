@@ -12,12 +12,27 @@
                  connect-src 'self' https://*.supabase.co;
                  img-src 'self' data:;">
   <title>Entrar</title>
-  <link rel="manifest" href="/manifest.json">
+  <link rel="manifest" href="/manifest.json" id="appManifest">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Treino">
-  <link rel="apple-touch-icon" href="/icon-192.png">
+  <meta name="apple-mobile-web-app-title" content="MeuTreino">
+  <link rel="icon" type="image/png" href="/icon-192.png" id="appFavicon">
+  <link rel="apple-touch-icon" href="/icon-192.png" id="appTouchIcon">
+  <script>
+    // O login é compartilhado por aluno e professor, então o manifest padrão é
+    // o do aluno. Se o último acesso NESTE dispositivo foi de professor/dono,
+    // troca para o manifest Pro — assim instalar o app pela tela de login
+    // gera o ícone certo. auth-guard.js grava 'mt_last_role'.
+    try {
+      var _r = localStorage.getItem('mt_last_role');
+      if (_r === 'trainer' || _r === 'owner') {
+        document.getElementById('appManifest').href = '/manifest-pro.json';
+        document.getElementById('appFavicon').href = '/icon-pro-192.png';
+        document.getElementById('appTouchIcon').href = '/icon-pro-192.png';
+      }
+    } catch (_e) { /* localStorage bloqueado: segue com o manifest do aluno */ }
+  </script>
   <link rel="stylesheet" href="theme.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }

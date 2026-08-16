@@ -29,18 +29,21 @@ function generateIconsPlugin() {
       const { Resvg } = await import('@resvg/resvg-js');
       const publicDir = resolve(process.cwd(), 'public');
 
+      // Duas variantes: aluno (ciano, vazado) e professor (dourado, cheio).
+      // Cada uma tem um único SVG de origem, renderizado em 192 e 512 px.
       const icons = [
-        { size: 192, src: resolve(process.cwd(), 'icon-192.svg') },
-        { size: 512, src: resolve(process.cwd(), 'icon-512.svg') },
+        { size: 192, src: 'icon-aluno.svg', out: 'icon-192.png' },
+        { size: 512, src: 'icon-aluno.svg', out: 'icon-512.png' },
+        { size: 192, src: 'icon-professor.svg', out: 'icon-pro-192.png' },
+        { size: 512, src: 'icon-professor.svg', out: 'icon-pro-512.png' },
       ];
 
-      for (const { size, src } of icons) {
-        const svg = fs.readFileSync(src, 'utf8');
+      for (const { size, src, out } of icons) {
+        const svg = fs.readFileSync(resolve(process.cwd(), src), 'utf8');
         const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: size } });
         const pngBuffer = resvg.render().asPng();
-        const outPath = resolve(publicDir, `icon-${size}.png`);
-        fs.writeFileSync(outPath, pngBuffer);
-        console.log(`  ✓ icon-${size}.png → public/`);
+        fs.writeFileSync(resolve(publicDir, out), pngBuffer);
+        console.log(`  ✓ ${out} → public/`);
       }
     },
   };

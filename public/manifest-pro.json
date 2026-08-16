@@ -1,9 +1,9 @@
 {
-  "id": "/login.html",
-  "name": "MeuTreino",
-  "short_name": "MeuTreino",
-  "description": "App de acompanhamento de treino para personal trainers e alunos",
-  "start_url": "/login.html",
+  "id": "/login.html?app=pro",
+  "name": "MeuTreino Professor",
+  "short_name": "MeuTreino Pro",
+  "description": "Montagem e acompanhamento de treinos para personal trainers",
+  "start_url": "/login.html?app=pro",
   "scope": "/",
   "display": "standalone",
   "background_color": "#0d0d0d",
@@ -11,13 +11,13 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "icon-pro-192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "icon-512.png",
+      "src": "icon-pro-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

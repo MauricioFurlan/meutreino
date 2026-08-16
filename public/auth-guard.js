@@ -38,11 +38,15 @@ async function guard(requiredRole, opts = {}) {
   if (!session) { location.replace('login.html'); return; }
 
   const { data: profile } = await _sb.from('profiles')
-    .select('id, role, full_name, email, gym_name, coach_id, status, access_expires_at')
+    .select('id, role, full_name, email, gym_name, coach_id, status, access_expires_at, app_theme')
     .eq('id', session.user.id)
     .maybeSingle();
 
   if (!profile) { location.replace('login.html'); return; }
+
+  // Lembra o papel deste dispositivo para que login.html ofereça o manifest
+  // (ícone/nome) certo na instalação do PWA — aluno ou professor.
+  try { localStorage.setItem('mt_last_role', profile.role); } catch (e) { /* storage bloqueado */ }
 
   if (!allowed.includes(profile.role)) {
     const dest = _ROUTES[profile.role] || 'login.html';

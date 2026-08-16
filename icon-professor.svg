@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 192 192">
+  <!-- =================================================================
+       Ícone do PROFESSOR — mesma família do ícone do aluno (mira +
+       halter), mas invertido e em dourado. A silhueta cheia distingue
+       os dois apps na gaveta do celular mesmo em 48 px.
+       ================================================================= -->
+  <rect width="192" height="192" rx="42" fill="#0d0d0d"/>
+
+  <!-- Mira: anel externo com quebras nos 4 eixos (mesma retícula do aluno) -->
+  <circle cx="96" cy="96" r="66" fill="none" stroke="#f5c518" stroke-width="9"
+          stroke-linecap="round" stroke-dasharray="77.7 26" stroke-dashoffset="90.7"
+          opacity="0.55"/>
+
+  <!-- Disco preenchido (invertido em relação ao ícone do aluno) -->
+  <circle cx="96" cy="96" r="52" fill="#f5c518"/>
+
+  <!-- Halter vazado -->
+  <g fill="#0d0d0d">
+    <rect x="62" y="92" width="68" height="8" rx="4"/>
+    <rect x="68" y="79" width="13" height="34" rx="4"/>
+    <rect x="111" y="79" width="13" height="34" rx="4"/>
+    <rect x="56" y="86" width="8" height="20" rx="3"/>
+    <rect x="128" y="86" width="8" height="20" rx="3"/>
+  </g>
+</svg>
