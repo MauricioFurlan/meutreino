@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Editor de Treino</title>
-  <meta name="theme-color" content="#00bcd4">
+  <meta name="theme-color" content="#00d5ff">
   <!-- PWA: precisa estar em TODAS as páginas, senão o iOS mostra a barra do
        Safari ao navegar dentro do app instalado (modo standalone) -->
   <link rel="manifest" href="/manifest-pro.json">
@@ -22,14 +22,14 @@
     body, * { scrollbar-width: none; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0d0d0d; color: #f0f0f0; min-height: 100vh; padding-bottom: 100px;
+      background: #08090c; color: #f0f0f0; min-height: 100vh; padding-bottom: 100px;
       max-width: 100%; overflow-x: hidden;
     }
     .header {
-      background: #0d2137; padding: 16px; text-align: center;
-      border-bottom: 1px solid #1a3a4f; position: relative;
+      background: #101419; padding: 16px; text-align: center;
+      border-bottom: 1px solid #232a33; position: relative;
     }
-    .header h1 { font-size: 1.1rem; color: #00bcd4; letter-spacing: 1px; }
+    .header h1 { font-size: 1.1rem; color: #00d5ff; letter-spacing: 1px; }
     .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
     .nav-btn {
       position: absolute; top: 14px; background: none; border: 1px solid #555;
@@ -41,11 +41,11 @@
 
     .title-section { padding: 12px; }
     .title-input {
-      width: 100%; max-width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #1a3a4f;
-      background: #0d2137; color: #00bcd4; font-size: 1rem; font-weight: 700; text-align: center;
+      width: 100%; max-width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #232a33;
+      background: #101419; color: #00d5ff; font-size: 1rem; font-weight: 700; text-align: center;
       box-sizing: border-box;
     }
-    .title-input:focus { outline: none; border-color: #00bcd4; }
+    .title-input:focus { outline: none; border-color: #00d5ff; }
 
     .dates-row { display: flex; gap: 8px; padding: 0 12px 12px; max-width: 100%; }
     /* flex-basis 0 + min-width 0 impede o input[type=date] do iOS de forçar
@@ -57,19 +57,19 @@
     }
     .date-field input[type="date"] {
       width: 100%; min-width: 0; max-width: 100%; padding: 10px 8px; border-radius: 8px;
-      border: 1px solid #1a3a4f; background: #0d2137; color: #fff; font-size: 0.8rem;
+      border: 1px solid #232a33; background: #101419; color: #fff; font-size: 0.8rem;
       box-sizing: border-box; -webkit-appearance: none; appearance: none;
     }
     /* Remove o padding interno que o Safari adiciona no seletor de data */
     .date-field input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
     .date-field input[type="date"]::-webkit-calendar-picker-indicator { margin-left: 2px; }
-    .date-field input[type="date"]:focus { outline: none; border-color: #00bcd4; }
+    .date-field input[type="date"]:focus { outline: none; border-color: #00d5ff; }
 
     /* Opções do plano (ativo + importar) */
     .options-row { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
     .opt-card {
       display: flex; align-items: center; gap: 12px;
-      background: #0d2137; border: 1px solid #1a3a4f; border-radius: 12px; padding: 12px 14px;
+      background: #101419; border: 1px solid #232a33; border-radius: 12px; padding: 12px 14px;
     }
     .opt-card.on { border-color: #4caf50; background: #161c16; }
     .opt-text { flex: 1; min-width: 0; }
@@ -88,8 +88,8 @@
     .toggle input:checked + .toggle-slider { background: #4caf50; }
     .toggle input:checked + .toggle-slider::before { transform: translateX(20px); }
     .import-open-btn {
-      width: 100%; min-height: 46px; border: 1px dashed #00bcd4; border-radius: 12px;
-      background: none; color: #00bcd4; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+      width: 100%; min-height: 46px; border: 1px dashed #00d5ff; border-radius: 12px;
+      background: none; color: #00d5ff; font-size: 0.8rem; font-weight: 600; cursor: pointer;
     }
     .import-open-btn:active { opacity: 0.6; }
 
@@ -100,12 +100,12 @@
     }
     .modal.show { display: flex; }
     .modal-content {
-      background: #0d2137; border-radius: 16px 16px 0 0; padding: 18px;
+      background: #101419; border-radius: 16px 16px 0 0; padding: 18px;
       width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto;
-      border: 1px solid #1a3a4f; padding-bottom: calc(18px + env(safe-area-inset-bottom));
+      border: 1px solid #232a33; padding-bottom: calc(18px + env(safe-area-inset-bottom));
     }
     .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-    .modal-head h3 { color: #00bcd4; font-size: 0.95rem; }
+    .modal-head h3 { color: #00d5ff; font-size: 0.95rem; }
     .modal-x {
       background: none; border: none; color: #888; font-size: 1.1rem; cursor: pointer;
       padding: 4px 8px; line-height: 1;
@@ -113,24 +113,24 @@
     .modal-sub { font-size: 0.7rem; color: #888; margin-bottom: 12px; line-height: 1.4; }
     .modal-close {
       width: 100%; min-height: 46px; border: none; border-radius: 10px;
-      background: #132d42; color: #999; font-weight: 600; font-size: 0.85rem;
+      background: #161b22; color: #999; font-weight: 600; font-size: 0.85rem;
       cursor: pointer; margin-top: 14px;
     }
     .import-search {
-      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #1a3a4f;
-      background: #0d0d0d; color: #fff; font-size: 16px; box-sizing: border-box; margin-bottom: 10px;
+      width: 100%; padding: 12px; border-radius: 10px; border: 1px solid #232a33;
+      background: #08090c; color: #fff; font-size: 16px; box-sizing: border-box; margin-bottom: 10px;
     }
-    .import-search:focus { outline: none; border-color: #00bcd4; }
+    .import-search:focus { outline: none; border-color: #00d5ff; }
     .pick-item {
       display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
-      background: #0d0d0d; border: 1px solid #1a3a4f; border-radius: 12px;
+      background: #08090c; border: 1px solid #232a33; border-radius: 12px;
       padding: 12px 14px; margin-bottom: 8px; cursor: pointer; min-height: 52px;
     }
-    .pick-item:active { border-color: #00bcd4; }
+    .pick-item:active { border-color: #00d5ff; }
     .pick-item .pick-avatar {
       width: 34px; height: 34px; border-radius: 50%; background: #262626; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center;
-      color: #00bcd4; font-weight: 700; font-size: 0.8rem;
+      color: #00d5ff; font-weight: 700; font-size: 0.8rem;
     }
     .pick-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
     .pick-title { display: block; font-size: 0.85rem; font-weight: 600; color: #f0f0f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -141,16 +141,16 @@
       padding: 2px 7px; border-radius: 8px; background: #1b3a1b; color: #4caf50; margin-left: 6px;
     }
     .back-link {
-      background: none; border: none; color: #00bcd4; font-size: 0.75rem;
+      background: none; border: none; color: #00d5ff; font-size: 0.75rem;
       cursor: pointer; padding: 4px 0 10px; font-weight: 600;
     }
     .confirm-btn {
       width: 100%; min-height: 50px; border: none; border-radius: 12px;
-      background: #00bcd4; color: #000; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 12px;
+      background: #00d5ff; color: #000; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 12px;
     }
     .confirm-btn:active { opacity: 0.7; }
     .preview-day { margin-bottom: 12px; }
-    .preview-day h4 { font-size: 0.75rem; color: #00bcd4; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .preview-day h4 { font-size: 0.75rem; color: #00d5ff; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; }
     .preview-ex { font-size: 0.76rem; color: #ddd; padding: 4px 0; border-bottom: 1px solid #222; }
     .preview-ex .sets { color: #888; font-size: 0.68rem; }
     .modal-empty { text-align: center; padding: 26px 12px; color: #666; font-size: 0.8rem; line-height: 1.6; }
@@ -160,23 +160,23 @@
        é escolher em treinos.html, antes de chegar aqui. */
     .mode-pick {
       display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left;
-      background: #0d0d0d; border: 1px solid #1a3a4f; border-radius: 12px;
+      background: #08090c; border: 1px solid #232a33; border-radius: 12px;
       padding: 14px; margin-bottom: 10px; cursor: pointer; color: inherit; font: inherit;
     }
-    .mode-pick:active { border-color: #00bcd4; }
+    .mode-pick:active { border-color: #00d5ff; }
     .mode-pick-icon { font-size: 1.3rem; line-height: 1; flex-shrink: 0; }
     .mode-pick-body { flex: 1; min-width: 0; }
-    .mode-pick-title { display: block; font-size: 0.85rem; font-weight: 700; color: #00bcd4; margin-bottom: 4px; }
+    .mode-pick-title { display: block; font-size: 0.85rem; font-weight: 700; color: #00d5ff; margin-bottom: 4px; }
     .mode-pick-desc { display: block; font-size: 0.7rem; color: #999; line-height: 1.5; }
     .mode-pick-ex { display: block; font-size: 0.66rem; color: #777; margin-top: 5px; font-style: italic; }
 
     /* Accordion dias */
-    .day-accordion { margin: 0 12px 8px; border: 1px solid #1a3a4f; border-radius: 12px; background: #0d2137; }
+    .day-accordion { margin: 0 12px 8px; border: 1px solid #232a33; border-radius: 12px; background: #101419; }
     .day-header {
       padding: 14px 16px; cursor: pointer; display: flex; align-items: center;
       justify-content: space-between; user-select: none; border-radius: 12px;
     }
-    .day-header .day-name { font-weight: 700; font-size: 0.9rem; color: #00bcd4; }
+    .day-header .day-name { font-weight: 700; font-size: 0.9rem; color: #00d5ff; }
     .day-header .day-count { font-size: 0.7rem; color: #888; }
     .day-header .arrow { color: #888; font-size: 0.6rem; transition: transform 0.2s; }
     .day-accordion.open .day-header .arrow { transform: rotate(180deg); }
@@ -185,21 +185,21 @@
 
     /* Exercício */
     .exercise-item {
-      background: #0d0d0d; border: 1px solid #1a3a4f; border-radius: 10px;
+      background: #08090c; border: 1px solid #232a33; border-radius: 10px;
       padding: 12px; margin-bottom: 10px;
     }
     .exercise-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
     .exercise-top input {
-      flex: 1; min-width: 0; padding: 8px; border-radius: 6px; border: 1px solid #1a3a4f;
-      background: #0d2137; color: #fff; font-size: 16px; box-sizing: border-box;
+      flex: 1; min-width: 0; padding: 8px; border-radius: 6px; border: 1px solid #232a33;
+      background: #101419; color: #fff; font-size: 16px; box-sizing: border-box;
     }
-    .exercise-top input:focus { outline: none; border-color: #00bcd4; }
+    .exercise-top input:focus { outline: none; border-color: #00d5ff; }
     .exercise-extras { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
     .exercise-extras input {
-      flex: 1; min-width: 0; padding: 6px 8px; border-radius: 6px; border: 1px solid #1a3a4f;
-      background: #0d2137; color: #ccc; font-size: 14px; box-sizing: border-box;
+      flex: 1; min-width: 0; padding: 6px 8px; border-radius: 6px; border: 1px solid #232a33;
+      background: #101419; color: #ccc; font-size: 14px; box-sizing: border-box;
     }
-    .exercise-extras input:focus { outline: none; border-color: #00bcd4; }
+    .exercise-extras input:focus { outline: none; border-color: #00d5ff; }
 
     /* Sets: tipo | reps/tempo | descanso | nota | remover.
        O cabeçalho existe porque com 4 campos na linha o professor não tem
@@ -215,50 +215,50 @@
     }
     .set-head span:first-child { text-align: left; }
     .set-item input {
-      padding: 6px 2px; border-radius: 6px; border: 1px solid #1a3a4f;
-      background: #0d2137; color: #fff; font-size: 14px; text-align: center;
+      padding: 6px 2px; border-radius: 6px; border: 1px solid #232a33;
+      background: #101419; color: #fff; font-size: 14px; text-align: center;
       min-width: 0; box-sizing: border-box;
     }
-    .set-item input:focus { outline: none; border-color: #00bcd4; }
+    .set-item input:focus { outline: none; border-color: #00d5ff; }
     .set-item input::placeholder { color: #5a5a5a; }
     /* 13px porque "FEEDER" em 14px não cabe nos 54px da coluna */
-    .set-type-input { text-transform: uppercase; font-weight: 600; font-size: 13px; color: #00bcd4 !important; }
-    .set-rest { color: #4fc3f7 !important; font-weight: 600; }
-    .set-rest:focus { border-color: #4fc3f7 !important; }
+    .set-type-input { text-transform: uppercase; font-weight: 600; font-size: 13px; color: #00d5ff !important; }
+    .set-rest { color: #66e6ff !important; font-weight: 600; }
+    .set-rest:focus { border-color: #66e6ff !important; }
     /* Cardio: o set deixa de ser carga×reps e passa a ser tempo — cor diferente
        para o professor perceber de imediato que aquela linha é minutos. */
     .set-item.is-cardio .set-type-input { color: #ff9800 !important; }
-    .set-item.is-cardio .set-reps { border-color: #005a6a; color: #ffb74d; }
+    .set-item.is-cardio .set-reps { border-color: #0091b3; color: #ffb74d; }
     .chips { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; align-items: center; }
     .chips-label { font-size: 0.6rem; color: #777; font-weight: 700; margin-right: 2px; }
     .chip {
       padding: 4px 10px; border-radius: 12px; border: 1px solid #555; background: none;
       color: #999; font-size: 0.6rem; cursor: pointer; font-weight: 600; text-transform: uppercase;
     }
-    .chip:active { border-color: #00bcd4; color: #00bcd4; }
-    .chip.chip-cardio { border-color: #005a6a; color: #ffb74d; }
+    .chip:active { border-color: #00d5ff; color: #00d5ff; }
+    .chip.chip-cardio { border-color: #0091b3; color: #ffb74d; }
     .chip.chip-cardio:active { border-color: #ff9800; color: #ff9800; }
     /* Descanso: o campo abre um seletor com os valores usuais e altera SÓ
        aquela série. Os chips antigos preenchiam todas as séries de uma vez,
        o que mudava linhas que já estavam certas. */
     .set-rest { cursor: pointer; }
-    .set-rest.picking { border-color: #4fc3f7 !important; }
+    .set-rest.picking { border-color: #66e6ff !important; }
     .rest-picker {
       display: none; position: fixed; z-index: 1200; width: 216px;
-      background: #16202a; border: 1px solid #2f4d5a; border-radius: 12px;
+      background: #16202a; border: 1px solid #2a323b; border-radius: 12px;
       padding: 10px; box-shadow: 0 10px 28px rgba(0,0,0,0.6);
     }
     .rest-picker.show { display: block; }
     .rest-picker-title {
-      font-size: 0.6rem; color: #4fc3f7; font-weight: 700; text-transform: uppercase;
+      font-size: 0.6rem; color: #66e6ff; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.4px; margin-bottom: 8px;
     }
     .rest-picker-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
     .rest-opt {
-      padding: 9px 0; border: 1px solid #2f4d5a; border-radius: 8px; background: #0f1a21;
+      padding: 9px 0; border: 1px solid #2a323b; border-radius: 8px; background: #0f1a21;
       color: #9fd9f5; font-size: 0.72rem; font-weight: 600; cursor: pointer;
     }
-    .rest-opt.on { background: #4fc3f7; border-color: #4fc3f7; color: #06222e; }
+    .rest-opt.on { background: #66e6ff; border-color: #66e6ff; color: #06222e; }
     .rest-opt:active { opacity: 0.6; }
     .rest-picker-actions { display: flex; gap: 6px; margin-top: 8px; }
     .rest-picker-actions button {
@@ -280,7 +280,7 @@
       border-radius: 8px; background: none; color: #888; font-size: 0.75rem;
       cursor: pointer; margin-top: 6px; text-align: center;
     }
-    .add-btn:active { border-color: #00bcd4; color: #00bcd4; }
+    .add-btn:active { border-color: #00d5ff; color: #00d5ff; }
     .add-exercise-btn { margin: 8px 0; }
 
     /* Botões de ação do exercício */
@@ -290,12 +290,12 @@
       color: #999; font-size: 0.65rem; cursor: pointer; white-space: nowrap;
     }
     .ex-action-btn.danger { border-color: #f44336; color: #f44336; }
-    .ex-action-btn.group-active { border-color: #00bcd4; color: #00bcd4; }
+    .ex-action-btn.group-active { border-color: #00d5ff; color: #00d5ff; }
     .ex-action-btn:active { opacity: 0.5; }
 
     /* Grupo visual no editor */
     .group-wrapper {
-      border: 2px solid #00bcd4; border-radius: 14px;
+      border: 2px solid #00d5ff; border-radius: 14px;
       padding: 10px; margin-bottom: 10px;
     }
     .group-header {
@@ -303,7 +303,7 @@
       gap: 8px; margin-bottom: 8px; min-height: 26px;
     }
     .group-header .group-label {
-      color: #00bcd4; font-size: 0.75rem; font-weight: 700;
+      color: #00d5ff; font-size: 0.75rem; font-weight: 700;
       letter-spacing: 0.5px; white-space: nowrap; line-height: 1.3;
     }
     .group-wrapper .exercise-item { margin: 0 0 8px; }
@@ -317,19 +317,19 @@
 
     /* Salvar fixo */
     .save-bar {
-      position: fixed; bottom: 0; left: 0; right: 0; background: #0d2137;
-      border-top: 1px solid #1a3a4f; padding: 12px 16px; z-index: 100;
+      position: fixed; bottom: 0; left: 0; right: 0; background: #101419;
+      border-top: 1px solid #232a33; padding: 12px 16px; z-index: 100;
     }
     .save-bar button {
       width: 100%; padding: 14px; border: none; border-radius: 10px;
-      background: #00bcd4; color: #000; font-weight: 700; font-size: 0.95rem; cursor: pointer;
+      background: #00d5ff; color: #000; font-weight: 700; font-size: 0.95rem; cursor: pointer;
     }
     .save-bar button:disabled { opacity: 0.5; }
     .save-bar button:active { opacity: 0.7; }
 
     .toast {
       position: fixed; bottom: 70px; left: 50%; transform: translateX(-50%);
-      background: #00bcd4; color: #000; padding: 10px 20px; border-radius: 20px;
+      background: #00d5ff; color: #000; padding: 10px 20px; border-radius: 20px;
       font-size: 0.85rem; font-weight: 600; display: none; z-index: 1001;
     }
     .toast.error { background: #f44336; color: #fff; }
@@ -347,8 +347,8 @@
     }
     .loading-overlay.hidden { opacity: 0; pointer-events: none; }
     .loading-spinner {
-      width: 44px; height: 44px; border: 3px solid #1a3a4f;
-      border-top-color: #00bcd4; border-radius: 50%;
+      width: 44px; height: 44px; border: 3px solid #232a33;
+      border-top-color: #00d5ff; border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -357,9 +357,9 @@
     /* Modo cíclico */
     .mode-section { padding: 0 12px 12px; }
     .mode-card {
-      background: #0d2137; border: 1px solid #1a3a4f; border-radius: 12px; padding: 12px 14px;
+      background: #101419; border: 1px solid #232a33; border-radius: 12px; padding: 12px 14px;
     }
-    .mode-card.on { border-color: #00bcd4; }
+    .mode-card.on { border-color: #00d5ff; }
     .mode-top { display: flex; align-items: center; gap: 12px; }
     .mode-top .opt-text { flex: 1; min-width: 0; }
     /* Selo do modo — o tipo de montagem é escolhido antes de abrir o editor
@@ -367,19 +367,19 @@
        descartaria a estrutura já montada e quebraria o histórico do aluno. */
     .mode-badge {
       flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px;
-      padding: 7px 12px; border-radius: 20px; background: #00bcd4; color: #000;
+      padding: 7px 12px; border-radius: 20px; background: #00d5ff; color: #000;
       font-size: 0.72rem; font-weight: 700; letter-spacing: 0.3px;
     }
-    .mode-badge.pending { background: #132d42; color: #888; }
+    .mode-badge.pending { background: #161b22; color: #888; }
     .cyclic-config { margin-top: 12px; display: none; }
     .cyclic-config.show { display: block; }
     .cyclic-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
     .cyclic-row label { font-size: 0.7rem; color: #888; font-weight: 600; white-space: nowrap; min-width: 90px; }
     .cyclic-row input[type="number"] {
-      width: 60px; padding: 8px; border-radius: 8px; border: 1px solid #1a3a4f;
-      background: #0d2137; color: #fff; font-size: 0.85rem; text-align: center;
+      width: 60px; padding: 8px; border-radius: 8px; border: 1px solid #232a33;
+      background: #101419; color: #fff; font-size: 0.85rem; text-align: center;
     }
-    .cyclic-row input[type="number"]:focus { outline: none; border-color: #00bcd4; }
+    .cyclic-row input[type="number"]:focus { outline: none; border-color: #00d5ff; }
     .cyclic-row .hint { font-size: 0.6rem; color: #666; }
 
     /* Sequência do ciclo */
@@ -389,8 +389,8 @@
     .seq-items { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
     .seq-item {
       display: flex; align-items: center; gap: 2px; padding: 6px 10px;
-      border-radius: 8px; border: 1px solid #1a3a4f; background: #0a1929;
-      font-size: 0.75rem; font-weight: 600; color: #00bcd4; cursor: grab;
+      border-radius: 8px; border: 1px solid #232a33; background: #0b0f14;
+      font-size: 0.75rem; font-weight: 600; color: #00d5ff; cursor: grab;
     }
     .seq-item.rest { border-color: #333; color: #888; background: #111; }
     .seq-item .seq-remove {
@@ -403,33 +403,33 @@
       padding: 6px 12px; border: 1px dashed #555; border-radius: 8px;
       background: none; color: #888; font-size: 0.7rem; font-weight: 600; cursor: pointer;
     }
-    .seq-add-btn:active { border-color: #00bcd4; color: #00bcd4; }
+    .seq-add-btn:active { border-color: #00d5ff; color: #00d5ff; }
     .seq-add-btn.rest-btn { border-style: dotted; }
 
     /* Subtítulo no accordion do dia */
     .subtitle-field { position: relative; margin-bottom: 10px; }
     .day-subtitle-input {
-      width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid #1a3a4f;
-      background: #0a1929; color: #ccc; font-size: 14px; box-sizing: border-box;
+      width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid #232a33;
+      background: #0b0f14; color: #ccc; font-size: 14px; box-sizing: border-box;
     }
-    .day-subtitle-input:focus { outline: none; border-color: #00bcd4; }
+    .day-subtitle-input:focus { outline: none; border-color: #00d5ff; }
     .day-subtitle-input::placeholder { color: #555; }
 
     /* Cyclic letter tabs */
     .cyclic-days-tabs { display: flex; gap: 6px; padding: 0 12px 10px; flex-wrap: wrap; }
     .cyclic-day-tab {
-      padding: 8px 14px; border-radius: 8px; border: 1px solid #1a3a4f;
-      background: #0d2137; color: #00bcd4; font-size: 0.8rem; font-weight: 700;
+      padding: 8px 14px; border-radius: 8px; border: 1px solid #232a33;
+      background: #101419; color: #00d5ff; font-size: 0.8rem; font-weight: 700;
       cursor: pointer; min-width: 42px; text-align: center;
     }
-    .cyclic-day-tab.active { background: #00bcd4; color: #000; border-color: #00bcd4; }
+    .cyclic-day-tab.active { background: #00d5ff; color: #000; border-color: #00d5ff; }
     .cyclic-day-tab:active { opacity: 0.7; }
 
     /* Autocomplete da exercise_library e da subtitle_library */
     .exercise-top { position: relative; }
     .ac-list {
       display: none; position: absolute; top: 100%; left: 0; right: 0; z-index: 50;
-      background: #1a2a3a; border: 1px solid #00bcd4; border-radius: 8px;
+      background: #141a21; border: 1px solid #00d5ff; border-radius: 8px;
       max-height: 180px; overflow-y: auto; margin-top: 4px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.5);
     }
@@ -437,10 +437,10 @@
     .ac-item {
       display: flex; align-items: center; gap: 8px; padding: 10px 12px;
       cursor: pointer; font-size: 0.85rem; color: #f0f0f0;
-      border-bottom: 1px solid #0d2137;
+      border-bottom: 1px solid #101419;
     }
     .ac-item:last-child { border-bottom: none; }
-    .ac-item:active, .ac-item:hover { background: #0d2137; }
+    .ac-item:active, .ac-item:hover { background: #101419; }
     .ac-item .ac-icon { font-size: 0.75rem; flex-shrink: 0; }
     .ac-item .ac-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .ac-item .ac-remove {
@@ -451,6 +451,8 @@
     .ac-item.ac-default { opacity: 0.75; }
     .ac-item.ac-default .ac-name { font-style: italic; }
   </style>
+  <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->
+  <link rel="stylesheet" href="brand.css">
 </head>
 <body>
   <div class="loading-overlay" id="loadingOverlay">
@@ -1091,7 +1093,9 @@ document.addEventListener('pointerdown', (e) => {
 }, true);
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && restPickerInput) closeRestPicker();
+  if (e.key !== 'Escape') return;
+  if (restPickerInput) closeRestPicker();
+  hideAllAcLists();
 });
 
 // O seletor é fixed: sem reposicionar ele "descola" do campo ao rolar
@@ -1887,6 +1891,9 @@ function filterLibrary(query) {
 function showAcList(input, results) {
   const top = input.closest('.exercise-top');
   const list = top.querySelector('.ac-list');
+  // Só uma camada flutuante por vez (ver hideAllAcLists)
+  hideAllAcLists(list);
+  closeRestPicker();
   if (results.length === 0) { list.classList.remove('show'); list.innerHTML = ''; return; }
   list.innerHTML = results.map(r => {
     const isDefault = r._default;
@@ -1902,8 +1909,25 @@ function showAcList(input, results) {
   list.classList.add('show');
 }
 
-function hideAllAcLists() {
-  document.querySelectorAll('.ac-list.show').forEach(el => el.classList.remove('show'));
+// Fecha as sugestões abertas. `except` é a lista que está sendo exibida agora:
+// antes, focar o subtítulo com o autocomplete do exercício aberto deixava as
+// duas listas na tela ao mesmo tempo. Só uma camada flutuante por vez.
+function hideAllAcLists(except) {
+  document.querySelectorAll('.ac-list.show').forEach(el => {
+    if (el !== except) el.classList.remove('show');
+  });
+}
+
+// Perdeu o foco para outro campo/botão → as sugestões somem.
+// Não se usa `focusout` aqui de propósito: clicar num item da lista tira o
+// foco do input ANTES do click chegar, e esconder no focusout cancelaria a
+// seleção. Os itens da lista não são focáveis, então nunca disparam focusin —
+// e o filtro abaixo (só controles de verdade, nada dentro de .ac-list) garante
+// que a lista não feche no meio de uma escolha.
+function acListsLoseFocus(target) {
+  if (!target || !target.matches) return false;
+  if (target.closest('.ac-list')) return false;
+  return target.matches('input, select, textarea, button, a, [tabindex]');
 }
 
 // Delegação de eventos: um mesmo par input/focusin serve os dois
@@ -1919,9 +1943,12 @@ document.addEventListener('input', (e) => {
 document.addEventListener('focusin', (e) => {
   if (e.target.classList.contains('ex-name')) {
     if (e.target.value.trim().length >= 2) showAcList(e.target, filterLibrary(e.target.value));
+    else hideAllAcLists();
   } else if (e.target.classList.contains('day-subtitle-input')) {
     // Campo vazio já mostra as regiões mais usadas — não exige adivinhar
     showSubtitleAcList(e.target, filterSubtitles(e.target.value));
+  } else if (acListsLoseFocus(e.target)) {
+    hideAllAcLists();
   }
 });
 
@@ -1964,8 +1991,10 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  // Click fora fecha o autocomplete
-  if (!e.target.closest('.exercise-top') && !e.target.closest('.subtitle-field')) hideAllAcLists();
+  // Clique fora fecha as sugestões; clique em outro campo mantém aberta só a
+  // lista daquele campo (nunca duas ao mesmo tempo).
+  const wrap = e.target.closest('.exercise-top, .subtitle-field');
+  hideAllAcLists(wrap ? wrap.querySelector('.ac-list') : null);
 });
 
 async function removeFromLibrary(id) {
@@ -2101,6 +2130,9 @@ function filterSubtitles(query) {
 
 function showSubtitleAcList(input, results) {
   const list = input.closest('.subtitle-field').querySelector('.ac-list');
+  // Só uma camada flutuante por vez (ver hideAllAcLists)
+  hideAllAcLists(list);
+  closeRestPicker();
   if (results.length === 0) { list.classList.remove('show'); list.innerHTML = ''; return; }
   list.innerHTML = results.map(r => {
     const isDefault = r._default;
@@ -2182,7 +2214,7 @@ guard('trainer', {
         .maybeSingle();
       if (!data) {
         hideLoading();
-        document.getElementById('daysContainer').innerHTML = '<div class="loading">Treino não encontrado.<br><a href="professor.html" style="color:#00bcd4;">Voltar</a></div>';
+        document.getElementById('daysContainer').innerHTML = '<div class="loading">Treino não encontrado.<br><a href="professor.html" style="color:#00d5ff;">Voltar</a></div>';
         return;
       }
       plan = data;
@@ -2193,7 +2225,7 @@ guard('trainer', {
 
     if (!studentId && !inviteId) {
       hideLoading();
-      document.getElementById('daysContainer').innerHTML = '<div class="loading">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#00bcd4;">Voltar</a></div>';
+      document.getElementById('daysContainer').innerHTML = '<div class="loading">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#00d5ff;">Voltar</a></div>';
       return;
     }
 

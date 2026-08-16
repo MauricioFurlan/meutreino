@@ -110,9 +110,11 @@ eq('auth-guard grava o papel do aparelho', /mt_last_role/.test(read('auth-guard.
 eq('public/auth-guard.js está em sincronia', read('public/auth-guard.js'), read('auth-guard.js'));
 eq('public/sw.js está em sincronia', read('public/sw.js'), read('sw.js'));
 
-// SW precisa de cache novo, senão o celular segue servindo o ícone antigo
+// SW precisa de cache novo, senão o celular segue servindo o ícone antigo.
+// Fixar a versão exata quebra a cada bump legítimo — basta ela ter avançado.
 const sw = read('public/sw.js');
-eq('cache do SW foi renomeado', /meutreino-v3/.test(sw), true);
+const swVer = Number((sw.match(/CACHE_NAME = 'meutreino-v(\d+)'/) || [])[1]);
+eq('cache do SW foi renomeado', swVer >= 3, true);
 ['icon-pro-192.png', 'icon-pro-512.png', 'manifest-pro.json'].forEach(a => {
   eq(`SW cacheia ${a}`, sw.includes(`'/${a}'`), true);
 });

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Treino</title>
   <link rel="manifest" href="/manifest.json">
-  <meta name="theme-color" content="#00bcd4">
+  <meta name="theme-color" content="#00d5ff">
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -528,6 +528,8 @@
     .freq-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--success-light); }
     .freq-dot.missed { background: var(--error); }
   </style>
+  <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->
+  <link rel="stylesheet" href="brand.css">
 </head>
 <body>
   <script>
@@ -1147,7 +1149,7 @@ async function renderStrengthChart(exerciseName, canvas, setInfo) {
   }
   canvas.style.display = '';
   document.getElementById('historyChartLegend').innerHTML =
-    '<span><span class="dot" style="background:#00bcd4"></span> Volume (kg×reps)</span>' +
+    '<span><span class="dot" style="background:#00d5ff"></span> Volume (kg×reps)</span>' +
     '<span><span class="dot" style="background:#4caf50"></span> 1RM estimado (kg)</span>';
 
   // Agrupa por session_date (não created_at: created_at é UTC e jogava treinos
@@ -1185,7 +1187,7 @@ async function renderStrengthChart(exerciseName, canvas, setInfo) {
       datasets: [
         {
           label: 'Volume (kg×reps)', data: volumeData,
-          borderColor: '#00bcd4', backgroundColor: 'rgba(0, 188, 212, 0.1)',
+          borderColor: '#00d5ff', backgroundColor: 'rgba(0, 213, 255, 0.1)',
           borderWidth: 2, tension: 0.3, fill: true, pointRadius: 2, yAxisID: 'y'
         },
         {
@@ -1201,13 +1203,13 @@ async function renderStrengthChart(exerciseName, canvas, setInfo) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#0d2137', titleColor: '#00bcd4', bodyColor: '#f0f0f0',
-          borderColor: '#1a3a4f', borderWidth: 1
+          backgroundColor: '#101419', titleColor: '#00d5ff', bodyColor: '#f0f0f0',
+          borderColor: '#232a33', borderWidth: 1
         }
       },
       scales: {
         x: { ticks: { color: '#666', font: { size: 9 }, maxRotation: 45 }, grid: { color: '#222' } },
-        y: { position: 'left', ticks: { color: '#00bcd4', font: { size: 9 } }, grid: { color: '#222' } },
+        y: { position: 'left', ticks: { color: '#00d5ff', font: { size: 9 } }, grid: { color: '#222' } },
         y1: { position: 'right', ticks: { color: '#4caf50', font: { size: 9 } }, grid: { display: false } }
       }
     }
@@ -1290,8 +1292,8 @@ async function renderCardioChart(exerciseName, canvas, setInfo) {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#0d2137', titleColor: '#ff9800', bodyColor: '#f0f0f0',
-          borderColor: '#1a3a4f', borderWidth: 1
+          backgroundColor: '#101419', titleColor: '#ff9800', bodyColor: '#f0f0f0',
+          borderColor: '#232a33', borderWidth: 1
         }
       },
       scales: {

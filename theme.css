@@ -5,38 +5,43 @@
    carregar theme.js antes do </body>.
    ===================================================================== */
 
-/* === Default (Ciano) === */
+/* === Default (MuscleFit — preto + ciano elétrico) ===
+   Paleta tirada da comunicação visual da academia: fundo quase preto neutro,
+   ciano elétrico como única cor de marca e títulos brancos em caixa alta.
+   Os cinzas de fundo são neutros (sem o azul-marinho antigo) para o ciano
+   ser a única cor forte da tela. */
 :root,
 [data-theme="default"] {
-  --bg-body: #0d0d0d;
-  --bg-header: #0d2137;
-  --bg-card: #0d2137;
-  --bg-secondary: #132d42;
-  --bg-input: #0a2a3a;
-  --border: #1a3a4f;
-  --border-light: #222;
-  --accent: #00bcd4;
-  --accent-dark: #005a6a;
-  --accent-hover: #4fc3f7;
+  --bg-body: #08090c;
+  --bg-header: #0d1016;
+  --bg-card: #101419;
+  --bg-secondary: #161b22;
+  --bg-input: #0c1015;
+  --border: #232a33;
+  --border-light: #1b2027;
+  --accent: #00d5ff;
+  --accent-rgb: 0,213,255;
+  --accent-dark: #0091b3;
+  --accent-hover: #66e6ff;
   --text: #f0f0f0;
-  --text-muted: #999;
-  --text-muted2: #888;
-  --text-muted3: #666;
-  --text-dim: #777;
+  --text-muted: #9aa3ad;
+  --text-muted2: #8a929b;
+  --text-muted3: #666e77;
+  --text-dim: #79818a;
   --text-bright: #fff;
   --text-dark: #000;
-  --success: #00897b;
+  --success: #00b894;
   --success-light: #4caf50;
   --error: #f44336;
   --error-light: #ff5252;
   --warning: #ff9800;
   --warning-light: #ffb74d;
   --info: #42a5f5;
-  --save-done: #00897b;
-  --spinner-track: #1a3a4f;
-  --spinner-accent: #00bcd4;
-  --logo-color: #00bcd4;
-  --overlay-bg: rgba(13,13,13,0.92);
+  --save-done: #00b894;
+  --spinner-track: #232a33;
+  --spinner-accent: #00d5ff;
+  --logo-color: #00d5ff;
+  --overlay-bg: rgba(8,9,12,0.93);
 }
 
 /* === Ember (Laranja/Cobre — Energia) === */
@@ -49,6 +54,7 @@
   --border: #2a2a2a;
   --border-light: #222222;
   --accent: #f97316;
+  --accent-rgb: 249,115,22;
   --accent-dark: #c2410c;
   --accent-hover: #fb923c;
   --text: #f0f0f0;
@@ -82,6 +88,7 @@
   --border: rgba(255,255,255,0.15);
   --border-light: rgba(255,255,255,0.08);
   --accent: #10b981;
+  --accent-rgb: 16,185,129;
   --accent-dark: #059669;
   --accent-hover: #34d399;
   --text: #f0f0f0;
@@ -115,6 +122,7 @@
   --border: #2a2a5a;
   --border-light: #222244;
   --accent: #4fc3f7;
+  --accent-rgb: 79,195,247;
   --accent-dark: #0288d1;
   --accent-hover: #81d4fa;
   --text: #f0f0f0;
@@ -148,6 +156,7 @@
   --border: #2a3442;
   --border-light: #222a36;
   --accent: #cbd5e1;
+  --accent-rgb: 203,213,225;
   --accent-dark: #475569;
   --accent-hover: #ffffff;
   --text: #f0f0f0;
@@ -181,6 +190,7 @@
   --border: #2a2a2a;
   --border-light: #222222;
   --accent: #b388ff;
+  --accent-rgb: 179,136,255;
   --accent-dark: #7c4dff;
   --accent-hover: #d1c4e9;
   --text: #f0f0f0;
@@ -214,6 +224,7 @@
   --border: rgba(255,255,255,0.15);
   --border-light: rgba(255,255,255,0.08);
   --accent: #ffd600;
+  --accent-rgb: 255,214,0;
   --accent-dark: #c6a700;
   --accent-hover: #ffea00;
   --text: #f0f0f0;
@@ -328,6 +339,7 @@ html[data-theme="highvis"] textarea::placeholder,
   --border: #d4d4d8;
   --border-light: #e4e4e7;
   --accent: #18181b;
+  --accent-rgb: 24,24,27;
   --accent-dark: #27272a;
   --accent-hover: #3f3f46;
   --text: #18181b;

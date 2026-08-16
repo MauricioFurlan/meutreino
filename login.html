@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="theme-color" content="#00bcd4">
+  <meta name="theme-color" content="#00d5ff">
   <!-- CSP: será endurecida na Fase 8.5. Restringe conexões e origem de scripts. -->
   <meta http-equiv="Content-Security-Policy"
         content="default-src 'self';
@@ -89,6 +89,8 @@
     /* Formulário escondido até confirmar que não há sessão */
     .card.hidden { display: none; }
   </style>
+  <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->
+  <link rel="stylesheet" href="brand.css">
 </head>
 <body>
   <script>(function(){var t=localStorage.getItem('app-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>

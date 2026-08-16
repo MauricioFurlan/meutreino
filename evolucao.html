@@ -3,7 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Minha evolução</title>
-  <meta name="theme-color" content="#00bcd4">
+  <meta name="theme-color" content="#00d5ff">
   <!-- PWA: precisa estar em TODAS as páginas, senão o iOS mostra a barra do
        Safari ao navegar dentro do app instalado (modo standalone) -->
   <link rel="manifest" href="/manifest.json">
@@ -154,6 +154,8 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
   </style>
+  <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->
+  <link rel="stylesheet" href="brand.css">
 </head>
 <body>
   <script>(function(){var t=localStorage.getItem('app-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
@@ -495,7 +497,7 @@ async function loadWeekly() {
         d.label,
         (d.volume / maxVolume) * 100,
         d.volume > 0 ? d.volume.toLocaleString('pt-BR') + ' kg' : (d.isFuture ? '-' : 'faltou'),
-        d.trained ? '#00bcd4' : '#f44336'
+        d.trained ? '#00d5ff' : '#f44336'
       );
     });
     html += `<div class="hint">Volume = carga × repetições dos sets efetivos. Aquecimento, feeder e cardio ficam fora.</div>`;
@@ -511,7 +513,7 @@ async function loadWeekly() {
         d.label,
         (d.seconds / maxTime) * 100,
         d.seconds > 0 ? formatDurationHM(d.seconds) : (d.isFuture ? '-' : '—'),
-        d.seconds > 0 ? '#4caf50' : (d.isFuture ? '#1a3a4f' : '#f44336')
+        d.seconds > 0 ? '#4caf50' : (d.isFuture ? '#232a33' : '#f44336')
       );
     });
     html += `</div>`;

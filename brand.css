@@ -1,0 +1,233 @@
+/* =====================================================================
+   BRAND — identidade visual MuscleFit (preto + ciano elétrico)
+   ---------------------------------------------------------------------
+   Esta folha é a CAMADA DE ACABAMENTO comum a todas as telas (aluno e
+   professor). Ela é carregada DEPOIS do <style> inline de cada página,
+   então vence os empates de especificidade sem precisar de !important.
+
+   Regras do jogo:
+   · Nada de cor fixa: tudo sai de var(--accent, ...) e var(--bg-*, ...).
+     Nas telas do aluno os tokens vêm de theme.css (o tema escolhido);
+     nas telas do professor, que não têm theme.css, o fallback do var()
+     entrega o preto+ciano da marca.
+   · --accent-rgb existe em todos os temas de theme.css e serve para os
+     brilhos (rgba precisa do triplete, não do hex).
+   ===================================================================== */
+
+:root {
+  --mf-accent: var(--accent, #00d5ff);
+  --mf-rgb: var(--accent-rgb, 0,213,255);
+  --mf-line: rgba(var(--accent-rgb, 0,213,255), 0.30);
+  --mf-radius: 14px;
+}
+
+/* ── Fundo: clarão ciano diagonal no topo, como nos posts da academia ──
+   z-index -1 joga o brilho para trás de todo o conteúdo (o fundo do body
+   é propagado para o canvas, então ele continua visível).                */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 320px;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(115% 100% at 88% -25%, rgba(var(--mf-rgb), 0.16), transparent 62%),
+    radial-gradient(90% 80% at 0% -10%, rgba(var(--mf-rgb), 0.07), transparent 60%);
+}
+
+/* ── Cabeçalho ─────────────────────────────────────────────────────────
+   Não mexer em `position` aqui: treinador.html usa sticky.              */
+.header {
+  overflow: hidden;
+  border-bottom: 1px solid var(--mf-line);
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.45);
+}
+/* Faixa diagonal do canto — a assinatura gráfica da marca. Nasce na borda de
+   baixo e vai sumindo para cima, longe dos botões do topo (Sair/Voltar), que
+   ficariam ilegíveis por cima de ciano forte. */
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: -30%; right: -24px;
+  width: 96px; height: 150%;
+  transform: skewX(-16deg);
+  background: linear-gradient(0deg,
+    rgba(var(--mf-rgb), 0.42),
+    rgba(var(--mf-rgb), 0.02));
+  opacity: 0.38;
+  pointer-events: none;
+}
+.header h1,
+.header .h1,
+.drawer-header strong {
+  position: relative; z-index: 1;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+}
+/* Folga para os botões dos cantos: título longo quebra linha em vez de
+   passar por baixo do "Sair"/"Voltar". */
+.header h1 { padding: 0 52px; }
+.header .subtitle,
+.header .plan-title {
+  position: relative; z-index: 1;
+  letter-spacing: 0.4px;
+}
+/* Só z-index: estes botões já são `position: absolute` nas páginas —
+   redeclarar position aqui os arrancaria do canto. */
+.header .logout-btn,
+.header .nav-btn,
+.header .menu-btn,
+.header .plan-dates,
+.header .chart-btn,
+.header .history-btn { z-index: 2; }
+/* O logo é inline (não posicionado): precisa de position para subir acima
+   da faixa diagonal. */
+.header .app-logo { position: relative; z-index: 2; }
+
+/* ── Títulos de seção: barra ciano à esquerda + caixa alta ───────────── */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+}
+.section-title::before {
+  content: '';
+  width: 3px; height: 14px;
+  border-radius: 2px;
+  background: var(--mf-accent);
+  box-shadow: 0 0 10px rgba(var(--mf-rgb), 0.65);
+  flex-shrink: 0;
+}
+.mode-pick-title,
+.pick-title,
+.rest-picker-title,
+.chart-title,
+.col-title {
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+}
+
+/* ── Cartões ──────────────────────────────────────────────────────────── */
+.student-card,
+.trainer-card,
+.plan-card,
+.exercise-card,
+.exercise-item,
+.resume-card,
+.form-card,
+.chart-box,
+.mode-card,
+.opt-card,
+.alert-card,
+.cyclic-rest-card,
+.import-preview-box,
+.info-item,
+.seq-items,
+.card {
+  border-radius: var(--mf-radius);
+}
+.student-card,
+.trainer-card,
+.plan-card,
+.exercise-card,
+.exercise-item,
+.resume-card,
+.form-card,
+.mode-card,
+.opt-card,
+.card {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* Estado selecionado: contorno + brilho ciano (o "aceso" da marca) */
+.plan-card.active,
+.mode-card.on,
+.opt-card.on,
+.view-btn.active,
+.tab.active,
+.cyclic-day-tab.active {
+  border-color: var(--mf-accent);
+}
+.plan-card.active,
+.mode-card.on,
+.opt-card.on,
+.view-btn.active,
+.tab.active {
+  box-shadow:
+    0 0 0 1px rgba(var(--mf-rgb), 0.40),
+    0 0 18px rgba(var(--mf-rgb), 0.16);
+}
+
+/* ── Modais: moldura ciano discreta e sombra funda ────────────────────── */
+.modal-content,
+.note-modal-content,
+.notes-modal-sheet,
+.history-modal-content {
+  border-radius: var(--mf-radius);
+  border: 1px solid rgba(var(--mf-rgb), 0.22);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.65);
+}
+.modal,
+.note-modal,
+.notes-modal,
+.history-modal {
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+/* ── Campos ────────────────────────────────────────────────────────────
+   Foco visível de verdade (acessibilidade) e no tom da marca.          */
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--mf-accent);
+  box-shadow: 0 0 0 3px rgba(var(--mf-rgb), 0.14);
+}
+/* Teclado: quem navega por Tab precisa ver onde está */
+button:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--mf-accent);
+  outline-offset: 2px;
+}
+
+/* ── Chamadas para ação: caixa alta e peso, como nos criativos ─────────
+   Só os botões principais. Secundários (add-btn tracejado, chips, ícones)
+   ficam de fora de propósito: tudo em caixa alta vira ruído.            */
+.submit-btn,
+.confirm-btn,
+.save-btn,
+.start-workout-btn,
+.end-workout-btn,
+.action-btn.primary,
+.note-save-btn {
+  text-transform: uppercase;
+  font-weight: 800;
+  letter-spacing: 0.9px;
+  border-radius: 10px;
+}
+.submit-btn,
+.start-workout-btn,
+.action-btn.primary {
+  box-shadow: 0 4px 18px rgba(var(--mf-rgb), 0.22);
+}
+
+/* ── Detalhe de marca: sublinhado ciano nas listas de sugestão ───────── */
+.ac-list {
+  box-shadow:
+    0 0 0 1px rgba(var(--mf-rgb), 0.25),
+    0 10px 28px rgba(0, 0, 0, 0.6);
+}
+
+/* Tema claro não combina com brilho por cima do branco */
+[data-theme="light"] body::before { display: none; }
+[data-theme="light"] .header::after { opacity: 0.18; }

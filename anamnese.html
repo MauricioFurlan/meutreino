@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Anamnese</title>
-  <meta name="theme-color" content="#00bcd4">
+  <meta name="theme-color" content="#00d5ff">
   <!-- PWA: precisa estar em TODAS as páginas, senão o iOS mostra a barra do
        Safari ao navegar dentro do app instalado (modo standalone) -->
   <link rel="manifest" href="/manifest.json">
@@ -24,35 +24,35 @@
     body, * { scrollbar-width: none; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0d0d0d; color: #f0f0f0; min-height: 100vh; padding-bottom: 40px;
+      background: #08090c; color: #f0f0f0; min-height: 100vh; padding-bottom: 40px;
     }
-    .header { background: #0d2137; padding: 16px; text-align: center; border-bottom: 1px solid #1a3a4f; position: relative; }
-    .header h1 { font-size: 1.1rem; color: #00bcd4; }
+    .header { background: #101419; padding: 16px; text-align: center; border-bottom: 1px solid #232a33; position: relative; }
+    .header h1 { font-size: 1.1rem; color: #00d5ff; }
     .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
     .nav-btn { position: absolute; top: 14px; background: none; border: 1px solid #555; color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer; }
     .nav-btn.left { left: 14px; }
     .nav-btn.right { right: 14px; }
     .nav-btn:active { opacity: 0.6; }
 
-    .tabs { display: flex; gap: 4px; padding: 12px; background: #0d2137; border-bottom: 1px solid #1a3a4f; }
-    .tab { flex: 1; padding: 10px 8px; border-radius: 20px; background: #132d42; color: #888; font-size: 0.75rem; font-weight: 600; cursor: pointer; border: none; text-align: center; }
-    .tab.active { background: #00bcd4; color: #000; }
+    .tabs { display: flex; gap: 4px; padding: 12px; background: #101419; border-bottom: 1px solid #232a33; }
+    .tab { flex: 1; padding: 10px 8px; border-radius: 20px; background: #161b22; color: #888; font-size: 0.75rem; font-weight: 600; cursor: pointer; border: none; text-align: center; }
+    .tab.active { background: #00d5ff; color: #000; }
 
     .panel { display: none; padding: 12px; overflow: hidden; }
     .panel.active { display: block; }
 
-    .info-bar { background: #0d2137; border: 1px solid #1a3a4f; border-radius: 10px; padding: 12px; margin-bottom: 16px; display: flex; gap: 16px; flex-wrap: wrap; }
+    .info-bar { background: #101419; border: 1px solid #232a33; border-radius: 10px; padding: 12px; margin-bottom: 16px; display: flex; gap: 16px; flex-wrap: wrap; }
     .info-item { font-size: 0.75rem; color: #999; }
-    .info-item strong { color: #00bcd4; }
+    .info-item strong { color: #00d5ff; }
 
     /* Formulário */
-    .form-card { background: #0d2137; border: 1px solid #1a3a4f; border-radius: 12px; padding: 14px; margin-bottom: 12px; overflow: hidden; }
-    .form-card h3 { font-size: 0.8rem; color: #00bcd4; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-card { background: #101419; border: 1px solid #232a33; border-radius: 12px; padding: 14px; margin-bottom: 12px; overflow: hidden; }
+    .form-card h3 { font-size: 0.8rem; color: #00d5ff; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
     .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
     .field { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
     .field label { font-size: 0.65rem; color: #888; margin-bottom: 3px; text-transform: uppercase; font-weight: 600; }
     .field input, .field textarea, .field select {
-      padding: 10px 8px; border-radius: 8px; border: 1px solid #1a3a4f; background: #0d0d0d; color: #fff; font-size: 16px;
+      padding: 10px 8px; border-radius: 8px; border: 1px solid #232a33; background: #08090c; color: #fff; font-size: 16px;
       width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box;
       font-family: inherit; line-height: 1.2;
     }
@@ -64,17 +64,17 @@
     .field textarea { height: auto; }
     .field input[type="date"]::-webkit-date-and-time-value { text-align: left; margin: 0; }
     .field input[type="date"]::-webkit-calendar-picker-indicator { margin: 0; padding: 0; opacity: 0.55; }
-    .field input:focus, .field textarea:focus { outline: none; border-color: #00bcd4; }
+    .field input:focus, .field textarea:focus { outline: none; border-color: #00d5ff; }
     .field textarea { resize: vertical; min-height: 60px; }
     .field-full { grid-column: 1 / -1; }
-    .submit-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #00bcd4; color: #000; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 8px; }
+    .submit-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #00d5ff; color: #000; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 8px; }
     .submit-btn:disabled { opacity: 0.5; }
     .submit-btn:active { opacity: 0.7; }
 
     /* Timeline */
-    .timeline-item { background: #0d2137; border: 1px solid #1a3a4f; border-radius: 10px; padding: 14px; margin-bottom: 10px; cursor: pointer; }
-    .timeline-item:active { border-color: #00bcd4; }
-    .timeline-date { font-size: 0.8rem; color: #00bcd4; font-weight: 700; }
+    .timeline-item { background: #101419; border: 1px solid #232a33; border-radius: 10px; padding: 14px; margin-bottom: 10px; cursor: pointer; }
+    .timeline-item:active { border-color: #00d5ff; }
+    .timeline-date { font-size: 0.8rem; color: #00d5ff; font-weight: 700; }
     .timeline-summary { font-size: 0.75rem; color: #999; margin-top: 4px; }
 
     /* Gráficos */
@@ -89,16 +89,16 @@
     .chart-selector .select-wrap::after {
       content: '▼';
       position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
-      font-size: 0.65rem; color: #00bcd4; pointer-events: none; z-index: 1;
+      font-size: 0.65rem; color: #00d5ff; pointer-events: none; z-index: 1;
     }
     .chart-selector select {
-      padding: 14px 36px 14px 40px; border-radius: 10px; border: 1px solid #00bcd4;
-      background: #0d2137; color: #fff; font-size: 0.9rem; font-weight: 600;
+      padding: 14px 36px 14px 40px; border-radius: 10px; border: 1px solid #00d5ff;
+      background: #101419; color: #fff; font-size: 0.9rem; font-weight: 600;
       width: 100%; box-sizing: border-box; cursor: pointer;
       -webkit-appearance: none; -moz-appearance: none; appearance: none;
     }
-    .chart-selector select:focus { outline: none; border-color: #00bcd4; box-shadow: 0 0 0 2px rgba(245,197,24,0.2); }
-    .chart-container { background: #0d2137; border: 1px solid #1a3a4f; border-radius: 12px; padding: 12px; }
+    .chart-selector select:focus { outline: none; border-color: #00d5ff; box-shadow: 0 0 0 2px rgba(245,197,24,0.2); }
+    .chart-container { background: #101419; border: 1px solid #232a33; border-radius: 12px; padding: 12px; }
     canvas { max-height: 280px; }
 
     /* Blocos extras da aba Evolução */
@@ -108,19 +108,19 @@
     .chart-box { position: relative; width: 100%; }
     .chart-box canvas { max-height: none !important; }
     .chart-title {
-      font-size: 0.78rem; color: #00bcd4; font-weight: 700; text-transform: uppercase;
+      font-size: 0.78rem; color: #00d5ff; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.5px; margin-bottom: 8px;
       display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
     }
     .chart-sub { font-size: 0.62rem; color: #888; text-transform: none; font-weight: 500; letter-spacing: 0; text-align: right; }
     .chart-note { font-size: 0.65rem; color: #777; margin-top: 8px; line-height: 1.45; }
-    .chart-note strong { color: #00bcd4; }
+    .chart-note strong { color: #00d5ff; }
     .chart-note.warn strong { color: #ff9800; }
     .chart-empty { font-size: 0.75rem; color: #666; padding: 18px; text-align: center; }
 
     /* Resumo primeira → última avaliação */
     .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
-    .kpi { background: #0d2137; border: 1px solid #1a3a4f; border-radius: 10px; padding: 10px 12px; min-width: 0; }
+    .kpi { background: #101419; border: 1px solid #232a33; border-radius: 10px; padding: 10px 12px; min-width: 0; }
     .kpi-label { font-size: 0.6rem; color: #888; text-transform: uppercase; font-weight: 700; letter-spacing: 0.3px; }
     .kpi-value { font-size: 1.05rem; font-weight: 700; color: #f0f0f0; margin-top: 3px; }
     .kpi-delta { font-size: 0.68rem; font-weight: 700; margin-top: 2px; }
@@ -129,18 +129,18 @@
     .kpi-delta.neutral { color: #999; }
 
     .empty-state { text-align: center; padding: 30px; color: #666; font-size: 0.85rem; }
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #00bcd4; color: #000; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: none; z-index: 1000; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #00d5ff; color: #000; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: none; z-index: 1000; }
     .toast.error { background: #f44336; color: #fff; }
     .toast.show { display: block; animation: fadeOut 2.5s forwards; }
     @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
 
     .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
     .modal.show { display: flex; }
-    .modal-content { background: #0d2137; border-radius: 12px; padding: 20px; width: 100%; max-width: 400px; border: 1px solid #1a3a4f; }
-    .modal-content h3 { color: #00bcd4; font-size: 0.9rem; margin-bottom: 14px; }
-    .modal-close { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #132d42; color: #999; font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 12px; }
+    .modal-content { background: #101419; border-radius: 12px; padding: 20px; width: 100%; max-width: 400px; border: 1px solid #232a33; }
+    .modal-content h3 { color: #00d5ff; font-size: 0.9rem; margin-bottom: 14px; }
+    .modal-close { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #161b22; color: #999; font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 12px; }
     .detail-section { margin-bottom: 12px; }
-    .detail-section h4 { font-size: 0.75rem; color: #00bcd4; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .detail-section h4 { font-size: 0.75rem; color: #00d5ff; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
     .detail-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #222; }
     .detail-row .label { font-size: 0.78rem; color: #999; }
     .detail-row .value { font-size: 0.78rem; color: #f0f0f0; font-weight: 600; }
@@ -154,13 +154,15 @@
     }
     .loading-overlay.hidden { opacity: 0; pointer-events: none; }
     .loading-spinner {
-      width: 44px; height: 44px; border: 3px solid #1a3a4f;
-      border-top-color: #00bcd4; border-radius: 50%;
+      width: 44px; height: 44px; border: 3px solid #232a33;
+      border-top-color: #00d5ff; border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
   </style>
+  <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->
+  <link rel="stylesheet" href="brand.css">
 </head>
 <body>
   <div class="loading-overlay" id="loadingOverlay">
@@ -262,14 +264,14 @@
         <h3>⚖️ Composição corporal</h3>
         <div class="field-row">
           <div class="field"><label>% Gordura</label><input type="number" step="0.1" id="fGord" inputmode="decimal"></div>
-          <div class="field"><label>% Massa magra (auto)</label><input type="text" id="fMagraPerc" readonly placeholder="calculado" style="color:#00bcd4;"></div>
+          <div class="field"><label>% Massa magra (auto)</label><input type="text" id="fMagraPerc" readonly placeholder="calculado" style="color:#00d5ff;"></div>
         </div>
         <div class="field-row">
           <div class="field"><label>Massa magra (kg)</label><input type="number" step="0.1" id="fMagra" inputmode="decimal"></div>
           <div class="field"><label>Massa gorda (kg)</label><input type="number" step="0.1" id="fGorda" inputmode="decimal"></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>IMC (auto)</label><input type="text" id="fIMC" readonly placeholder="calculado" style="color:#00bcd4;"></div>
+          <div class="field"><label>IMC (auto)</label><input type="text" id="fIMC" readonly placeholder="calculado" style="color:#00d5ff;"></div>
         </div>
       </div>
 
@@ -815,7 +817,7 @@ function renderChart() {
     type: 'line',
     data: {
       labels,
-      datasets: [{ label, data: values, borderColor: '#00bcd4', backgroundColor: 'rgba(245,197,24,0.1)', tension: 0.3, fill: true, pointRadius: 5, pointBackgroundColor: '#00bcd4' }]
+      datasets: [{ label, data: values, borderColor: '#00d5ff', backgroundColor: 'rgba(245,197,24,0.1)', tension: 0.3, fill: true, pointRadius: 5, pointBackgroundColor: '#00d5ff' }]
     },
     options: {
       responsive: true,
@@ -1051,7 +1053,7 @@ function renderExtraCharts() {
         datasets: [{
           data: [Number(bc.magra.toFixed(1)), Number(bc.gorda.toFixed(1))],
           backgroundColor: ['#4caf50', '#ff9800'],
-          borderColor: '#0d2137', borderWidth: 2
+          borderColor: '#101419', borderWidth: 2
         }]
       },
       options: baseOpts({
@@ -1084,7 +1086,7 @@ function renderExtraCharts() {
       data: {
         labels,
         datasets: [
-          { label: 'Peso (kg)', data: pesoSeries, borderColor: '#00bcd4', backgroundColor: 'rgba(245,197,24,0.12)', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#00bcd4', spanGaps: true, yAxisID: 'y' },
+          { label: 'Peso (kg)', data: pesoSeries, borderColor: '#00d5ff', backgroundColor: 'rgba(245,197,24,0.12)', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#00d5ff', spanGaps: true, yAxisID: 'y' },
           { label: '% Gordura', data: gordSeries, borderColor: '#ff9800', backgroundColor: 'rgba(255,152,0,0.12)', tension: 0.3, pointRadius: 4, pointBackgroundColor: '#ff9800', spanGaps: true, yAxisID: 'y1' }
         ]
       },
@@ -1118,7 +1120,7 @@ function renderExtraCharts() {
         labels: circPairs.map(p => p.label),
         datasets: [
           { label: shortDate(firstA.assessment_date), data: circPairs.map(p => p.from), backgroundColor: '#555' },
-          { label: shortDate(lastA.assessment_date),  data: circPairs.map(p => p.to),   backgroundColor: '#00bcd4' }
+          { label: shortDate(lastA.assessment_date),  data: circPairs.map(p => p.to),   backgroundColor: '#00d5ff' }
         ]
       },
       options: baseOpts({
@@ -1186,7 +1188,7 @@ function renderExtraCharts() {
       data: {
         labels: s.map(p => p.label),
         datasets: [
-          { label: 'Direito', data: s.map(p => p.dir), backgroundColor: '#00bcd4' },
+          { label: 'Direito', data: s.map(p => p.dir), backgroundColor: '#00d5ff' },
           { label: 'Esquerdo', data: s.map(p => p.esq), backgroundColor: '#2196F3' }
         ]
       },
@@ -1703,7 +1705,7 @@ guard(['trainer', 'student'], {
     studentId = params.get('aluno');
     inviteId = params.get('invite');
 
-    if (!studentId && !inviteId) { hideLoading(); document.getElementById('panel-form').innerHTML = '<div class="empty-state">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#00bcd4;">Voltar</a></div>'; return; }
+    if (!studentId && !inviteId) { hideLoading(); document.getElementById('panel-form').innerHTML = '<div class="empty-state">Nenhum aluno selecionado.<br><a href="professor.html" style="color:#00d5ff;">Voltar</a></div>'; return; }
 
     // Info do aluno (do profile ou do invite)
     let student = null;

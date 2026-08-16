@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Treino</title>
-  <meta name="theme-color" content="#00bcd4">
+  <meta name="theme-color" content="#00d5ff">
   <!-- PWA: precisa estar em TODAS as páginas, senão o iOS mostra a barra do
        Safari ao navegar dentro do app instalado (modo standalone) -->
   <link rel="manifest" href="/manifest-pro.json">
@@ -23,21 +23,21 @@
     body, * { scrollbar-width: none; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0d0d0d;
+      background: #08090c;
       color: #f0f0f0;
       min-height: 100vh;
       padding-bottom: 40px;
     }
     .header {
-      background: #0d2137;
+      background: #101419;
       padding: 16px;
       text-align: center;
       position: sticky;
       top: 0;
       z-index: 101;
-      border-bottom: 1px solid #1a3a4f;
+      border-bottom: 1px solid #232a33;
     }
-    .header h1 { font-size: 1.1rem; color: #00bcd4; letter-spacing: 1px; }
+    .header h1 { font-size: 1.1rem; color: #00d5ff; letter-spacing: 1px; }
     .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
     .logout-btn {
       position: absolute; top: 14px; right: 14px; background: none; border: 1px solid #555;
@@ -46,20 +46,20 @@
     .logout-btn:active { opacity: 0.6; }
     .tabs {
       display: flex;
-      background: #0d2137;
+      background: #101419;
       padding: 8px;
       gap: 4px;
       position: sticky;
       top: var(--header-h, 72px);
       z-index: 99;
-      border-bottom: 1px solid #1a3a4f;
+      border-bottom: 1px solid #232a33;
     }
     .tabs::-webkit-scrollbar { display: none; }
     .tab {
       flex: 1;
       padding: 8px 4px;
       border-radius: 20px;
-      background: #132d42;
+      background: #161b22;
       color: #888;
       font-size: 0.7rem;
       font-weight: 600;
@@ -69,22 +69,22 @@
       text-align: center;
     }
     .tab.active {
-      background: #00bcd4;
+      background: #00d5ff;
       color: #000;
     }
     .day-content { display: none; padding: 16px; }
     .day-content.active { display: block; }
     .exercise-card {
-      background: #0d2137;
+      background: #101419;
       border-radius: 12px;
       padding: 16px;
       margin-bottom: 12px;
-      border: 1px solid #1a3a4f;
+      border: 1px solid #232a33;
     }
     .exercise-name {
       font-size: 0.95rem;
       font-weight: 700;
-      color: #00bcd4;
+      color: #00d5ff;
       margin-bottom: 10px;
       text-transform: uppercase;
     }
@@ -122,22 +122,22 @@
       justify-content: center;
       gap: 10px;
       padding: 12px;
-      background: #0d2137;
-      border-bottom: 1px solid #1a3a4f;
+      background: #101419;
+      border-bottom: 1px solid #232a33;
     }
     .date-filter input {
       padding: 8px 12px;
       border-radius: 8px;
-      border: 1px solid #1a3a4f;
-      background: #0d0d0d;
+      border: 1px solid #232a33;
+      background: #08090c;
       color: #f0f0f0;
       font-size: 0.85rem;
     }
-    .date-filter input:focus { outline: none; border-color: #00bcd4; }
+    .date-filter input:focus { outline: none; border-color: #00d5ff; }
     .date-filter label { font-size: 0.8rem; color: #999; }
     .loading { text-align: center; padding: 40px; color: #888; }
     .summary {
-      background: #132d42;
+      background: #161b22;
       border-radius: 8px;
       padding: 10px;
       margin-bottom: 16px;
@@ -145,11 +145,11 @@
       color: #bbb;
       text-align: center;
     }
-    .summary strong { color: #00bcd4; }
+    .summary strong { color: #00d5ff; }
     .chart-btn {
-      background: #132d42;
-      border: 1px solid #00bcd4;
-      color: #00bcd4;
+      background: #161b22;
+      border: 1px solid #00d5ff;
+      color: #00d5ff;
       font-size: 0.75rem;
       padding: 5px 10px;
       border-radius: 6px;
@@ -159,7 +159,7 @@
     .chart-btn:active { opacity: 0.7; }
     .chart-container {
       display: none;
-      background: #0d0d0d;
+      background: #08090c;
       border-radius: 8px;
       padding: 10px;
       margin-bottom: 10px;
@@ -193,13 +193,13 @@
     .frequency {
       margin-top: 10px;
       padding: 8px;
-      background: #0d2137;
+      background: #101419;
       border-radius: 8px;
       font-size: 0.75rem;
       color: #bbb;
       text-align: center;
     }
-    .frequency strong { color: #00bcd4; }
+    .frequency strong { color: #00d5ff; }
     .freq-dots {
       display: flex;
       flex-wrap: wrap;
@@ -221,13 +221,13 @@
       justify-content: center;
       gap: 0;
       padding: 12px 16px;
-      background: #0d2137;
-      border-bottom: 1px solid #1a3a4f;
+      background: #101419;
+      border-bottom: 1px solid #232a33;
     }
     .view-btn {
       padding: 8px 16px;
-      border: 1px solid #1a3a4f;
-      background: #132d42;
+      border: 1px solid #232a33;
+      background: #161b22;
       color: #888;
       font-size: 0.8rem;
       font-weight: 600;
@@ -235,7 +235,7 @@
     }
     .view-btn:first-child { border-radius: 8px 0 0 8px; }
     .view-btn:last-child { border-radius: 0 8px 8px 0; }
-    .view-btn.active { background: #00bcd4; color: #000; border-color: #00bcd4; }
+    .view-btn.active { background: #00d5ff; color: #000; border-color: #00d5ff; }
     .resume-section { display: none; padding: 16px; }
     .resume-section.active { display: block; }
     .resume-nav {
@@ -246,9 +246,9 @@
       margin-bottom: 16px;
     }
     .resume-nav button {
-      background: #132d42;
+      background: #161b22;
       border: none;
-      color: #00bcd4;
+      color: #00d5ff;
       font-size: 1.2rem;
       width: 36px;
       height: 36px;
@@ -291,17 +291,17 @@
     .cal-day.trained { background: #4caf50; color: #fff; }
     .cal-day.missed { background: #f44336; color: #fff; }
     .cal-day.rest { background: #222; color: #555; }
-    .cal-day.future { background: none; color: #1a3a4f; }
+    .cal-day.future { background: none; color: #232a33; }
     .resume-card {
-      background: #0d2137;
+      background: #101419;
       border-radius: 12px;
       padding: 14px;
       margin-bottom: 12px;
-      border: 1px solid #1a3a4f;
+      border: 1px solid #232a33;
     }
     .resume-card h3 {
       font-size: 0.8rem;
-      color: #00bcd4;
+      color: #00d5ff;
       margin-bottom: 8px;
     }
     .volume-bar-row {
@@ -324,7 +324,7 @@
     }
     .volume-bar-fill {
       height: 100%;
-      background: #00bcd4;
+      background: #00d5ff;
       border-radius: 7px;
       transition: width 0.3s;
     }
@@ -364,8 +364,8 @@
       gap: 10px;
       margin: 0 14px 12px;
       padding: 10px 14px;
-      background: #0d2137;
-      border: 1px solid #1a3a4f;
+      background: #101419;
+      border: 1px solid #232a33;
       border-radius: 12px;
     }
     .streak-bar.hidden { display: none; }
@@ -385,7 +385,7 @@
     .streak-count {
       font-size: 1.25rem;
       font-weight: 700;
-      color: #00bcd4;
+      color: #00d5ff;
       line-height: 1;
     }
     .streak-bar:not(.on) .streak-count { color: #777; }
@@ -417,7 +417,7 @@
     }
     .weekly-day-dot.trained { background: #4caf50; }
     .weekly-day-dot.missed { background: #f44336; }
-    .weekly-day-dot.rest { background: #1a3a4f; color: #666; }
+    .weekly-day-dot.rest { background: #232a33; color: #666; }
     .weekly-day-dot.future { background: none; border: 1px dashed #444; color: #444; }
     .note-modal {
       display: none;
@@ -431,30 +431,30 @@
     }
     .note-modal.show { display: flex; }
     .note-modal-content {
-      background: #0d2137;
+      background: #101419;
       border-radius: 12px;
       padding: 20px;
       width: 100%;
       max-width: 400px;
-      border: 1px solid #1a3a4f;
+      border: 1px solid #232a33;
     }
     .note-modal-content h3 {
-      color: #00bcd4;
+      color: #00d5ff;
       font-size: 0.9rem;
       margin-bottom: 12px;
     }
     .note-modal-content textarea {
       width: 100%;
       height: 100px;
-      background: #0d0d0d;
-      border: 1px solid #1a3a4f;
+      background: #08090c;
+      border: 1px solid #232a33;
       border-radius: 8px;
       color: #fff;
       font-size: 14px;
       padding: 10px;
       resize: none;
     }
-    .note-modal-content textarea:focus { outline: none; border-color: #00bcd4; }
+    .note-modal-content textarea:focus { outline: none; border-color: #00d5ff; }
     .note-modal-btns {
       display: flex;
       gap: 8px;
@@ -469,8 +469,8 @@
       font-size: 0.85rem;
       cursor: pointer;
     }
-    .note-save-btn { background: #00bcd4; color: #000; }
-    .note-cancel-btn { background: #132d42; color: #999; }
+    .note-save-btn { background: #00d5ff; color: #000; }
+    .note-cancel-btn { background: #161b22; color: #999; }
     .note-delete-btn { background: #f44336; color: #fff; }
 
     /* Loading overlay */
@@ -482,13 +482,15 @@
     }
     .loading-overlay.hidden { opacity: 0; pointer-events: none; }
     .loading-spinner {
-      width: 44px; height: 44px; border: 3px solid #1a3a4f;
-      border-top-color: #00bcd4; border-radius: 50%;
+      width: 44px; height: 44px; border: 3px solid #232a33;
+      border-top-color: #00d5ff; border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
   </style>
+  <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->
+  <link rel="stylesheet" href="brand.css">
 </head>
 <body>
   <div class="loading-overlay" id="loadingOverlay">
@@ -553,7 +555,7 @@
   <div class="note-modal" id="videoModal">
     <div class="note-modal-content">
       <h3 id="videoModalTitle">Link do vídeo</h3>
-      <input type="url" id="videoUrl" placeholder="https://youtube.com/watch?v=..." style="width:100%;padding:10px;background:#0d0d0d;border:1px solid #1a3a4f;border-radius:8px;color:#fff;font-size:14px;">
+      <input type="url" id="videoUrl" placeholder="https://youtube.com/watch?v=..." style="width:100%;padding:10px;background:#08090c;border:1px solid #232a33;border-radius:8px;color:#fff;font-size:14px;">
       <div class="note-modal-btns">
         <button class="note-cancel-btn" onclick="closeVideoModal()">Cancelar</button>
         <button class="note-delete-btn" onclick="deleteVideo()">Apagar</button>
@@ -817,7 +819,7 @@ async function loadDay(day, date) {
       html += `</div>`;
       const legend = chartCardio
         ? `<div class="chart-legend"><span><span class="dot" style="background:#ff9800"></span> Minutos de cardio por treino</span></div>`
-        : `<div class="chart-legend"><span><span class="dot" style="background:#00bcd4"></span> Volume (kg×reps)</span><span><span class="dot" style="background:#4caf50"></span> 1RM estimado (kg)</span></div>`;
+        : `<div class="chart-legend"><span><span class="dot" style="background:#00d5ff"></span> Volume (kg×reps)</span><span><span class="dot" style="background:#4caf50"></span> 1RM estimado (kg)</span></div>`;
       html += `<div class="chart-container" id="${chartId}"><canvas></canvas>${legend}<div class="chart-info"></div></div>`;
       html += `<div class="set-row"><span class="set-label">Set</span><span class="set-label" style="text-align:center">${soCardio ? 'Tempo' : 'Carga'}</span><span class="set-label" style="text-align:center">${soCardio ? '' : 'Reps'}</span></div>`;
       sets.forEach(s => {
@@ -940,7 +942,7 @@ async function toggleChart(chartId, exerciseName, isCardioExercise) {
           {
             label: 'Volume (kg×reps)',
             data: volumeData,
-            borderColor: '#00bcd4',
+            borderColor: '#00d5ff',
             backgroundColor: 'rgba(245, 197, 24, 0.1)',
             borderWidth: 2,
             tension: 0.3,
@@ -968,10 +970,10 @@ async function toggleChart(chartId, exerciseName, isCardioExercise) {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#0d2137',
-            titleColor: '#00bcd4',
+            backgroundColor: '#101419',
+            titleColor: '#00d5ff',
             bodyColor: '#f0f0f0',
-            borderColor: '#1a3a4f',
+            borderColor: '#232a33',
             borderWidth: 1
           }
         },
@@ -982,7 +984,7 @@ async function toggleChart(chartId, exerciseName, isCardioExercise) {
           },
           y: {
             position: 'left',
-            ticks: { color: '#00bcd4', font: { size: 9 } },
+            ticks: { color: '#00d5ff', font: { size: 9 } },
             grid: { color: '#222' },
             title: { display: false }
           },
@@ -1114,8 +1116,8 @@ async function renderCardioChart(chartId, exerciseName, canvas, setInfo) {
         plugins: {
           legend: { display: false },
           tooltip: {
-            backgroundColor: '#0d2137', titleColor: '#ff9800', bodyColor: '#f0f0f0',
-            borderColor: '#1a3a4f', borderWidth: 1
+            backgroundColor: '#101419', titleColor: '#ff9800', bodyColor: '#f0f0f0',
+            borderColor: '#232a33', borderWidth: 1
           }
         },
         scales: {
@@ -1296,7 +1298,7 @@ async function loadWeekly() {
     if (prescribed.size > 0) {
       html += `<div style="font-size:0.62rem;color:#666;margin-top:6px;">Plano: ${[...prescribed].join(', ')}</div>`;
     } else {
-      html += `<div style="font-size:0.62rem;color:#00bcd4;margin-top:6px;">Aluno sem treino ativo — não é possível calcular faltas.</div>`;
+      html += `<div style="font-size:0.62rem;color:#00d5ff;margin-top:6px;">Aluno sem treino ativo — não é possível calcular faltas.</div>`;
     }
     html += `</div>`;
 
@@ -1306,7 +1308,7 @@ async function loadWeekly() {
     volumeByDay.forEach(d => {
       if (d.isRest && !d.trained) return;
       const pct = (d.volume / maxVolume) * 100;
-      const color = d.trained ? '#00bcd4' : '#f44336';
+      const color = d.trained ? '#00d5ff' : '#f44336';
       html += `<div class="volume-bar-row">`;
       html += `<span class="volume-bar-label">${d.label}</span>`;
       html += `<div class="volume-bar-track"><div class="volume-bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
@@ -1322,7 +1324,7 @@ async function loadWeekly() {
     timeByDay.forEach(d => {
       if (d.isRest && d.seconds === 0) return;
       const pct = (d.seconds / maxTime) * 100;
-      const color = d.seconds > 0 ? '#4caf50' : (d.isFuture ? '#1a3a4f' : '#f44336');
+      const color = d.seconds > 0 ? '#4caf50' : (d.isFuture ? '#232a33' : '#f44336');
       html += `<div class="volume-bar-row">`;
       html += `<span class="volume-bar-label">${d.label}</span>`;
       html += `<div class="volume-bar-track"><div class="volume-bar-fill" style="width:${pct}%;background:${color}"></div></div>`;
@@ -1538,7 +1540,7 @@ async function loadMonthly() {
     }
     html += `<div style="font-size:0.65rem;color:#666;margin-top:6px;text-align:center;">🟢 treinou &nbsp; 🔴 faltou &nbsp; ⚫ descanso</div>`;
     if (prescribed.size === 0) {
-      html += `<div style="font-size:0.62rem;color:#00bcd4;margin-top:6px;text-align:center;">Aluno sem treino ativo — não é possível calcular faltas.</div>`;
+      html += `<div style="font-size:0.62rem;color:#00d5ff;margin-top:6px;text-align:center;">Aluno sem treino ativo — não é possível calcular faltas.</div>`;
     }
     html += '</div>';
 
@@ -1651,7 +1653,7 @@ async function loadMonthly() {
 async function initApp() {
   studentId = new URLSearchParams(location.search).get('aluno');
   if (!studentId) {
-    document.getElementById('content').innerHTML = '<div class="no-data">Nenhum aluno selecionado. <a href="professor.html" style="color:#00bcd4;">Voltar</a></div>';
+    document.getElementById('content').innerHTML = '<div class="no-data">Nenhum aluno selecionado. <a href="professor.html" style="color:#00d5ff;">Voltar</a></div>';
     return;
   }
 

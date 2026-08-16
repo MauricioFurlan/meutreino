@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Configurações</title>
-  <meta name="theme-color" content="#00bcd4">
+  <meta name="theme-color" content="#00d5ff">
   <link rel="manifest" href="/manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
@@ -68,11 +68,11 @@
     .theme-desc { font-size: 0.65rem; opacity: 0.6; margin-top: 2px; }
 
     /* Previews individuais com cores reais de cada tema */
-    .theme-card[data-theme="default"] { background: #0d2137; border-color: #1a3a4f; }
+    .theme-card[data-theme="default"] { background: #101419; border-color: #232a33; }
     .theme-card[data-theme="default"] .theme-name { color: #f0f0f0; }
     .theme-card[data-theme="default"] .theme-desc { color: #999; }
-    .theme-card[data-theme="default"].active { border-color: #00bcd4; }
-    .theme-card[data-theme="default"].active::after { color: #00bcd4; }
+    .theme-card[data-theme="default"].active { border-color: #00d5ff; }
+    .theme-card[data-theme="default"].active::after { color: #00d5ff; }
 
     .theme-card[data-theme="ember"] { background: #141414; border-color: #2a2a2a; }
     .theme-card[data-theme="ember"] .theme-name { color: #f0f0f0; }
@@ -139,6 +139,8 @@
     @keyframes spin { to { transform: rotate(360deg); } }
     .loading-text { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
   </style>
+  <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->
+  <link rel="stylesheet" href="brand.css">
 </head>
 <body>
   <div class="loading-overlay" id="loadingOverlay">
@@ -157,12 +159,12 @@
   <div class="theme-grid" id="themeGrid">
     <div class="theme-card" data-theme="default" onclick="selectTheme('default')">
       <div class="theme-preview">
-        <span style="background:#0d2137"></span>
-        <span style="background:#00bcd4"></span>
-        <span style="background:#0d0d0d"></span>
+        <span style="background:#101419"></span>
+        <span style="background:#00d5ff"></span>
+        <span style="background:#08090c"></span>
       </div>
       <div class="theme-name">Padrão</div>
-      <div class="theme-desc">Ciano & escuro</div>
+      <div class="theme-desc">Preto & ciano elétrico</div>
     </div>
 
     <div class="theme-card" data-theme="ember" onclick="selectTheme('ember')">

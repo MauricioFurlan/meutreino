@@ -1,7 +1,7 @@
-// v3: ícones novos (mira + halter) com variante do professor e manifest-pro.json.
-// Trocar o nome do cache é o que descarta a lista antiga no activate — sem isso
-// o celular continuaria servindo o ícone "MF" antigo do cache.
-const CACHE_NAME = 'meutreino-v3';
+// v4: tema MuscleFit (preto + ciano) e a nova brand.css. Trocar o nome do
+// cache é o que descarta a lista antiga no activate — sem isso o celular
+// continuaria servindo o CSS/HTML do tema antigo.
+const CACHE_NAME = 'meutreino-v4';
 const urlsToCache = [
   '/login.html',
   '/index.html',
