@@ -12,9 +12,11 @@ import vm from 'vm';
 
 const read = (f) => fs.readFileSync(f, 'utf8');
 const inlineScript = (f) => {
-  const m = read(f).match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/);
-  if (!m) throw new Error('sem script inline em ' + f);
-  return m[1];
+  // A página pode ter mais de um <script> inline (ex: index.html tem um
+  // pequeno de bootstrap antes do principal). O maior é sempre o da página.
+  const blocks = [...read(f).matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  if (blocks.length === 0) throw new Error('sem script inline em ' + f);
+  return blocks.sort((a, b) => b.length - a.length)[0];
 };
 const grabFrom = (source, name) => {
   const i = source.indexOf(`function ${name}(`);
@@ -178,7 +180,12 @@ eq('mês futuro bloqueado',    /if \(monthOffset \+ dir > 0\) return;/.test(evoJ
   const sw = read('sw.js');
   eq('service worker cacheia a tela nova', /'\/evolucao\.html'/.test(sw), true);
   eq('service worker cacheia metrics.js', /'\/metrics\.js'/.test(sw), true);
-  eq('cache trocou de nome (senão a lista velha fica)', /meutreino-v2/.test(sw), true);
+  // A lista de URLs mudou quando evolucao.html/metrics.js entraram (v2), então
+  // o cache tem de estar renomeado — mas fixar "v2" quebraria a cada bump
+  // legítimo. Basta garantir que a versão avançou além da v1.
+  const cacheVer = Number((sw.match(/CACHE_NAME = 'meutreino-v(\d+)'/) || [])[1]);
+  eq('cache tem nome versionado', Number.isInteger(cacheVer), true);
+  eq('cache foi renomeado depois da v1', cacheVer >= 2, true);
   eq('cópia em public/ está sincronizada', read('public/sw.js') === sw, true);
 }
 eq('evolucao.html entra no build do vite', /'evolucao',/.test(read('vite.config.js')), true);

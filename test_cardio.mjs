@@ -6,10 +6,12 @@ import fs from 'fs';
 import vm from 'vm';
 
 const inlineScript = (file) => {
+  // A página pode ter mais de um <script> inline (ex: index.html tem um
+  // pequeno de bootstrap antes do principal). O maior é sempre o da página.
   const html = fs.readFileSync(file, 'utf8');
-  const m = html.match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/);
-  if (!m) throw new Error('sem script inline em ' + file);
-  return m[1];
+  const blocks = [...html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+  if (blocks.length === 0) throw new Error('sem script inline em ' + file);
+  return blocks.sort((a, b) => b.length - a.length)[0];
 };
 
 const grabFrom = (source, name) => {
@@ -54,6 +56,9 @@ FILES.forEach(f => {
 
 // ---------- normalizeRest (as 3 telas precisam concordar) ----------
 const editorApi = new vm.Script(
+  // emptySetOffenders lê o modo do editor; no sandbox não há página, então os
+  // globais são fixados no modo semanal (o caso que este teste cobre).
+  "let currentMode = 'weekly';\nlet cycleLetters = ['A', 'B', 'C'];\n" +
   grabFrom(src['editor.html'], 'normalizeRest') + '\n' +
   grabFrom(src['editor.html'], 'restLabel') + '\n' +
   grabFrom(src['editor.html'], 'restSummary') + '\n' +

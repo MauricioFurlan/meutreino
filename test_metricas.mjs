@@ -94,7 +94,9 @@ eq('domingo prescrito quando no plano',    isTrainingDate('2026-08-09', new Set(
 // para o dia seguinte e a correção no treinador não resolve nada.
 // toLocalISO agora vem de metrics.js — a tela precisa carregá-lo e usá-lo.
 const idxHtml = fs.readFileSync('index.html', 'utf8');
-const idxJs = idxHtml.match(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/)[1];
+// index.html tem um <script> pequeno de bootstrap antes do principal: pega o maior.
+const idxJs = [...idxHtml.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)]
+  .map(m => m[1]).sort((a, b) => b.length - a.length)[0];
 
 const grabFrom = (source, name) => {
   const i = source.indexOf(`function ${name}(`);
@@ -110,6 +112,9 @@ eq('index.html carrega metrics.js', /<script src="\/metrics\.js"><\/script>/.tes
 eq('index.html não tem cópia de toLocalISO', /function toLocalISO\(/.test(idxJs), false);
 
 const idxApi = new Function(
+  // getDateForDay lê o modo do plano ativo; no sandbox não há página, então o
+  // global é fixado em 'weekly' (o caso que este teste cobre).
+  "let planMode = 'weekly';\n" +
   grabFrom(METRICS, 'toLocalISO') + '\n' +
   grabFrom(idxJs, 'getDateForDay') + '\n' +
   'return { toLocalISO, getDateForDay };'
