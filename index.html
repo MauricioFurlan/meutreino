@@ -1739,7 +1739,7 @@ function appendDoneMessage() {
   const elapsed = sessionEndDuration || 0;
   const div = document.createElement('div');
   div.className = 'workout-done-msg';
-  div.textContent = '✅ Treino concluído · ' + formatDuration(elapsed);
+  div.textContent = 'Treino concluído · ' + formatDuration(elapsed);
   dayEl.appendChild(div);
 }
 
@@ -2066,11 +2066,14 @@ guard('student', {
   onReady: async (session, profile) => {
     showLoading();
     studentId = profile.id;
-
     // Sincroniza tema do perfil (Supabase tem prioridade sobre localStorage)
     if (profile.app_theme) {
-      localStorage.setItem('app-theme', profile.app_theme);
-      document.documentElement.setAttribute('data-theme', profile.app_theme);
+      // console.log('aaa', profile.app_theme)
+      // localStorage.setItem('app-theme', profile.app_theme);
+      const customTheme = localStorage.getItem('app-theme')
+
+      console.log('customTheme', customTheme)
+      document.documentElement.setAttribute('data-theme', customTheme);
     }
 
     // Header: saudação + academia + título do treino
