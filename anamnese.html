@@ -1165,7 +1165,7 @@ function renderExtraCharts() {
   }
 
   // ---- Circunferências: avaliações selecionadas ----
-  const circPairs = list.length >= 2 && pairA !== pairB
+  const circPairs = list.length >= 2
     ? comparePairs(CIRC_KEYS, pairA.data, pairB.data, d => d.circunferencias)
     : [];
   if (blockState('blockCirc', circPairs.length > 0, 'circNote')) {
@@ -1198,7 +1198,7 @@ function renderExtraCharts() {
   }
 
   // ---- Dobras cutâneas: avaliações selecionadas ----
-  const dobraPairs = list.length >= 2 && pairA !== pairB
+  const dobraPairs = list.length >= 2
     ? comparePairs(DOBRA_KEYS, pairA.data, pairB.data, d => d.dobras)
     : [];
   if (blockState('blockDobras', dobraPairs.length > 0, 'dobrasNote')) {
@@ -1271,7 +1271,7 @@ function renderExtraCharts() {
 // manualmente quais avaliações comparar. Some data-driven em vez de <select> porque
 // fica visualmente no lugar do texto que já existia ali.
 function renderCompareDates(el, earlier, later, isCustom) {
-  if (!earlier || !later || earlier === later) { el.innerHTML = ''; return; }
+  if (!earlier || !later) { el.innerHTML = ''; return; }
   el.innerHTML =
     `<span class="compare-date" onclick="openCompareMenu(event, this, 'from')">${shortDate(earlier.assessment_date)}</span>` +
     ` → ` +
