@@ -2071,8 +2071,6 @@ guard('student', {
       // console.log('aaa', profile.app_theme)
       // localStorage.setItem('app-theme', profile.app_theme);
       const customTheme = localStorage.getItem('app-theme')
-
-      console.log('customTheme', customTheme)
       document.documentElement.setAttribute('data-theme', customTheme);
     }
 
