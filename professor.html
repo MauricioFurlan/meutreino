@@ -246,7 +246,7 @@
   </div>
 
   <div class="header">
-    <button class="logout-btn" onclick="location.href='login.html?logout'">Sair</button>
+    <button class="logout-btn" onclick="openLogoutModal()">Sair</button>
     <h1 id="greeting">Painel do Professor</h1>
     <div class="subtitle" id="subtitle"></div>
   </div>
@@ -302,6 +302,16 @@
   </div>
 
   <!-- Link para acompanhamento (movido para dentro do card do aluno futuramente) -->
+
+  <!-- Modal de confirmação de saída -->
+  <div class="modal" id="logoutModal">
+    <div class="modal-content">
+      <h3>Sair</h3>
+      <p style="color:#999;font-size:var(--fs-base);">Tem certeza que deseja sair?</p>
+      <button class="submit-btn" style="margin-top:16px;" onclick="doLogout()">Sair</button>
+      <button class="modal-close" onclick="closeLogoutModal()">Cancelar</button>
+    </div>
+  </div>
 
   <!-- Modal de renovação -->
   <div class="modal" id="renewModal">
@@ -409,7 +419,7 @@ async function loadTodaySessions() {
   if (studentIds.length === 0) { sessionsMap = {}; return; }
 
   const { data, error } = await _sb.from('workout_sessions')
-    .select('student_id, started_at, ended_at, duration_seconds')
+    .select('student_id, started_at, ended_at, duration_seconds, paused_seconds, pause_started_at')
     .in('student_id', studentIds)
     .gte('started_at', today + 'T00:00:00')
     .lte('started_at', today + 'T23:59:59')
@@ -439,8 +449,12 @@ function getSessionHtml(studentId) {
   if (!session.ended_at) {
     // Em andamento
     const started = new Date(session.started_at);
-    const elapsed = Math.floor((Date.now() - started.getTime()) / 1000);
-    return `<div class="session-info in-progress"><span class="dot"></span>🏋️ Treinando agora · ${formatSessionDuration(elapsed)}</div>`;
+    let elapsed = Math.floor((Date.now() - started.getTime()) / 1000) - (session.paused_seconds || 0);
+    if (session.pause_started_at) {
+      elapsed -= Math.floor((Date.now() - new Date(session.pause_started_at).getTime()) / 1000);
+      return `<div class="session-info in-progress"><span class="dot"></span>🏋️ Pausado · ${formatSessionDuration(Math.max(0, elapsed))}</div>`;
+    }
+    return `<div class="session-info in-progress"><span class="dot"></span>🏋️ Treinando agora · ${formatSessionDuration(Math.max(0, elapsed))}</div>`;
   }
   // Concluído
   return `<div class="session-info"><span class="dot"></span>✅ Treinou hoje · ${formatSessionDuration(session.duration_seconds)}</div>`;
@@ -858,6 +872,18 @@ function openRenewModal(studentId, name) {
 function closeRenewModal() {
   document.getElementById('renewModal').classList.remove('show');
   renewStudentId = null;
+}
+
+function openLogoutModal() {
+  document.getElementById('logoutModal').classList.add('show');
+}
+
+function closeLogoutModal() {
+  document.getElementById('logoutModal').classList.remove('show');
+}
+
+function doLogout() {
+  location.href = 'login.html?logout';
 }
 
 async function confirmRenew() {

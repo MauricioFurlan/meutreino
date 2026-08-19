@@ -287,14 +287,15 @@
       text-align: center;
     }
     .end-workout-row {
-      padding: 12px 16px; margin-top: 8px;
+      display: flex; gap: 8px; padding: 12px 16px; margin-top: 8px;
     }
-    .end-workout-btn {
-      width: 100%; background: none; border: 1px solid var(--accent); color: var(--accent);
+    .end-workout-btn, .pause-workout-btn {
+      flex: 1; background: none; border: 1px solid var(--accent); color: var(--accent);
       font-size: var(--fs-lg); font-weight: 700; padding: 12px;
       border-radius: 8px; cursor: pointer; transition: opacity 0.2s;
     }
-    .end-workout-btn:active { opacity: 0.6; }
+    .end-workout-btn:active, .pause-workout-btn:active { opacity: 0.6; }
+    .workout-timer-inline.paused { opacity: 0.7; }
     .workout-done-msg {
       font-size: var(--fs-lg); color: var(--accent); font-weight: 700;
       text-align: center; padding: 12px 16px;
@@ -352,6 +353,7 @@
       background: var(--bg-secondary); color: var(--text-muted); font-weight: 600; font-size: var(--fs-md);
       cursor: pointer; margin-top: 12px;
     }
+    .logout-modal { z-index: 1150; }
     .history-date { color: var(--accent); font-size: var(--fs-sm); font-weight: 600; margin-top: 10px; margin-bottom: 4px; }
     .history-set { font-size: var(--fs-base); color: var(--text); padding: 3px 0; border-bottom: 1px solid var(--border-light); }
     /* Tela de bloqueio */
@@ -641,7 +643,7 @@
       </button>
     </div>
     <div class="drawer-footer">
-      <button class="drawer-item drawer-item-logout" onclick="location.href='login.html?logout'">
+      <button class="drawer-item drawer-item-logout" onclick="openLogoutModal()">
         <span class="di-text">
           <span class="di-label">Sair</span>
         </span>
@@ -666,6 +668,14 @@
     <h2 id="blockTitle"></h2>
     <p id="blockText"></p>
     <button class="block-logout-btn" onclick="location.href='login.html?logout'">Sair</button>
+  </div>
+  <div class="history-modal logout-modal" id="logoutModal">
+    <div class="history-modal-content">
+      <h3>Sair do aplicativo</h3>
+      <p style="color:var(--text-muted);font-size:var(--fs-base);">Tem certeza que deseja sair?</p>
+      <button class="save-btn" style="margin-top:16px;" onclick="doLogout()">Sair</button>
+      <button class="history-modal-close" onclick="closeLogoutModal()">Cancelar</button>
+    </div>
   </div>
   <div class="history-modal" id="historyModal">
     <div class="history-modal-content">
@@ -1690,6 +1700,8 @@ let timerInterval = null;
 let sessionStartTime = null;
 let currentSessionId = null;
 let currentTabDay = null;
+let pausedSeconds = 0;     // total já fechado (vem do banco)
+let pauseStartedAt = null; // ms (Date.now) do início da pausa atual, ou null
 
 function formatDuration(seconds) {
   const h = Math.floor(seconds / 3600);
@@ -1700,8 +1712,9 @@ function formatDuration(seconds) {
 
 function updateTimerDisplay() {
   if (!sessionStartTime) return;
-  const elapsed = Math.floor((Date.now() - sessionStartTime) / 1000);
-  document.getElementById('timerDisplay').textContent = formatDuration(elapsed);
+  let elapsed = Math.floor((Date.now() - sessionStartTime) / 1000) - pausedSeconds;
+  if (pauseStartedAt) elapsed -= Math.floor((Date.now() - pauseStartedAt) / 1000);
+  document.getElementById('timerDisplay').textContent = formatDuration(Math.max(0, elapsed));
 }
 
 function isCurrentTabToday() {
@@ -1733,12 +1746,14 @@ function updateTimerVisibility() {
     // Sessão em andamento
     row.style.display = 'flex';
     document.getElementById('timerStartBtn').style.display = 'none';
-    document.getElementById('timerInline').style.display = 'inline';
+    const timerInlineEl = document.getElementById('timerInline');
+    timerInlineEl.style.display = 'inline';
+    timerInlineEl.classList.toggle('paused', !!pauseStartedAt);
     // Mostra qual treino está em execução
     const label = document.getElementById('timerLabel');
     if (label && currentTabDay) {
       const sub = planSubtitles[currentTabDay] || '';
-      label.textContent = '· Treino ' + currentTabDay + (sub ? ' — ' + sub : '');
+      label.textContent = '· Treino ' + currentTabDay + (sub ? ' — ' + sub : '') + (pauseStartedAt ? ' · Pausado' : '');
     }
     // Adicionar botão encerrar no final do conteúdo do dia
     appendEndButton();
@@ -1762,7 +1777,10 @@ function appendEndButton() {
   if (!dayEl || dayEl.querySelector('.end-workout-row')) return;
   const div = document.createElement('div');
   div.className = 'end-workout-row';
-  div.innerHTML = '<button class="end-workout-btn" onclick="stopWorkoutSession()">⏹ Encerrar Treino</button>';
+  const pauseLabel = pauseStartedAt ? 'Retomar' : 'Pausar';
+  const pauseAction = pauseStartedAt ? 'resumeWorkout()' : 'pauseWorkout()';
+  div.innerHTML = `<button class="pause-workout-btn" onclick="${pauseAction}">${pauseLabel}</button>` +
+    '<button class="end-workout-btn" onclick="stopWorkoutSession()">⏹ Encerrar Treino</button>';
   dayEl.appendChild(div);
 }
 
@@ -1805,6 +1823,8 @@ async function loadTodaySession() {
       // Sessão em andamento válida
       currentSessionId = data.id;
       sessionStartTime = new Date(data.started_at).getTime();
+      pausedSeconds = data.paused_seconds || 0;
+      pauseStartedAt = data.pause_started_at ? new Date(data.pause_started_at).getTime() : null;
       updateTimerDisplay();
       if (timerInterval) clearInterval(timerInterval);
       timerInterval = setInterval(() => {
@@ -1866,6 +1886,8 @@ async function stopWorkoutExpired() {
 
   currentSessionId = null;
   sessionStartTime = null;
+  pausedSeconds = 0;
+  pauseStartedAt = null;
   showTimerExpired();
   updateTimerVisibility();
   showToast('Sessão expirada — passou de 5h sem encerrar.', true);
@@ -1894,6 +1916,8 @@ async function startWorkoutSession() {
 
   currentSessionId = data.id;
   sessionStartTime = new Date(data.started_at).getTime();
+  pausedSeconds = 0;
+  pauseStartedAt = null;
   updateTimerDisplay();
   if (timerInterval) clearInterval(timerInterval);
   timerInterval = setInterval(updateTimerDisplay, 1000);
@@ -1901,14 +1925,49 @@ async function startWorkoutSession() {
   showToast('Treino iniciado! Bom treino 💪');
 }
 
+async function pauseWorkout() {
+  if (!currentSessionId || pauseStartedAt) return;
+  const now = new Date().toISOString();
+  const { error } = await _sb.from('workout_sessions')
+    .update({ pause_started_at: now })
+    .eq('id', currentSessionId);
+
+  if (error) {
+    showToast('Erro ao pausar: ' + error.message, true);
+    return;
+  }
+
+  pauseStartedAt = new Date(now).getTime();
+  updateTimerVisibility();
+}
+
+async function resumeWorkout() {
+  if (!currentSessionId || !pauseStartedAt) return;
+  const newPaused = pausedSeconds + Math.floor((Date.now() - pauseStartedAt) / 1000);
+  const { error } = await _sb.from('workout_sessions')
+    .update({ paused_seconds: newPaused, pause_started_at: null })
+    .eq('id', currentSessionId);
+
+  if (error) {
+    showToast('Erro ao retomar: ' + error.message, true);
+    return;
+  }
+
+  pausedSeconds = newPaused;
+  pauseStartedAt = null;
+  updateTimerVisibility();
+}
+
 async function stopWorkoutSession() {
   if (!currentSessionId) return;
 
   const endedAt = new Date().toISOString();
-  const durationSeconds = Math.floor((Date.now() - sessionStartTime) / 1000);
+  let finalPaused = pausedSeconds;
+  if (pauseStartedAt) finalPaused += Math.floor((Date.now() - pauseStartedAt) / 1000);
+  const durationSeconds = Math.max(0, Math.floor((Date.now() - sessionStartTime) / 1000) - finalPaused);
 
   const { error } = await _sb.from('workout_sessions')
-    .update({ ended_at: endedAt, duration_seconds: durationSeconds })
+    .update({ ended_at: endedAt, duration_seconds: durationSeconds, paused_seconds: finalPaused, pause_started_at: null })
     .eq('id', currentSessionId);
 
   if (error) {
@@ -1920,6 +1979,8 @@ async function stopWorkoutSession() {
   sessionEndDuration = durationSeconds;
   currentSessionId = null;
   sessionStartTime = null;
+  pausedSeconds = 0;
+  pauseStartedAt = null;
 
   // Marca como encerrado
   const marker = document.createElement('span');
@@ -1944,6 +2005,18 @@ function closeDrawer() {
   document.getElementById('drawerBackdrop').classList.remove('show');
   document.getElementById('menuBtn').setAttribute('aria-expanded', 'false');
   document.body.style.overflow = '';
+}
+
+function openLogoutModal() {
+  document.getElementById('logoutModal').classList.add('show');
+}
+
+function closeLogoutModal() {
+  document.getElementById('logoutModal').classList.remove('show');
+}
+
+function doLogout() {
+  location.href = 'login.html?logout';
 }
 
 function drawerGo(destino) {
