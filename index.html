@@ -36,7 +36,7 @@
     .header h1 { font-size: 1.2rem; color: var(--accent); letter-spacing: 1px; }
     .header .subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
     .header .app-logo {
-      display: inline-block; height: 60px; width: auto; color: var(--logo-color);
+      display: inline-block; height: 76px; width: auto; color: var(--logo-color);
     }
     .header .plan-title { font-size: 1rem; color: var(--text); font-weight: bold; margin-top: 2px; }
     .header .plan-dates {
@@ -47,11 +47,11 @@
       white-space: nowrap;
     }
     .header .plan-dates.hidden { display: none; }
-    .logout-btn {
-      position: absolute; top: 14px; right: 14px; background: none; border: 1px solid var(--text-dim);
-      color: var(--text-muted); font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+    .block-logout-btn {
+      margin-top: 18px; background: none; border: 1px solid var(--text-dim);
+      color: var(--text-muted); font-size: 0.75rem; padding: 6px 16px; border-radius: 14px; cursor: pointer;
     }
-    .logout-btn:active { opacity: 0.6; }
+    .block-logout-btn:active { opacity: 0.6; }
     .sticky-top {
       position: sticky; top: 0; z-index: 99; background: var(--bg-header);
     }
@@ -474,6 +474,8 @@
       flex-shrink: 0; display: none;
     }
     .drawer-item.has-news .di-dot { display: block; }
+    .drawer-item-logout { margin-top: 8px; border-top: 1px solid var(--bg-secondary); border-radius: 0; }
+    .drawer-item-logout .di-label { color: var(--error); }
     .drawer-section {
       font-size: 0.6rem; color: var(--text-muted3); text-transform: uppercase;
       letter-spacing: 0.6px; padding: 12px 12px 4px;
@@ -545,7 +547,6 @@
       <span></span><span></span><span></span>
       <span class="menu-badge"></span>
     </button>
-    <button class="logout-btn" onclick="location.href='login.html?logout'">Sair</button>
     <h1 id="greeting" style="display:none;"></h1>
     <div class="subtitle" id="gymName" style="display:none;"></div>
     <svg class="app-logo" id="appLogo" viewBox="0 0 200 56" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -613,6 +614,11 @@
           <span class="di-desc">Temas e personalização</span>
         </span>
       </button>
+      <button class="drawer-item drawer-item-logout" onclick="location.href='login.html?logout'">
+        <span class="di-text">
+          <span class="di-label">Sair</span>
+        </span>
+      </button>
     </div>
   </nav>
 
@@ -632,6 +638,7 @@
     <div class="icon">🔒</div>
     <h2 id="blockTitle"></h2>
     <p id="blockText"></p>
+    <button class="block-logout-btn" onclick="location.href='login.html?logout'">Sair</button>
   </div>
   <div class="history-modal" id="historyModal">
     <div class="history-modal-content">
