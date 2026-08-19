@@ -1,8 +1,9 @@
 /* =====================================================================
    TEMAS — Foco no Treino
-   Aplicar APENAS nas páginas do aluno: index, login, evolucao, anotacoes, config.
-   Cada página deve incluir <link rel="stylesheet" href="theme.css"> e
-   carregar theme.js antes do </body>.
+   Aplicar nas páginas do aluno: index, login, evolucao, anotacoes, config, anamnese.
+   Cada página deve incluir <link rel="stylesheet" href="theme.css"> e o script
+   inline que aplica data-theme a partir do localStorage ANTES do <body> renderizar:
+   <script>(function(){var t=localStorage.getItem('app-theme');if(t)document.documentElement.setAttribute('data-theme',t);})();</script>
    ===================================================================== */
 
 /* === Default (MuscleFit — preto + ciano elétrico) ===
