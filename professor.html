@@ -20,6 +20,19 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body::-webkit-scrollbar, *::-webkit-scrollbar { display: none; }
     body, * { scrollbar-width: none; }
+    /* Mesma escala tipográfica do index.html (tela do aluno) — mantém os
+       dois lados do app com a mesma hierarquia de tamanhos de texto. */
+    :root {
+      --fs-2xs: 0.65rem;
+      --fs-xs: 0.7rem;
+      --fs-sm: 0.75rem;
+      --fs-base: 0.8rem;
+      --fs-md: 0.85rem;
+      --fs-lg: 0.9rem;
+      --fs-xl: 1rem;
+      --fs-2xl: 1.1rem;
+      --fs-3xl: 1.3rem;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: #08090c; color: #f0f0f0; min-height: 100vh; padding-bottom: 40px;
@@ -28,23 +41,23 @@
       background: #101419; padding: 16px; text-align: center;
       border-bottom: 1px solid #232a33; position: relative;
     }
-    .header h1 { font-size: 1.1rem; color: #00d5ff; letter-spacing: 1px; }
-    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .header h1 { font-size: var(--fs-2xl); color: #00d5ff; letter-spacing: 1px; }
+    .header .subtitle { font-size: var(--fs-base); color: #999; margin-top: 4px; }
     .logout-btn {
       position: absolute; top: 14px; right: 14px; background: none; border: 1px solid #555;
-      color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+      color: #999; font-size: var(--fs-2xs); padding: 4px 10px; border-radius: 12px; cursor: pointer;
     }
     .logout-btn:active { opacity: 0.6; }
     .section { padding: 16px; overflow: hidden; }
-    .section-title { font-size: 0.85rem; color: #00d5ff; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .section-title { font-size: var(--fs-md); color: #00d5ff; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 
     /* Alertas */
     .alert-card { background: #0c1015; border: 1px solid #00d5ff; border-radius: 10px; padding: 12px; margin-bottom: 8px; }
     .alert-card.expired { background: #2a0000; border-color: #f44336; }
     .alert-card.plan-expiring { background: #1a1a00; border-color: #ff9800; }
     .alert-card.plan-expiring.expired { background: #2a0000; border-color: #f44336; }
-    .alert-card .name { font-weight: 600; font-size: 0.9rem; }
-    .alert-card .info { font-size: 0.75rem; color: #ccc; margin-top: 2px; }
+    .alert-card .name { font-weight: 600; font-size: var(--fs-lg); }
+    .alert-card .info { font-size: var(--fs-sm); color: #ccc; margin-top: 2px; }
 
     /* Lista de alunos */
     .student-card {
@@ -56,7 +69,7 @@
       border: 1px dashed #00d5ff; background: #08090c; opacity: 0.85;
     }
     .pending-badge {
-      display: inline-block; font-size: 0.6rem; padding: 2px 8px; border-radius: 10px;
+      display: inline-block; font-size: var(--fs-2xs); padding: 2px 8px; border-radius: 10px;
       background: #0c1015; color: #00d5ff; font-weight: 600; margin-left: 8px;
       letter-spacing: 0.3px; vertical-align: middle;
     }
@@ -72,28 +85,28 @@
     .student-avatar {
       width: 38px; height: 38px; border-radius: 50%; background: #232a33;
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.9rem; font-weight: 700; color: #00d5ff; flex-shrink: 0;
+      font-size: var(--fs-lg); font-weight: 700; color: #00d5ff; flex-shrink: 0;
     }
     .student-info { min-width: 0; padding-right: 50px; }
     /* Flex para o nome truncar sozinho e o lápis + foguinho nunca serem cortados */
-    .student-name { font-size: 0.9rem; font-weight: 600; display: flex; align-items: center; gap: 4px; min-width: 0; }
+    .student-name { font-size: var(--fs-lg); font-weight: 600; display: flex; align-items: center; gap: 4px; min-width: 0; }
     .student-name-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-    .edit-icon { background: none; border: none; font-size: 0.75rem; cursor: pointer; padding: 2px 4px; vertical-align: middle; opacity: 0.7; flex-shrink: 0; }
+    .edit-icon { background: none; border: none; font-size: var(--fs-sm); cursor: pointer; padding: 2px 4px; vertical-align: middle; opacity: 0.7; flex-shrink: 0; }
     .edit-icon:active { opacity: 1; }
 
     /* Sequência (foguinho) ao lado do lápis: leitura rápida de quem está treinando */
     .streak-chip {
       display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;
-      font-size: 0.68rem; font-weight: 700; color: #ff9800;
+      font-size: var(--fs-xs); font-weight: 700; color: #ff9800;
       background: #0c1015; border: 1px solid #1c3d47;
       padding: 2px 7px; border-radius: 10px; line-height: 1.4;
     }
-    .streak-chip .flame { font-size: 0.8rem; line-height: 1; }
+    .streak-chip .flame { font-size: var(--fs-base); line-height: 1; }
     .streak-chip.cold { color: #777; background: #1f1f1f; border-color: #232a33; }
     .streak-chip.cold .flame { filter: grayscale(1) opacity(0.5); }
-    .student-meta { font-size: 0.7rem; color: #999; margin-top: 2px; }
+    .student-meta { font-size: var(--fs-xs); color: #999; margin-top: 2px; }
     .student-meta .gym { color: #888; }
-    .student-status { font-size: 0.6rem; padding: 3px 8px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
+    .student-status { font-size: var(--fs-2xs); padding: 3px 8px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
     .student-status.active { background: #1b3a1b; color: #4caf50; }
     .student-status.expired { background: #3a1b1b; color: #f44336; }
     .student-status.suspended { background: #161b22; color: #888; }
@@ -102,7 +115,7 @@
     .actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
     .action-btn {
       padding: 6px 12px; border: 1px solid #555; border-radius: 8px; background: none;
-      color: #ccc; font-size: 0.7rem; cursor: pointer; font-weight: 500;
+      color: #ccc; font-size: var(--fs-xs); cursor: pointer; font-weight: 500;
     }
     .action-btn:active { opacity: 0.6; }
     .action-btn.danger { border-color: #f44336; color: #f44336; }
@@ -125,15 +138,15 @@
     /* Formulário */
     .form-section { background: #101419; border: 1px solid #232a33; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
     .form-section h3 {
-      font-size: 0.9rem; color: #00d5ff; padding: 14px 16px; margin: 0; cursor: pointer;
+      font-size: var(--fs-lg); color: #00d5ff; padding: 14px 16px; margin: 0; cursor: pointer;
       display: flex; align-items: center; justify-content: space-between;
     }
-    .form-section h3::after { content: '▼'; font-size: 0.6rem; color: #888; transition: transform 0.2s; }
+    .form-section h3::after { content: '▼'; font-size: var(--fs-2xs); color: #888; transition: transform 0.2s; }
     .form-section.open h3::after { transform: rotate(180deg); }
     .form-body { display: none; padding: 0 16px 16px; overflow: hidden; }
     .form-section.open .form-body { display: block; }
     .form-group { margin-bottom: 12px; overflow: hidden; }
-    .form-group label { display: block; font-size: 0.7rem; color: #999; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
+    .form-group label { display: block; font-size: var(--fs-xs); color: #999; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
     .form-group input, .form-group select {
       width: 100%; max-width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #232a33;
       background: #08090c; color: #fff; font-size: 16px; box-sizing: border-box;
@@ -143,7 +156,7 @@
     .form-group input:focus, .form-group select:focus { outline: none; border-color: #00d5ff; }
     .submit-btn {
       width: 100%; padding: 14px; border: none; border-radius: 10px;
-      background: #00d5ff; color: #000; font-weight: 700; font-size: 0.9rem; cursor: pointer;
+      background: #00d5ff; color: #000; font-weight: 700; font-size: var(--fs-lg); cursor: pointer;
     }
     .submit-btn:disabled { opacity: 0.5; }
     .submit-btn:active { opacity: 0.7; }
@@ -152,25 +165,25 @@
     .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
     .modal.show { display: flex; }
     .modal-content { background: #101419; border-radius: 12px; padding: 20px; width: 100%; max-width: 360px; border: 1px solid #232a33; }
-    .modal-content h3 { color: #00d5ff; font-size: 0.9rem; margin-bottom: 14px; }
-    .modal-close { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #161b22; color: #999; font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 12px; }
+    .modal-content h3 { color: #00d5ff; font-size: var(--fs-lg); margin-bottom: 14px; }
+    .modal-close { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #161b22; color: #999; font-weight: 600; font-size: var(--fs-md); cursor: pointer; margin-top: 12px; }
 
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       background: #00d5ff; color: #000; padding: 10px 20px; border-radius: 20px;
-      font-size: 0.85rem; font-weight: 600; display: none; z-index: 1001;
+      font-size: var(--fs-md); font-weight: 600; display: none; z-index: 1001;
     }
     .toast.error { background: #f44336; color: #fff; }
     .toast.show { display: block; animation: fadeOut 2.5s forwards; }
     @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
 
-    .empty-state { text-align: center; padding: 30px; color: #666; font-size: 0.85rem; }
-    .nav-link { display: block; text-align: center; margin-top: 12px; color: #00d5ff; font-size: 0.8rem; text-decoration: underline; cursor: pointer; }
+    .empty-state { text-align: center; padding: 30px; color: #666; font-size: var(--fs-md); }
+    .nav-link { display: block; text-align: center; margin-top: 12px; color: #00d5ff; font-size: var(--fs-base); text-decoration: underline; cursor: pointer; }
 
     /* Info de sessão de treino */
     .session-info {
       display: flex; align-items: center; gap: 6px; margin-top: 6px;
-      font-size: 0.7rem; color: #4caf50; font-weight: 600;
+      font-size: var(--fs-xs); color: #4caf50; font-weight: 600;
     }
     .session-info.in-progress { color: #00d5ff; }
     .session-info .dot {
@@ -186,7 +199,7 @@
     /* Birthday badge */
     .birthday-badge {
       display: inline-flex; align-items: center; gap: 3px; flex-shrink: 0;
-      font-size: 0.65rem; font-weight: 700; color: #e91e63;
+      font-size: var(--fs-2xs); font-weight: 700; color: #e91e63;
       background: #2a0a1a; border: 1px solid #5a1a3a;
       padding: 2px 7px; border-radius: 10px; line-height: 1.4;
       margin-left: 4px;
@@ -211,7 +224,17 @@
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
+    .loading-text { color: #999; font-size: var(--fs-base); font-weight: 500; letter-spacing: 0.5px; }
+
+    /* Acima da largura de um celular a tela esticava de ponta a ponta —
+       aqui o painel vira uma coluna centralizada, como o index.html. */
+    @media (min-width: 640px) {
+      .header, .section {
+        max-width: 480px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
   </style>
   <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->
   <link rel="stylesheet" href="brand.css">
@@ -274,7 +297,7 @@
 
   <!-- Lista de alunos -->
   <div class="section">
-    <div class="section-title">Meus Alunos <span id="studentCountInfo" style="font-weight:400;color:#888;font-size:0.7rem;"></span></div>
+    <div class="section-title">Meus Alunos <span id="studentCountInfo" style="font-weight:400;color:#888;font-size: var(--fs-xs);"></span></div>
     <div id="studentsList"></div>
   </div>
 
@@ -584,7 +607,7 @@ function renderStudents() {
             ${inv.gym_name ? `<span class="gym">${esc(inv.gym_name)} · </span>` : ''}
             ${esc(inv.email)} · convidado em ${createdDate}
           </div>
-          <div class="student-meta" style="color:#00d5ff; margin-top:4px; font-size:0.65rem;">Aguardando primeiro acesso do aluno</div>
+          <div class="student-meta" style="color:#00d5ff; margin-top:4px; font-size: var(--fs-2xs);">Aguardando primeiro acesso do aluno</div>
           <div class="actions">
             <button class="action-btn" onclick="location.href='treinos.html?invite=${inv.id}'">🏋️ Treinos</button>
             <button class="action-btn" onclick="location.href='anamnese.html?invite=${inv.id}'">🩺 Anamnese</button>
@@ -618,7 +641,7 @@ function renderStudents() {
             ${s.gym_name ? `<span class="gym">${esc(s.gym_name)} · </span>` : ''}
             até ${expiresText}
           </div>
-          <div class="student-meta" style="color:#777; font-size:0.65rem;">📧 ${esc(s.email)}</div>
+          <div class="student-meta" style="color:#777; font-size: var(--fs-2xs);">📧 ${esc(s.email)}</div>
           ${getSessionHtml(s.id)}
           <div class="actions">
             <button class="action-btn" onclick="openRenewModal('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')">Renovar</button>
@@ -711,7 +734,7 @@ function renderAlerts() {
       return `
         <div class="alert-card plan-expiring ${a.isExpired ? 'expired' : ''}" onclick="location.href='treinos.html?aluno=${a.id}'" style="cursor:pointer;">
           <div class="name">📋 ${esc(a.full_name)}</div>
-          <div class="info">${label} · ${dateStr} <span style="float:right;color:#ff9800;font-size:0.7rem;">Editar treino →</span></div>
+          <div class="info">${label} · ${dateStr} <span style="float:right;color:#ff9800;font-size: var(--fs-xs);">Editar treino →</span></div>
         </div>
       `;
     }).join('');
