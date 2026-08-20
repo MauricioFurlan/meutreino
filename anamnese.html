@@ -1334,7 +1334,7 @@ function renderExtraCharts() {
   }
 
   // ---- Fotos: mesma pose nas avaliações selecionadas ----
-  renderPhotoComparison(pairA, pairB);
+  renderPhotoComparison(pairA, pairB, pair.isCustom);
 }
 
 // Datas clicáveis do bloco "Da primeira à última": abrem um menu para escolher
@@ -2019,14 +2019,14 @@ function openPhotoViewerUrl(url, title) {
 
 // Fotos da mesma pose nas duas avaliações escolhidas no bloco "primeira × última"
 // (reaproveita compareFromId/compareToId — mesmo par usado pelos gráficos).
-async function renderPhotoComparison(pairA, pairB) {
+async function renderPhotoComparison(pairA, pairB, isCustom) {
   const block = document.getElementById('blockPhotos');
   if (!pairA || !pairB || pairA.id === pairB.id) { block.style.display = 'none'; return; }
   const [photosA, photosB] = await Promise.all([fetchPhotosWithUrls(pairA.id), fetchPhotosWithUrls(pairB.id)]);
   const slotsWithBoth = PHOTO_SLOTS.filter(s => photosA[s.key]?.url && photosB[s.key]?.url);
   if (!slotsWithBoth.length) { block.style.display = 'none'; return; }
   block.style.display = 'block';
-  document.getElementById('photosSub').textContent = `${shortDate(pairA.assessment_date)} → ${shortDate(pairB.assessment_date)}`;
+  renderCompareDates(document.getElementById('photosSub'), pairA, pairB, isCustom);
   document.getElementById('photosNote').textContent = 'Toque em uma foto para ampliar e ativar a grade.';
   document.getElementById('photosCompareGrid').innerHTML = slotsWithBoth.map(s => {
     const a = photosA[s.key], b = photosB[s.key];
