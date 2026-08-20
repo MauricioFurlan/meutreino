@@ -19,6 +19,18 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body::-webkit-scrollbar, *::-webkit-scrollbar { display: none; }
     body, * { scrollbar-width: none; }
+    /* Mesma escala tipográfica usada no resto do app. */
+    :root {
+      --fs-2xs: 0.65rem;
+      --fs-xs: 0.7rem;
+      --fs-sm: 0.75rem;
+      --fs-base: 0.8rem;
+      --fs-md: 0.85rem;
+      --fs-lg: 0.9rem;
+      --fs-xl: 1rem;
+      --fs-2xl: 1.1rem;
+      --fs-3xl: 1.3rem;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: var(--bg-body); color: var(--text); min-height: 100vh; padding-bottom: 60px;
@@ -29,11 +41,11 @@
       background: var(--bg-header); padding: 16px; text-align: center;
       border-bottom: 1px solid var(--border); position: relative;
     }
-    .header h1 { font-size: 1.1rem; color: var(--accent); letter-spacing: 1px; }
-    .header .subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+    .header h1 { font-size: var(--fs-2xl); color: var(--accent); letter-spacing: 1px; }
+    .header .subtitle { font-size: var(--fs-base); color: var(--text-muted); margin-top: 4px; }
     .nav-btn {
       position: absolute; top: 14px; background: none; border: 1px solid var(--text-dim);
-      color: var(--text-muted); font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+      color: var(--text-muted); font-size: var(--fs-2xs); padding: 4px 10px; border-radius: 12px; cursor: pointer;
     }
     .nav-btn.left { left: 14px; }
     .nav-btn:active { opacity: 0.6; }
@@ -52,13 +64,13 @@
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
+    .loading-text { color: var(--text-muted); font-size: var(--fs-base); font-weight: 500; letter-spacing: 0.5px; }
 
     /* ── Toast ───────────────────────────────────────────────────── */
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       background: var(--accent); color: var(--text-dark); padding: 10px 20px;
-      border-radius: 20px; font-size: 0.85rem; font-weight: 600;
+      border-radius: 20px; font-size: var(--fs-md); font-weight: 600;
       display: none; z-index: 1001; white-space: nowrap;
     }
     .toast.error { background: var(--error); color: var(--text-bright); }
@@ -72,7 +84,7 @@
     }
     .tab {
       flex: 1; padding: 9px 4px; border-radius: 20px; background: var(--bg-secondary);
-      color: var(--text-muted2); font-size: 0.75rem; font-weight: 600; cursor: pointer;
+      color: var(--text-muted2); font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
       border: none; text-align: center;
     }
     .tab.active { background: var(--accent); color: var(--text-dark); }
@@ -88,7 +100,7 @@
     }
     .tb-btn {
       background: var(--bg-secondary); border: 1px solid #444; color: var(--text-muted);
-      font-size: 0.7rem; padding: 6px 10px; border-radius: 8px;
+      font-size: var(--fs-xs); padding: 6px 10px; border-radius: 8px;
       cursor: pointer; font-weight: 600; white-space: nowrap;
     }
     .tb-btn:active { background: var(--accent); color: var(--text-dark); border-color: var(--accent); }
@@ -104,7 +116,7 @@
     #noteEditor:focus { outline: none; border-color: var(--accent); }
 
     .editor-hint {
-      font-size: 0.7rem; color: var(--text-dim); margin-top: 8px; line-height: 1.5;
+      font-size: var(--fs-xs); color: var(--text-dim); margin-top: 8px; line-height: 1.5;
     }
 
     .save-bar {
@@ -114,19 +126,19 @@
     }
     .save-btn {
       flex: 1; padding: 13px; border: none; border-radius: 10px;
-      background: var(--accent); color: var(--text-dark); font-weight: 700; font-size: 0.9rem;
+      background: var(--accent); color: var(--text-dark); font-weight: 700; font-size: var(--fs-lg);
       cursor: pointer;
     }
     .save-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .save-btn:active:not(:disabled) { opacity: 0.7; }
     .clear-btn {
       padding: 13px 16px; border: 1px solid #444; border-radius: 10px;
-      background: none; color: var(--text-muted2); font-size: 0.8rem; cursor: pointer;
+      background: none; color: var(--text-muted2); font-size: var(--fs-base); cursor: pointer;
     }
     .clear-btn:active { border-color: var(--error); color: var(--error); }
 
     .last-saved {
-      font-size: 0.65rem; color: var(--text-dim); text-align: center;
+      font-size: var(--fs-2xs); color: var(--text-dim); text-align: center;
       padding: 4px 16px 0;
     }
 
@@ -136,18 +148,18 @@
     }
 
     /* mesmo estilo que o modal do aluno vai usar */
-    .note-render { line-height: 1.7; font-size: 0.92rem; }
+    .note-render { line-height: 1.7; font-size: var(--fs-lg); }
     .note-render .note-section {
       background: var(--bg-card); border: 1px solid var(--bg-secondary);
       border-radius: 10px; padding: 12px 14px; margin-bottom: 10px;
     }
     .note-render .note-section-title {
-      font-size: 0.8rem; font-weight: 700; color: var(--accent);
+      font-size: var(--fs-base); font-weight: 700; color: var(--accent);
       text-transform: uppercase; letter-spacing: 0.5px;
       margin-bottom: 8px; padding-bottom: 6px; border-bottom: 1px solid var(--bg-secondary);
     }
     .note-render .note-line {
-      font-size: 0.88rem; color: var(--text); padding: 2px 0;
+      font-size: var(--fs-lg); color: var(--text); padding: 2px 0;
     }
     .note-render .note-line.bullet::before {
       content: '• '; color: var(--accent);
@@ -164,7 +176,7 @@
     .note-render .note-spacer { height: 4px; }
 
     .preview-empty {
-      text-align: center; padding: 48px 16px; color: var(--text-dim); font-size: 0.85rem;
+      text-align: center; padding: 48px 16px; color: var(--text-dim); font-size: var(--fs-md);
     }
     .preview-empty .icon { font-size: 2rem; margin-bottom: 8px; }
 
@@ -172,7 +184,7 @@
     .import-open-btn {
       display: block; width: calc(100% - 32px); margin: 10px 16px 0;
       padding: 11px; background: none; border: 1px dashed #444;
-      border-radius: 10px; color: var(--text-muted2); font-size: 0.78rem;
+      border-radius: 10px; color: var(--text-muted2); font-size: var(--fs-base);
       cursor: pointer; text-align: center;
     }
     .import-open-btn:active { border-color: var(--accent); color: var(--accent); }
@@ -192,25 +204,25 @@
       display: flex; align-items: center; justify-content: space-between;
       padding: 16px 16px 0; margin-bottom: 4px;
     }
-    .modal-head h3 { font-size: 1rem; color: var(--text); }
+    .modal-head h3 { font-size: var(--fs-xl); color: var(--text); }
     .modal-x {
-      background: none; border: none; color: var(--text-muted2); font-size: 1.1rem;
+      background: none; border: none; color: var(--text-muted2); font-size: var(--fs-2xl);
       cursor: pointer; padding: 4px 8px;
     }
     .modal-sub {
-      font-size: 0.75rem; color: var(--text-muted3); padding: 0 16px 12px;
+      font-size: var(--fs-sm); color: var(--text-muted3); padding: 0 16px 12px;
       border-bottom: 1px solid var(--bg-secondary); margin-bottom: 10px;
     }
-    .modal-empty { text-align: center; padding: 32px 16px; color: var(--text-dim); font-size: 0.82rem; }
+    .modal-empty { text-align: center; padding: 32px 16px; color: var(--text-dim); font-size: var(--fs-base); }
     .modal-close {
       display: block; width: calc(100% - 32px); margin: 12px 16px 0;
       padding: 12px; background: var(--bg-secondary); border: none; border-radius: 10px;
-      color: var(--text-muted2); font-size: 0.85rem; cursor: pointer;
+      color: var(--text-muted2); font-size: var(--fs-md); cursor: pointer;
     }
     .import-search {
       display: block; width: calc(100% - 32px); margin: 0 16px 10px;
       padding: 10px 14px; background: var(--bg-input); border: 1px solid var(--border);
-      border-radius: 10px; color: var(--text); font-size: 0.85rem;
+      border-radius: 10px; color: var(--text); font-size: var(--fs-md);
     }
     .import-search:focus { outline: none; border-color: var(--accent); }
     .pick-item {
@@ -223,25 +235,35 @@
     .pick-avatar {
       width: 36px; height: 36px; border-radius: 50%; background: var(--bg-secondary);
       display: flex; align-items: center; justify-content: center;
-      font-size: 0.9rem; font-weight: 700; color: var(--accent); flex-shrink: 0;
+      font-size: var(--fs-lg); font-weight: 700; color: var(--accent); flex-shrink: 0;
     }
     .pick-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
-    .pick-title { font-size: 0.88rem; color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .pick-meta  { font-size: 0.72rem; color: var(--text-muted3); }
-    .pick-arrow { color: var(--text-dim); font-size: 1.1rem; flex-shrink: 0; }
+    .pick-title { font-size: var(--fs-lg); color: var(--text); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pick-meta  { font-size: var(--fs-xs); color: var(--text-muted3); }
+    .pick-arrow { color: var(--text-dim); font-size: var(--fs-2xl); flex-shrink: 0; }
     .back-link {
       display: block; background: none; border: none; color: var(--accent);
-      font-size: 0.78rem; padding: 0 16px 10px; cursor: pointer; text-align: left;
+      font-size: var(--fs-base); padding: 0 16px 10px; cursor: pointer; text-align: left;
     }
     .confirm-btn {
       display: block; width: calc(100% - 32px); margin: 12px 16px 0;
       padding: 13px; background: var(--accent); border: none; border-radius: 10px;
-      color: var(--text-dark); font-weight: 700; font-size: 0.9rem; cursor: pointer;
+      color: var(--text-dark); font-weight: 700; font-size: var(--fs-lg); cursor: pointer;
     }
     .confirm-btn:active { opacity: 0.7; }
     .import-preview-box {
       margin: 0 16px; background: var(--bg-input); border: 1px solid var(--bg-secondary);
       border-radius: 10px; padding: 14px; max-height: 260px; overflow-y: auto;
+    }
+
+    /* Escrever a orientação é trabalho de texto — em telas largas o editor
+       ganha uma coluna larga de 960px, como o editor.html. */
+    @media (min-width: 640px) {
+      .header, .tabs, .import-open-btn, .panel, .save-bar {
+        max-width: 960px;
+        margin-left: auto;
+        margin-right: auto;
+      }
     }
   </style>
   <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->

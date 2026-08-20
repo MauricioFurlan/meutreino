@@ -21,6 +21,18 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body::-webkit-scrollbar, *::-webkit-scrollbar { display: none; }
     body, * { scrollbar-width: none; }
+    /* Mesma escala tipográfica usada no resto do app. */
+    :root {
+      --fs-2xs: 0.65rem;
+      --fs-xs: 0.7rem;
+      --fs-sm: 0.75rem;
+      --fs-base: 0.8rem;
+      --fs-md: 0.85rem;
+      --fs-lg: 0.9rem;
+      --fs-xl: 1rem;
+      --fs-2xl: 1.1rem;
+      --fs-3xl: 1.3rem;
+    }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: #08090c;
@@ -37,11 +49,11 @@
       z-index: 101;
       border-bottom: 1px solid #232a33;
     }
-    .header h1 { font-size: 1.1rem; color: #00d5ff; letter-spacing: 1px; }
-    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
+    .header h1 { font-size: var(--fs-2xl); color: #00d5ff; letter-spacing: 1px; }
+    .header .subtitle { font-size: var(--fs-base); color: #999; margin-top: 4px; }
     .logout-btn {
       position: absolute; top: 14px; right: 14px; background: none; border: 1px solid #555;
-      color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer;
+      color: #999; font-size: var(--fs-2xs); padding: 4px 10px; border-radius: 12px; cursor: pointer;
     }
     .logout-btn:active { opacity: 0.6; }
     .tabs {
@@ -61,7 +73,7 @@
       border-radius: 20px;
       background: #161b22;
       color: #888;
-      font-size: 0.7rem;
+      font-size: var(--fs-xs);
       font-weight: 600;
       cursor: pointer;
       border: none;
@@ -82,7 +94,7 @@
       border: 1px solid #232a33;
     }
     .exercise-name {
-      font-size: 0.95rem;
+      font-size: var(--fs-xl);
       font-weight: 700;
       color: #00d5ff;
       margin-bottom: 10px;
@@ -98,12 +110,12 @@
     }
     .set-row:last-child { border-bottom: none; }
     .set-label {
-      font-size: 0.75rem;
+      font-size: var(--fs-sm);
       color: #999;
       text-transform: uppercase;
     }
     .set-value {
-      font-size: 0.85rem;
+      font-size: var(--fs-md);
       color: #fff;
       text-align: center;
       font-weight: 600;
@@ -113,7 +125,7 @@
       text-align: center;
       padding: 20px;
       color: #555;
-      font-size: 0.85rem;
+      font-size: var(--fs-md);
       font-style: italic;
     }
     .date-filter {
@@ -131,17 +143,17 @@
       border: 1px solid #232a33;
       background: #08090c;
       color: #f0f0f0;
-      font-size: 0.85rem;
+      font-size: var(--fs-md);
     }
     .date-filter input:focus { outline: none; border-color: #00d5ff; }
-    .date-filter label { font-size: 0.8rem; color: #999; }
+    .date-filter label { font-size: var(--fs-base); color: #999; }
     .loading { text-align: center; padding: 40px; color: #888; }
     .summary {
       background: #161b22;
       border-radius: 8px;
       padding: 10px;
       margin-bottom: 16px;
-      font-size: 0.8rem;
+      font-size: var(--fs-base);
       color: #bbb;
       text-align: center;
     }
@@ -150,7 +162,7 @@
       background: #161b22;
       border: 1px solid #00d5ff;
       color: #00d5ff;
-      font-size: 0.75rem;
+      font-size: var(--fs-sm);
       padding: 5px 10px;
       border-radius: 6px;
       cursor: pointer;
@@ -170,7 +182,7 @@
       display: flex;
       justify-content: center;
       gap: 16px;
-      font-size: 0.7rem;
+      font-size: var(--fs-xs);
       color: #999;
       margin-top: 6px;
     }
@@ -184,10 +196,10 @@
     /* Área de texto do gráfico (melhor set, progressão, frequência).
        Existe para que mensagens de erro/vazio NÃO sobrescrevam o <canvas>. */
     .chart-info { margin-top: 8px; }
-    .chart-info .stat-row { font-size: 0.72rem; }
+    .chart-info .stat-row { font-size: var(--fs-xs); }
     /* Aviso de janela: o gráfico vive na aba Diária mas fala de 12 semanas */
     .chart-caption {
-      font-size: 0.62rem; color: #777; text-align: center;
+      font-size: var(--fs-2xs); color: #777; text-align: center;
       padding-bottom: 6px; border-bottom: 1px solid #222; margin-bottom: 4px;
     }
     .frequency {
@@ -195,7 +207,7 @@
       padding: 8px;
       background: #101419;
       border-radius: 8px;
-      font-size: 0.75rem;
+      font-size: var(--fs-sm);
       color: #bbb;
       text-align: center;
     }
@@ -229,7 +241,7 @@
       border: 1px solid #232a33;
       background: #161b22;
       color: #888;
-      font-size: 0.8rem;
+      font-size: var(--fs-base);
       font-weight: 600;
       cursor: pointer;
     }
@@ -256,7 +268,7 @@
       cursor: pointer;
     }
     .resume-nav span {
-      font-size: 0.9rem;
+      font-size: var(--fs-lg);
       font-weight: 600;
       color: #f0f0f0;
     }
@@ -270,7 +282,7 @@
       margin-right: auto;
     }
     .cal-header {
-      font-size: 0.6rem;
+      font-size: var(--fs-2xs);
       color: #888;
       text-align: center;
       padding: 2px 0;
@@ -282,7 +294,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.55rem;
+      font-size: var(--fs-2xs);
       color: #666;
       max-width: 28px;
       max-height: 28px;
@@ -300,7 +312,7 @@
       border: 1px solid #232a33;
     }
     .resume-card h3 {
-      font-size: 0.8rem;
+      font-size: var(--fs-base);
       color: #00d5ff;
       margin-bottom: 8px;
     }
@@ -311,7 +323,7 @@
       margin-bottom: 6px;
     }
     .volume-bar-label {
-      font-size: 0.7rem;
+      font-size: var(--fs-xs);
       color: #999;
       min-width: 35px;
     }
@@ -329,7 +341,7 @@
       transition: width 0.3s;
     }
     .volume-bar-value {
-      font-size: 0.7rem;
+      font-size: var(--fs-xs);
       color: #bbb;
       min-width: 55px;
       text-align: right;
@@ -339,7 +351,7 @@
       justify-content: space-between;
       padding: 6px 0;
       border-bottom: 1px solid #222;
-      font-size: 0.8rem;
+      font-size: var(--fs-base);
     }
     .stat-row:last-child { border-bottom: none; }
     .stat-label { color: #999; }
@@ -383,15 +395,15 @@
       50%      { transform: scale(1.12); }
     }
     .streak-count {
-      font-size: 1.25rem;
+      font-size: var(--fs-3xl);
       font-weight: 700;
       color: #00d5ff;
       line-height: 1;
     }
     .streak-bar:not(.on) .streak-count { color: #777; }
     .streak-texts { display: flex; flex-direction: column; gap: 2px; }
-    .streak-label { font-size: 0.7rem; color: #999; }
-    .streak-sub { font-size: 0.62rem; color: #666; }
+    .streak-label { font-size: var(--fs-xs); color: #999; }
+    .streak-sub { font-size: var(--fs-2xs); color: #666; }
     .streak-rest { color: #4caf50; }
     .weekly-days {
       display: flex;
@@ -404,7 +416,7 @@
       align-items: center;
       gap: 4px;
     }
-    .weekly-day-label { font-size: 0.65rem; color: #888; }
+    .weekly-day-label { font-size: var(--fs-2xs); color: #888; }
     .weekly-day-dot {
       width: 24px;
       height: 24px;
@@ -412,7 +424,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 0.7rem;
+      font-size: var(--fs-xs);
       color: #fff;
     }
     .weekly-day-dot.trained { background: #4caf50; }
@@ -440,7 +452,7 @@
     }
     .note-modal-content h3 {
       color: #00d5ff;
-      font-size: 0.9rem;
+      font-size: var(--fs-lg);
       margin-bottom: 12px;
     }
     .note-modal-content textarea {
@@ -466,7 +478,7 @@
       border: none;
       border-radius: 8px;
       font-weight: 600;
-      font-size: 0.85rem;
+      font-size: var(--fs-md);
       cursor: pointer;
     }
     .note-save-btn { background: #00d5ff; color: #000; }
@@ -487,7 +499,15 @@
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
+    .loading-text { color: #999; font-size: var(--fs-base); font-weight: 500; letter-spacing: 0.5px; }
+
+    @media (min-width: 640px) {
+      .header, .streak-bar, .view-toggle, #dailyView, .resume-section {
+        max-width: 480px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
   </style>
   <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->
   <link rel="stylesheet" href="brand.css">
@@ -803,12 +823,12 @@ async function loadDay(day, date) {
         const prevEx = previousCardioSession(
           (prevCardio || []).filter(r => r.exercise_name === name), date);
         const cmpEx = cardioComparison(cardioMinEx, prevEx, cmpLabel);
-        html += `<div style="font-size:0.68rem;color:#888;margin-bottom:8px;line-height:1.5;">`;
+        html += `<div style="font-size: var(--fs-xs);color:#888;margin-bottom:8px;line-height:1.5;">`;
         html += `🏃 ${soCardio ? 'Tempo' : 'Cardio neste exercício'}: ${cmpEx.html}`;
         html += `</div>`;
       }
       if (bestSet) {
-        html += `<div style="font-size:0.68rem;color:#888;margin-bottom:8px;">`;
+        html += `<div style="font-size: var(--fs-xs);color:#888;margin-bottom:8px;">`;
         html += `Melhor set: <strong style="color:#f0f0f0;">${bestSet.weight} kg × ${bestSet.reps}</strong>`;
         html += ` · 1RM est. <strong style="color:#4caf50;">${Math.round(bestE1rm)} kg</strong>`;
         html += `</div>`;
@@ -1048,7 +1068,7 @@ async function toggleChart(chartId, exerciseName, isCardioExercise) {
 
     infoHtml += `<div class="frequency">Feito em <strong>${attended}/${CHART_WINDOW_WEEKS} semanas (${percent}%)</strong>`;
     infoHtml += `<div class="freq-dots">${dotsHtml}</div>`;
-    infoHtml += `<div style="margin-top:4px;font-size:0.65rem;">🟢 fez &nbsp; 🔴 não fez &nbsp;·&nbsp; mais antiga → esta semana</div></div>`;
+    infoHtml += `<div style="margin-top:4px;font-size: var(--fs-2xs);">🟢 fez &nbsp; 🔴 não fez &nbsp;·&nbsp; mais antiga → esta semana</div></div>`;
 
     setInfo(infoHtml);
   } catch (e) {
@@ -1295,9 +1315,9 @@ async function loadWeekly() {
       html += `<div class="stat-row"><span class="stat-label">Treinos extras</span><span class="stat-value up">+${extras} em dia de descanso</span></div>`;
     }
     if (prescribed.size > 0) {
-      html += `<div style="font-size:0.62rem;color:#666;margin-top:6px;">Plano: ${[...prescribed].join(', ')}</div>`;
+      html += `<div style="font-size: var(--fs-2xs);color:#666;margin-top:6px;">Plano: ${[...prescribed].join(', ')}</div>`;
     } else {
-      html += `<div style="font-size:0.62rem;color:#00d5ff;margin-top:6px;">Aluno sem treino ativo — não é possível calcular faltas.</div>`;
+      html += `<div style="font-size: var(--fs-2xs);color:#00d5ff;margin-top:6px;">Aluno sem treino ativo — não é possível calcular faltas.</div>`;
     }
     html += `</div>`;
 
@@ -1537,9 +1557,9 @@ async function loadMonthly() {
     if (extras > 0) {
       html += `<div class="stat-row"><span class="stat-label">Treinos extras</span><span class="stat-value up">+${extras} em dia de descanso</span></div>`;
     }
-    html += `<div style="font-size:0.65rem;color:#666;margin-top:6px;text-align:center;">🟢 treinou &nbsp; 🔴 faltou &nbsp; ⚫ descanso</div>`;
+    html += `<div style="font-size: var(--fs-2xs);color:#666;margin-top:6px;text-align:center;">🟢 treinou &nbsp; 🔴 faltou &nbsp; ⚫ descanso</div>`;
     if (prescribed.size === 0) {
-      html += `<div style="font-size:0.62rem;color:#00d5ff;margin-top:6px;text-align:center;">Aluno sem treino ativo — não é possível calcular faltas.</div>`;
+      html += `<div style="font-size: var(--fs-2xs);color:#00d5ff;margin-top:6px;text-align:center;">Aluno sem treino ativo — não é possível calcular faltas.</div>`;
     }
     html += '</div>';
 
@@ -1562,7 +1582,7 @@ async function loadMonthly() {
       html += `<span class="volume-bar-value">${vol > 0 ? vol.toLocaleString('pt-BR') + ' kg' : '-'}</span>`;
       html += `</div>`;
       if (qtdDias < 7 && vol > 0) {
-        html += `<div style="font-size:0.58rem;color:#666;margin:-4px 0 6px 60px;">faixa de ${qtdDias} dia${qtdDias > 1 ? 's' : ''} — não comparável às demais</div>`;
+        html += `<div style="font-size: var(--fs-2xs);color:#666;margin:-4px 0 6px 60px;">faixa de ${qtdDias} dia${qtdDias > 1 ? 's' : ''} — não comparável às demais</div>`;
       }
     }
     html += '</div>';

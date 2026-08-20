@@ -20,73 +20,85 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body::-webkit-scrollbar, *::-webkit-scrollbar { display: none; }
     body, * { scrollbar-width: none; }
+    /* Mesma escala tipográfica usada no resto do app. */
+    :root {
+      --fs-2xs: 0.65rem;
+      --fs-xs: 0.7rem;
+      --fs-sm: 0.75rem;
+      --fs-base: 0.8rem;
+      --fs-md: 0.85rem;
+      --fs-lg: 0.9rem;
+      --fs-xl: 1rem;
+      --fs-2xl: 1.1rem;
+      --fs-3xl: 1.3rem;
+    }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #08090c; color: #f0f0f0; min-height: 100vh; padding-bottom: 40px; }
     .header { background: #101419; padding: 16px; text-align: center; border-bottom: 1px solid #232a33; position: relative; }
-    .header h1 { font-size: 1.1rem; color: #00d5ff; letter-spacing: 1px; }
-    .header .subtitle { font-size: 0.8rem; color: #999; margin-top: 4px; }
-    .logout-btn { position: absolute; top: 14px; right: 14px; background: none; border: 1px solid #555; color: #999; font-size: 0.65rem; padding: 4px 10px; border-radius: 12px; cursor: pointer; }
+    .header h1 { font-size: var(--fs-2xl); color: #00d5ff; letter-spacing: 1px; }
+    .header .subtitle { font-size: var(--fs-base); color: #999; margin-top: 4px; }
+    .logout-btn { position: absolute; top: 14px; right: 14px; background: none; border: 1px solid #555; color: #999; font-size: var(--fs-2xs); padding: 4px 10px; border-radius: 12px; cursor: pointer; }
     .logout-btn:active { opacity: 0.6; }
     .section { padding: 16px; }
-    .section-title { font-size: 0.85rem; color: #00d5ff; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .section-title { font-size: var(--fs-md); color: #00d5ff; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 
     .alert-card { background: #0c1015; border: 1px solid #00d5ff; border-radius: 10px; padding: 12px; margin-bottom: 8px; }
     .alert-card.expired { background: #2a0000; border-color: #f44336; }
-    .alert-card .name { font-weight: 600; font-size: 0.9rem; }
-    .alert-card .info { font-size: 0.75rem; color: #ccc; margin-top: 2px; }
+    .alert-card .name { font-weight: 600; font-size: var(--fs-lg); }
+    .alert-card .info { font-size: var(--fs-sm); color: #ccc; margin-top: 2px; }
 
     .trainer-card { background: #101419; border: 1px solid #232a33; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
     .trainer-card.suspended { opacity: 0.5; }
     .trainer-top { display: flex; align-items: center; gap: 12px; }
-    .trainer-avatar { width: 38px; height: 38px; border-radius: 50%; background: #232a33; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; font-weight: 700; color: #00d5ff; flex-shrink: 0; }
+    .trainer-avatar { width: 38px; height: 38px; border-radius: 50%; background: #232a33; display: flex; align-items: center; justify-content: center; font-size: var(--fs-lg); font-weight: 700; color: #00d5ff; flex-shrink: 0; }
     .trainer-info { flex: 1; min-width: 0; }
-    .trainer-name { font-size: 0.9rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .trainer-meta { font-size: 0.7rem; color: #999; margin-top: 2px; }
-    .trainer-status { font-size: 0.6rem; padding: 3px 8px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
+    .trainer-name { font-size: var(--fs-lg); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .trainer-meta { font-size: var(--fs-xs); color: #999; margin-top: 2px; }
+    .trainer-status { font-size: var(--fs-2xs); padding: 3px 8px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
     .trainer-status.active { background: #1b3a1b; color: #4caf50; }
     .trainer-status.expired { background: #3a1b1b; color: #f44336; }
     .trainer-status.suspended { background: #161b22; color: #888; }
     .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
-    .action-btn { padding: 6px 12px; border: 1px solid #555; border-radius: 8px; background: none; color: #ccc; font-size: 0.7rem; cursor: pointer; font-weight: 500; }
+    .action-btn { padding: 6px 12px; border: 1px solid #555; border-radius: 8px; background: none; color: #ccc; font-size: var(--fs-xs); cursor: pointer; font-weight: 500; }
     .action-btn:active { opacity: 0.6; }
     .action-btn.danger { border-color: #f44336; color: #f44336; }
     .action-btn.success { border-color: #4caf50; color: #4caf50; }
-    .students-count { font-size: 0.65rem; color: #666; margin-top: 6px; }
+    .students-count { font-size: var(--fs-2xs); color: #666; margin-top: 6px; }
 
     .form-section { background: #101419; border: 1px solid #232a33; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
-    .form-section h3 { font-size: 0.9rem; color: #00d5ff; padding: 14px 16px; margin: 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
-    .form-section h3::after { content: '▼'; font-size: 0.6rem; color: #888; transition: transform 0.2s; }
+    .form-section h3 { font-size: var(--fs-lg); color: #00d5ff; padding: 14px 16px; margin: 0; cursor: pointer; display: flex; align-items: center; justify-content: space-between; }
+    .form-section h3::after { content: '▼'; font-size: var(--fs-2xs); color: #888; transition: transform 0.2s; }
     .form-section.open h3::after { transform: rotate(180deg); }
     .form-body { display: none; padding: 0 16px 16px; }
     .form-section.open .form-body { display: block; }
     .form-group { margin-bottom: 12px; }
-    .form-group label { display: block; font-size: 0.7rem; color: #999; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
+    .form-group label { display: block; font-size: var(--fs-xs); color: #999; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #232a33; background: #08090c; color: #fff; font-size: 16px; font-family: inherit; }
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #00d5ff; }
     .form-group select option { background: #101419; }
     .form-group textarea { resize: none; line-height: 1.4; }
     .form-row { display: flex; gap: 10px; }
     .form-row .form-group { flex: 1; min-width: 0; }
-    .trainer-extra { font-size: 0.68rem; color: #777; margin-top: 3px; display: flex; gap: 10px; flex-wrap: wrap; }
+    .trainer-extra { font-size: var(--fs-xs); color: #777; margin-top: 3px; display: flex; gap: 10px; flex-wrap: wrap; }
     .trainer-extra span { display: inline-flex; align-items: center; gap: 3px; }
-    .plan-badge { display: inline-block; font-size: 0.58rem; padding: 2px 7px; border-radius: 8px; font-weight: 700; text-transform: uppercase; }
+    .plan-badge { display: inline-block; font-size: var(--fs-2xs); padding: 2px 7px; border-radius: 8px; font-weight: 700; text-transform: uppercase; }
     .plan-badge.free   { background: #222; color: #888; border: 1px solid #444; }
     .plan-badge.basic  { background: #141a21; color: #64b5f6; border: 1px solid #1e4a7a; }
     .plan-badge.pro    { background: #0c1015; color: #00d5ff; border: 1px solid #0091b3; }
-    .submit-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #00d5ff; color: #000; font-weight: 700; font-size: 0.9rem; cursor: pointer; }
+    .submit-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #00d5ff; color: #000; font-weight: 700; font-size: var(--fs-lg); cursor: pointer; }
     .submit-btn:disabled { opacity: 0.5; }
     .submit-btn:active { opacity: 0.7; }
 
     .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
     .modal.show { display: flex; }
     .modal-content { background: #101419; border-radius: 12px; padding: 20px; width: 100%; max-width: 360px; border: 1px solid #232a33; }
-    .modal-content h3 { color: #00d5ff; font-size: 0.9rem; margin-bottom: 14px; }
-    .modal-close { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #161b22; color: #999; font-weight: 600; font-size: 0.85rem; cursor: pointer; margin-top: 12px; }
+    .modal-content h3 { color: #00d5ff; font-size: var(--fs-lg); margin-bottom: 14px; }
+    .modal-close { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #161b22; color: #999; font-weight: 600; font-size: var(--fs-md); cursor: pointer; margin-top: 12px; }
 
-    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #00d5ff; color: #000; padding: 10px 20px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; display: none; z-index: 1001; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #00d5ff; color: #000; padding: 10px 20px; border-radius: 20px; font-size: var(--fs-md); font-weight: 600; display: none; z-index: 1001; }
     .toast.error { background: #f44336; color: #fff; }
     .toast.show { display: block; animation: fadeOut 2.5s forwards; }
     @keyframes fadeOut { 0%,70% { opacity: 1; } 100% { opacity: 0; } }
-    .empty-state { text-align: center; padding: 30px; color: #666; font-size: 0.85rem; }
+    .empty-state { text-align: center; padding: 30px; color: #666; font-size: var(--fs-md); }
 
     /* Loading overlay */
     .loading-overlay {
@@ -102,7 +114,15 @@
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .loading-text { color: #999; font-size: 0.8rem; font-weight: 500; letter-spacing: 0.5px; }
+    .loading-text { color: #999; font-size: var(--fs-base); font-weight: 500; letter-spacing: 0.5px; }
+
+    @media (min-width: 640px) {
+      .header, .section {
+        max-width: 480px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
   </style>
   <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->
   <link rel="stylesheet" href="brand.css">
@@ -436,9 +456,9 @@ async function viewPayments(trainerId, name) {
     const amount = p.amount ? `R$ ${parseFloat(p.amount).toFixed(2)}` : '-';
     const method = p.method || '-';
     return `<div style="border-bottom:1px solid #232a33;padding:10px 0;">
-      <div style="font-size:0.8rem;color:#00d5ff;font-weight:600;">${paidAt}</div>
-      <div style="font-size:0.75rem;color:#ccc;margin-top:3px;">${amount} · ${esc(method)} · até ${periodEnd}</div>
-      ${p.note ? `<div style="font-size:0.7rem;color:#888;margin-top:2px;">${esc(p.note)}</div>` : ''}
+      <div style="font-size: var(--fs-base);color:#00d5ff;font-weight:600;">${paidAt}</div>
+      <div style="font-size: var(--fs-sm);color:#ccc;margin-top:3px;">${amount} · ${esc(method)} · até ${periodEnd}</div>
+      ${p.note ? `<div style="font-size: var(--fs-xs);color:#888;margin-top:2px;">${esc(p.note)}</div>` : ''}
     </div>`;
   }).join('');
 }
