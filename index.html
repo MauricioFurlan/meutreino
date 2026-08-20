@@ -61,6 +61,8 @@
       white-space: nowrap;
     }
     .header .plan-dates.hidden { display: none; }
+    .header .plan-dates.expiring { color: var(--warning); border-color: var(--warning); }
+    .header .plan-dates.expired { color: var(--error); border-color: var(--error); }
     .block-logout-btn {
       margin-top: 18px; background: none; border: 1px solid var(--text-dim);
       color: var(--text-muted); font-size: var(--fs-sm); padding: 6px 16px; border-radius: 14px; cursor: pointer;
@@ -304,6 +306,42 @@
     .restart-workout-row {
       display: flex; padding: 0 16px 12px;
     }
+
+    /* ── Modal: nota do treino ao encerrar ────────────────────────── */
+    .rating-modal {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      z-index: 2000; align-items: flex-end; justify-content: center;
+    }
+    .rating-modal.show { display: flex; }
+    .rating-modal-content {
+      background: var(--bg-card); border-radius: 18px 18px 0 0;
+      width: 100%; max-width: 480px; padding: 20px 20px 24px;
+    }
+    .rating-modal-content h3 { font-size: var(--fs-xl); color: var(--text); margin-bottom: 4px; }
+    .rating-modal-sub { font-size: var(--fs-sm); color: var(--text-muted3); margin-bottom: 16px; }
+    .rating-scale { display: flex; gap: 8px; margin-bottom: 16px; }
+    .rating-option {
+      flex: 1; padding: 12px 0; text-align: center; border-radius: 8px;
+      background: var(--bg-input); border: 1px solid var(--border); color: var(--text-muted);
+      font-size: var(--fs-lg); font-weight: 700; cursor: pointer;
+    }
+    .rating-option.selected { background: var(--accent); border-color: var(--accent); color: var(--text-dark); }
+    #ratingFeedback {
+      width: 100%; min-height: 70px; background: var(--bg-input); color: var(--text);
+      border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px;
+      font-family: inherit; font-size: var(--fs-md); resize: none; margin-bottom: 16px;
+    }
+    #ratingFeedback:focus { outline: none; border-color: var(--accent); }
+    .rating-actions { display: flex; gap: 10px; }
+    .rating-skip-btn {
+      padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px;
+      background: none; color: var(--text-muted2); font-size: var(--fs-base); cursor: pointer;
+    }
+    .rating-save-btn {
+      flex: 1; padding: 12px; border: none; border-radius: 10px;
+      background: var(--accent); color: var(--text-dark); font-weight: 700; font-size: var(--fs-lg); cursor: pointer;
+    }
+    .rating-save-btn:active, .rating-skip-btn:active { opacity: 0.7; }
 
     .loading { text-align: center; padding: 40px; color: var(--text-muted2); }
     .empty-state {
@@ -660,6 +698,27 @@
 
   <div id="content"></div>
   <div class="toast" id="toast"></div>
+
+  <!-- Modal: nota do treino ao encerrar -->
+  <div class="rating-modal" id="ratingModal">
+    <div class="rating-modal-content">
+      <h3>Como foi o treino?</h3>
+      <div class="rating-modal-sub">Dê uma nota de 0 a 5 (opcional)</div>
+      <div class="rating-scale" id="ratingScale">
+        <div class="rating-option" data-value="0" onclick="selectRating(0)">0</div>
+        <div class="rating-option" data-value="1" onclick="selectRating(1)">1</div>
+        <div class="rating-option" data-value="2" onclick="selectRating(2)">2</div>
+        <div class="rating-option" data-value="3" onclick="selectRating(3)">3</div>
+        <div class="rating-option" data-value="4" onclick="selectRating(4)">4</div>
+        <div class="rating-option" data-value="5" onclick="selectRating(5)">5</div>
+      </div>
+      <textarea id="ratingFeedback" placeholder="Quer contar algo sobre o treino? (opcional)" maxlength="500"></textarea>
+      <div class="rating-actions">
+        <button class="rating-skip-btn" onclick="closeRatingModal()">Pular</button>
+        <button class="rating-save-btn" onclick="submitRating()">Salvar</button>
+      </div>
+    </div>
+  </div>
   <div class="block-screen" id="blockScreen">
     <div class="icon">🔒</div>
     <h2 id="blockTitle"></h2>
@@ -1984,6 +2043,7 @@ async function stopWorkoutSession() {
 
   if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
   sessionEndDuration = durationSeconds;
+  const endedSessionId = currentSessionId;
   currentSessionId = null;
   sessionStartTime = null;
   pausedSeconds = 0;
@@ -1997,6 +2057,50 @@ async function stopWorkoutSession() {
 
   updateTimerVisibility();
   showToast('Treino encerrado! ' + formatDuration(durationSeconds));
+  openRatingModal(endedSessionId);
+}
+
+// === Nota do treino ao encerrar ===
+let ratingSessionId = null;
+let selectedRating = null;
+
+function openRatingModal(sessionId) {
+  ratingSessionId = sessionId;
+  selectedRating = null;
+  document.querySelectorAll('#ratingScale .rating-option').forEach(el => el.classList.remove('selected'));
+  document.getElementById('ratingFeedback').value = '';
+  document.getElementById('ratingModal').classList.add('show');
+}
+
+function closeRatingModal() {
+  document.getElementById('ratingModal').classList.remove('show');
+  ratingSessionId = null;
+}
+
+function selectRating(value) {
+  selectedRating = value;
+  document.querySelectorAll('#ratingScale .rating-option').forEach(el => {
+    el.classList.toggle('selected', Number(el.dataset.value) === value);
+  });
+}
+
+async function submitRating() {
+  if (!ratingSessionId) { closeRatingModal(); return; }
+  const feedbackText = document.getElementById('ratingFeedback').value.trim();
+
+  if (selectedRating === null && !feedbackText) { closeRatingModal(); return; }
+
+  const { error } = await _sb.from('workout_sessions')
+    .update({ rating: selectedRating, feedback_text: feedbackText || null })
+    .eq('id', ratingSessionId);
+
+  if (error) {
+    showToast('Erro ao salvar avaliação: ' + error.message, true);
+    return;
+  }
+
+  closeRatingModal();
+  showToast('Avaliação salva, obrigado!');
 }
 
 async function restartWorkout() {
@@ -2290,7 +2394,14 @@ guard('student', {
       }
       const datesEl = document.getElementById('planDates');
       datesEl.textContent = datesText;
-      datesEl.classList.remove('hidden');
+      datesEl.classList.remove('hidden', 'expiring', 'expired');
+      if (plan.plan_end_date) {
+        const now = new Date();
+        const end = new Date(plan.plan_end_date + 'T23:59:59');
+        const daysLeft = Math.ceil((end - now) / (1000 * 60 * 60 * 24));
+        if (end < now) datesEl.classList.add('expired');
+        else if (daysLeft <= 7) datesEl.classList.add('expiring');
+      }
     }
     WORKOUT = plan.structure || {};
     planMode = plan.mode || 'weekly';

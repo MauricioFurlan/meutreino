@@ -56,6 +56,8 @@
     .alert-card.expired { background: #2a0000; border-color: #f44336; }
     .alert-card.plan-expiring { background: #1a1a00; border-color: #ff9800; }
     .alert-card.plan-expiring.expired { background: #2a0000; border-color: #f44336; }
+    .alert-card.note-reminder { background: #1a1a00; border-color: #ff9800; }
+    .alert-card.note-reminder.expired { background: #2a0000; border-color: #f44336; }
     .alert-card .name { font-weight: 600; font-size: var(--fs-lg); }
     .alert-card .info { font-size: var(--fs-sm); color: #ccc; margin-top: 2px; }
 
@@ -195,6 +197,9 @@
       animation: pulse 1.2s infinite;
     }
     @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .session-rating {
+      margin-top: 4px; font-size: var(--fs-xs); color: var(--text-muted2);
+    }
 
     /* Birthday badge */
     .birthday-badge {
@@ -377,6 +382,7 @@ let maxStudents = 20;
 let sessionsMap = {}; // student_id -> { started_at, ended_at, duration_seconds }
 let streakMap = {};   // student_id -> { current, best, hitWindowEdge, lastTrained }
 let planEndMap = {};  // student_id -> plan_end_date (do plano ativo)
+let noteAlertMap = {}; // student_id -> { alert_date, alert_message } (lembrete de anotações)
 let streakLoadedFor = ''; // assinatura da lista de alunos já processada
 
 // Ordem alfabética tolerante a acento/maiúscula ("Ávila" antes de "Bruno", "ana" antes de "Bruno")
@@ -419,7 +425,7 @@ async function loadTodaySessions() {
   if (studentIds.length === 0) { sessionsMap = {}; return; }
 
   const { data, error } = await _sb.from('workout_sessions')
-    .select('student_id, started_at, ended_at, duration_seconds, paused_seconds, pause_started_at')
+    .select('student_id, started_at, ended_at, duration_seconds, paused_seconds, pause_started_at, rating, feedback_text')
     .in('student_id', studentIds)
     .gte('started_at', today + 'T00:00:00')
     .lte('started_at', today + 'T23:59:59')
@@ -433,6 +439,22 @@ async function loadTodaySessions() {
         sessionsMap[s.student_id] = s;
       }
     });
+  }
+}
+
+// === Carregar lembretes de anotações ===
+async function loadNoteAlerts() {
+  const studentIds = students.map(s => s.id);
+  if (studentIds.length === 0) { noteAlertMap = {}; return; }
+
+  const { data, error } = await _sb.from('trainer_notes')
+    .select('student_id, alert_date, alert_message')
+    .in('student_id', studentIds)
+    .not('alert_date', 'is', null);
+
+  noteAlertMap = {};
+  if (!error && data) {
+    data.forEach(n => { noteAlertMap[n.student_id] = n; });
   }
 }
 
@@ -457,7 +479,14 @@ function getSessionHtml(studentId) {
     return `<div class="session-info in-progress"><span class="dot"></span>🏋️ Treinando agora · ${formatSessionDuration(Math.max(0, elapsed))}</div>`;
   }
   // Concluído
-  return `<div class="session-info"><span class="dot"></span>✅ Treinou hoje · ${formatSessionDuration(session.duration_seconds)}</div>`;
+  let html = `<div class="session-info"><span class="dot"></span>✅ Treinou hoje · ${formatSessionDuration(session.duration_seconds)}</div>`;
+  if (session.rating !== null && session.rating !== undefined) {
+    html += `<div class="session-rating">Nota do treino: ${session.rating}/5</div>`;
+  }
+  if (session.feedback_text) {
+    html += `<div class="session-rating">"${esc(session.feedback_text)}"</div>`;
+  }
+  return html;
 }
 
 // =====================================================================
@@ -579,7 +608,7 @@ async function loadStudents() {
   // Reordena no cliente: o ORDER BY do Postgres usa collation do banco e joga
   // acento/maiúscula fora de ordem ("Ávila" depois de "Zé", "ana" depois de "Bruno").
   students = (data || []).sort(byName);
-  await Promise.all([loadTodaySessions(), loadStreaks()]);
+  await Promise.all([loadTodaySessions(), loadStreaks(), loadNoteAlerts()]);
   renderStudents();
   renderAlerts();
   updateStudentCount();
@@ -706,6 +735,22 @@ function renderAlerts() {
     return { ...s, planEndDate: endDate, isExpired, daysLeft };
   }).sort((a, b) => a.planEndDate.localeCompare(b.planEndDate));
 
+  // Alertas de lembrete de anotações (alert_date <= 5 dias)
+  const in5days = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
+  const noteAlerts = students.filter(s => {
+    if (s.status === 'suspended') return false;
+    const n = noteAlertMap[s.id];
+    if (!n || !n.alert_date) return false;
+    const exp = new Date(n.alert_date + 'T23:59:59');
+    return exp <= in5days;
+  }).map(s => {
+    const n = noteAlertMap[s.id];
+    const exp = new Date(n.alert_date + 'T23:59:59');
+    const isExpired = exp < now;
+    const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+    return { ...s, alertDate: n.alert_date, alertMessage: n.alert_message, isExpired, daysLeft };
+  }).sort((a, b) => a.alertDate.localeCompare(b.alertDate));
+
   // Alertas de aniversário do dia
   const todayDay = now.getDate();
   const todayMonth = now.getMonth() + 1;
@@ -717,7 +762,7 @@ function renderAlerts() {
 
   const section = document.getElementById('alertsSection');
   const container = document.getElementById('alertsList');
-  if (expiringAlerts.length === 0 && birthdayAlerts.length === 0 && planExpiringAlerts.length === 0) { section.style.display = 'none'; return; }
+  if (expiringAlerts.length === 0 && birthdayAlerts.length === 0 && planExpiringAlerts.length === 0 && noteAlerts.length === 0) { section.style.display = 'none'; return; }
   section.style.display = 'block';
 
   let html = '';
@@ -749,6 +794,25 @@ function renderAlerts() {
         <div class="alert-card plan-expiring ${a.isExpired ? 'expired' : ''}" onclick="location.href='treinos.html?aluno=${a.id}'" style="cursor:pointer;">
           <div class="name">📋 ${esc(a.full_name)}</div>
           <div class="info">${label} · ${dateStr} <span style="float:right;color:#ff9800;font-size: var(--fs-xs);">Editar treino →</span></div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Lembrete de anotações a atualizar
+  if (noteAlerts.length > 0) {
+    html += noteAlerts.map(a => {
+      const label = a.isExpired
+        ? 'Anotação a atualizar'
+        : a.daysLeft === 0
+          ? 'Anotação a atualizar hoje'
+          : `Anotação a atualizar em ${a.daysLeft} dia${a.daysLeft !== 1 ? 's' : ''}`;
+      const dateStr = new Date(a.alertDate + 'T00:00:00').toLocaleDateString('pt-BR');
+      const msg = a.alertMessage ? ` — ${esc(a.alertMessage)}` : '';
+      return `
+        <div class="alert-card note-reminder ${a.isExpired ? 'expired' : ''}" onclick="location.href='anotacoes.html?aluno=${a.id}'" style="cursor:pointer;">
+          <div class="name">${esc(a.full_name)}</div>
+          <div class="info">${label} · ${dateStr}${msg} <span style="float:right;color:#ff9800;font-size: var(--fs-xs);">Ver anotações →</span></div>
         </div>
       `;
     }).join('');
