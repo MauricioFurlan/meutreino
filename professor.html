@@ -382,7 +382,7 @@ let maxStudents = 20;
 let sessionsMap = {}; // student_id -> { started_at, ended_at, duration_seconds }
 let streakMap = {};   // student_id -> { current, best, hitWindowEdge, lastTrained }
 let planEndMap = {};  // student_id -> plan_end_date (do plano ativo)
-let noteAlertMap = {}; // student_id -> { alert_date, alert_message } (lembrete de anotações)
+let noteAlertMap = {}; // student_id -> [{ id, alert_date, message }] (lembretes de anotações)
 let streakLoadedFor = ''; // assinatura da lista de alunos já processada
 
 // Ordem alfabética tolerante a acento/maiúscula ("Ávila" antes de "Bruno", "ana" antes de "Bruno")
@@ -447,14 +447,16 @@ async function loadNoteAlerts() {
   const studentIds = students.map(s => s.id);
   if (studentIds.length === 0) { noteAlertMap = {}; return; }
 
-  const { data, error } = await _sb.from('trainer_notes')
-    .select('student_id, alert_date, alert_message')
-    .in('student_id', studentIds)
-    .not('alert_date', 'is', null);
+  const { data, error } = await _sb.from('trainer_reminders')
+    .select('id, student_id, alert_date, message')
+    .in('student_id', studentIds);
 
   noteAlertMap = {};
   if (!error && data) {
-    data.forEach(n => { noteAlertMap[n.student_id] = n; });
+    data.forEach(n => {
+      if (!noteAlertMap[n.student_id]) noteAlertMap[n.student_id] = [];
+      noteAlertMap[n.student_id].push(n);
+    });
   }
 }
 
@@ -735,21 +737,22 @@ function renderAlerts() {
     return { ...s, planEndDate: endDate, isExpired, daysLeft };
   }).sort((a, b) => a.planEndDate.localeCompare(b.planEndDate));
 
-  // Alertas de lembrete de anotações (alert_date <= 5 dias)
+  // Alertas de lembrete de anotações (alert_date <= 5 dias) — um card por lembrete
   const in5days = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
-  const noteAlerts = students.filter(s => {
-    if (s.status === 'suspended') return false;
-    const n = noteAlertMap[s.id];
-    if (!n || !n.alert_date) return false;
-    const exp = new Date(n.alert_date + 'T23:59:59');
-    return exp <= in5days;
-  }).map(s => {
-    const n = noteAlertMap[s.id];
-    const exp = new Date(n.alert_date + 'T23:59:59');
-    const isExpired = exp < now;
-    const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
-    return { ...s, alertDate: n.alert_date, alertMessage: n.alert_message, isExpired, daysLeft };
-  }).sort((a, b) => a.alertDate.localeCompare(b.alertDate));
+  const noteAlerts = [];
+  students.forEach(s => {
+    if (s.status === 'suspended') return;
+    const reminders = noteAlertMap[s.id];
+    if (!reminders) return;
+    reminders.forEach(n => {
+      const exp = new Date(n.alert_date + 'T23:59:59');
+      if (exp > in5days) return;
+      const isExpired = exp < now;
+      const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+      noteAlerts.push({ ...s, reminderId: n.id, alertDate: n.alert_date, alertMessage: n.message, isExpired, daysLeft });
+    });
+  });
+  noteAlerts.sort((a, b) => a.alertDate.localeCompare(b.alertDate));
 
   // Alertas de aniversário do dia
   const todayDay = now.getDate();
@@ -803,10 +806,10 @@ function renderAlerts() {
   if (noteAlerts.length > 0) {
     html += noteAlerts.map(a => {
       const label = a.isExpired
-        ? 'Anotação a atualizar'
+        ? 'Lembrete'
         : a.daysLeft === 0
-          ? 'Anotação a atualizar hoje'
-          : `Anotação a atualizar em ${a.daysLeft} dia${a.daysLeft !== 1 ? 's' : ''}`;
+          ? 'Hoje'
+          : `Em ${a.daysLeft} dia${a.daysLeft !== 1 ? 's' : ''}`;
       const dateStr = new Date(a.alertDate + 'T00:00:00').toLocaleDateString('pt-BR');
       const msg = a.alertMessage ? ` — ${esc(a.alertMessage)}` : '';
       return `
