@@ -15,7 +15,7 @@
   <link rel="icon" type="image/png" href="/icon-192.png">
   <link rel="apple-touch-icon" href="/icon-192.png">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co blob:; img-src 'self' data:;">
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co blob:; img-src 'self' data: blob: https://*.supabase.co;">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <link rel="stylesheet" href="theme.css">
@@ -167,6 +167,34 @@
     .detail-row { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border-light); }
     .detail-row .label { font-size: var(--fs-base); color: var(--text-muted); }
     .detail-row .value { font-size: var(--fs-base); color: var(--text); font-weight: 600; }
+
+    /* Fotos da anamnese */
+    .photo-hint { font-size: var(--fs-sm); color: var(--text-muted3); }
+    .photo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .photo-slot { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px; padding: 8px; }
+    .photo-slot-label { font-size: var(--fs-2xs); color: var(--text-muted2); text-transform: uppercase; font-weight: 700; letter-spacing: 0.3px; margin-bottom: 6px; }
+    .photo-slot-box { aspect-ratio: 3/4; border-radius: 8px; overflow: hidden; background: var(--bg-input); display: flex; align-items: center; justify-content: center; }
+    .photo-slot-box img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+    .photo-slot-empty { font-size: var(--fs-2xs); color: var(--text-muted3); }
+    .photo-slot-tag { margin-top: 6px; width: 100%; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text); font-size: var(--fs-2xs); box-sizing: border-box; }
+    .photo-slot-actions { display: flex; gap: 6px; margin-top: 6px; }
+    .photo-btn { flex: 1; padding: 7px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); color: var(--text-muted); font-size: var(--fs-2xs); font-weight: 600; cursor: pointer; }
+    .photo-btn-remove { color: var(--error); border-color: var(--error); }
+
+    .photo-modal-content { max-width: 480px; }
+    .photo-view-wrap { position: relative; width: 100%; line-height: 0; }
+    .photo-view-wrap img { width: 100%; border-radius: 8px; display: block; }
+    .photo-grid-overlay { position: absolute; inset: 0; display: none; pointer-events: none; }
+    .grid-line { position: absolute; background: rgba(255,255,255,0.45); }
+    .grid-line-v { top: 0; bottom: 0; width: 1px; }
+    .grid-line-h { left: 0; right: 0; height: 1px; }
+    .photo-view-controls { display: flex; align-items: center; gap: 10px; margin-top: 10px; font-size: var(--fs-sm); color: var(--text-muted); }
+    .photo-view-controls select { padding: 4px 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-input); color: var(--text); font-size: var(--fs-sm); }
+
+    .photo-compare-pair { margin-bottom: 14px; }
+    .photo-compare-label { font-size: var(--fs-2xs); color: var(--text-muted2); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; }
+    .photo-compare-imgs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .photo-compare-imgs img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); }
 
     /* Loading overlay */
     .loading-overlay {
@@ -335,6 +363,12 @@
         </div>
       </div>
 
+      <div class="form-card" id="photoCard">
+        <h3>Fotos (até 6)</h3>
+        <div class="photo-hint" id="photoHint">Salve a avaliação e depois toque em "Editar" (aba Histórico) para anexar fotos.</div>
+        <div class="photo-grid" id="photoGrid" style="display:none;"></div>
+      </div>
+
       <button type="submit" class="submit-btn" id="saveBtn">Salvar Avaliação</button>
       <button type="button" class="modal-close" id="cancelEditBtn" style="display:none; margin-top:8px;" onclick="cancelEdit(); document.getElementById('assessmentForm').reset(); populatePlaceholders();">Cancelar edição</button>
     </form>
@@ -427,6 +461,15 @@
         <div class="chart-note" id="simNote"></div>
       </div>
     </div>
+
+    <!-- Fotos: mesma pose entre as duas avaliações selecionadas -->
+    <div class="chart-block" id="blockPhotos" style="display:none;">
+      <div class="chart-title"><span>Fotos</span><span class="chart-sub" id="photosSub"></span></div>
+      <div class="chart-container">
+        <div id="photosCompareGrid"></div>
+        <div class="chart-note" id="photosNote"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Modal detalhe avaliação -->
@@ -440,6 +483,25 @@
         <button class="submit-btn" id="btnDeleteAssessment" style="flex:1; background:var(--error);" onclick="deleteAssessment()">🗑️ Excluir</button>
       </div>
       <button class="modal-close" onclick="document.getElementById('detailModal').classList.remove('show')">Fechar</button>
+    </div>
+  </div>
+
+  <!-- Modal visualização de foto (com grade de simetria opcional) -->
+  <div class="modal" id="photoModal">
+    <div class="modal-content photo-modal-content">
+      <h3 id="photoModalTitle">Foto</h3>
+      <div class="photo-view-wrap">
+        <img id="photoModalImg" src="" alt="">
+        <div class="photo-grid-overlay" id="photoGridOverlay"></div>
+      </div>
+      <div class="photo-view-controls">
+        <label><input type="checkbox" id="photoGridToggle" onchange="renderPhotoGridOverlay()"> Grade</label>
+        <select id="photoGridDensity" onchange="renderPhotoGridOverlay()">
+          <option value="10">10 × 10</option>
+          <option value="20" selected>20 × 20</option>
+        </select>
+      </div>
+      <button class="modal-close" onclick="document.getElementById('photoModal').classList.remove('show')">Fechar</button>
     </div>
   </div>
 
@@ -459,6 +521,7 @@ let studentInfo = null; // dados do aluno para o PDF
 let coachInfo = null;   // dados do professor (assinatura do relatório)
 let currentAssessmentId = null; // avaliação aberta no modal
 let editingId = null; // se !== null, estamos editando ao invés de criando
+let currentPhotos = {}; // slot -> {id, storage_path, label, url} da avaliação em edição
 
 // Modo somente-leitura: a mesma página serve o ALUNO consultando o próprio
 // resultado. Ele vê medidas, gráficos e PDF; não lança, não edita, não apaga.
@@ -568,12 +631,15 @@ function cancelEdit() {
   document.getElementById('saveBtn').textContent = 'Salvar Avaliação';
   const cancelBtn = document.getElementById('cancelEditBtn');
   if (cancelBtn) cancelBtn.style.display = 'none';
+  loadPhotosForCurrentEdit();
 }
 
 // === Excluir avaliação ===
 async function deleteAssessment() {
   if (!currentAssessmentId) return;
   if (!confirm('Tem certeza que deseja excluir esta avaliação? Essa ação não pode ser desfeita.')) return;
+  const { data: photos } = await _sb.from('assessment_photos').select('storage_path').eq('assessment_id', currentAssessmentId);
+  if (photos && photos.length) await _sb.storage.from(PHOTO_BUCKET).remove(photos.map(p => p.storage_path));
   const { error } = await _sb.from('assessments').delete().eq('id', currentAssessmentId);
   if (error) { showToast('Erro ao excluir: ' + error.message, true); return; }
   document.getElementById('detailModal').classList.remove('show');
@@ -640,6 +706,7 @@ function editAssessment() {
   document.getElementById('detailModal').classList.remove('show');
   switchTab('form');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  loadPhotosForCurrentEdit();
 }
 
 // === Pré-popular placeholders com última avaliação ===
@@ -1265,6 +1332,9 @@ function renderExtraCharts() {
       })
     }, `Simetria entre lado direito e esquerdo em ${shortDate(date)}.`);
   }
+
+  // ---- Fotos: mesma pose nas avaliações selecionadas ----
+  renderPhotoComparison(pairA, pairB);
 }
 
 // Datas clicáveis do bloco "Da primeira à última": abrem um menu para escolher
@@ -1799,6 +1869,175 @@ function generatePDF() {
     .replace(/[^a-zA-Z0-9]+/g, '_').replace(/^_|_$/g, '');
   doc.save('Avaliacao_Fisica_' + slug + '_' + a.assessment_date + '.pdf');
   showToast('PDF gerado!');
+}
+
+// ====================================================================
+// === Fotos da anamnese ===
+// Só disponíveis em modo edição (editingId setado), porque a foto é
+// anexada a uma avaliação que já existe (precisa do id para o path no
+// Storage). 4 poses fixas + 2 livres, no máximo 6 por avaliação.
+// ====================================================================
+const PHOTO_SLOTS = [
+  { key: 'frente', label: 'Frente' },
+  { key: 'costas', label: 'Costas' },
+  { key: 'lateral_esq', label: 'Lateral Esq.' },
+  { key: 'lateral_dir', label: 'Lateral Dir.' },
+  { key: 'livre_1', label: 'Livre 1' },
+  { key: 'livre_2', label: 'Livre 2' }
+];
+const PHOTO_BUCKET = 'assessment-photos';
+const PHOTO_MAX_DIM = 1600;   // maior lado, em px — mantém a foto leve sem perder detalhe útil
+const PHOTO_JPEG_QUALITY = 0.82;
+
+// Redimensiona/recomprime no client via canvas — sem depender de nenhuma lib nova.
+function resizeImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let { width, height } = img;
+      const maxSide = Math.max(width, height);
+      if (maxSide > PHOTO_MAX_DIM) {
+        const scale = PHOTO_MAX_DIM / maxSide;
+        width = Math.round(width * scale);
+        height = Math.round(height * scale);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(url);
+        if (blob) resolve(blob); else reject(new Error('Falha ao processar imagem.'));
+      }, 'image/jpeg', PHOTO_JPEG_QUALITY);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Não foi possível ler a imagem.')); };
+    img.src = url;
+  });
+}
+
+async function handlePhotoSelect(evt, slot) {
+  const file = evt.target.files[0];
+  evt.target.value = '';
+  if (!file || !editingId) return;
+  showToast('Enviando foto...');
+  try {
+    const blob = await resizeImageFile(file);
+    const path = `${editingId}/${slot}.jpg`;
+    const { error: upErr } = await _sb.storage.from(PHOTO_BUCKET).upload(path, blob, { upsert: true, contentType: 'image/jpeg' });
+    if (upErr) throw upErr;
+    const label = slot.startsWith('livre') ? (document.getElementById('photoLabel-' + slot)?.value.trim() || null) : null;
+    const { error: dbErr } = await _sb.from('assessment_photos')
+      .upsert({ assessment_id: editingId, slot, label, storage_path: path, created_by: coachId }, { onConflict: 'assessment_id,slot' });
+    if (dbErr) throw dbErr;
+    showToast('Foto enviada!');
+    await loadPhotosForCurrentEdit();
+  } catch (err) {
+    showToast('Erro ao enviar foto: ' + err.message, true);
+  }
+}
+
+async function removePhoto(slot) {
+  if (!editingId) return;
+  const p = currentPhotos[slot];
+  if (!p) return;
+  if (!confirm('Remover esta foto?')) return;
+  await _sb.storage.from(PHOTO_BUCKET).remove([p.storage_path]);
+  await _sb.from('assessment_photos').delete().eq('id', p.id);
+  await loadPhotosForCurrentEdit();
+}
+
+// Busca as fotos de uma avaliação + URL assinada (bucket privado) para cada uma.
+async function fetchPhotosWithUrls(assessmentId) {
+  const out = {};
+  if (!assessmentId) return out;
+  const { data, error } = await _sb.from('assessment_photos').select('*').eq('assessment_id', assessmentId);
+  if (!error && data) {
+    for (const row of data) {
+      const { data: signed } = await _sb.storage.from(PHOTO_BUCKET).createSignedUrl(row.storage_path, 3600);
+      out[row.slot] = { ...row, url: signed?.signedUrl };
+    }
+  }
+  return out;
+}
+
+async function loadPhotosForCurrentEdit() {
+  const hint = document.getElementById('photoHint');
+  const grid = document.getElementById('photoGrid');
+  if (!editingId) { currentPhotos = {}; hint.style.display = 'block'; grid.style.display = 'none'; return; }
+  hint.style.display = 'none'; grid.style.display = 'grid';
+  currentPhotos = await fetchPhotosWithUrls(editingId);
+  renderPhotoGrid();
+}
+
+function renderPhotoGrid() {
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = PHOTO_SLOTS.map(s => {
+    const p = currentPhotos[s.key];
+    const thumb = p?.url
+      ? `<img src="${p.url}" alt="${esc(s.label)}" onclick="openPhotoViewerUrl('${p.url}', '${esc(p.label || s.label)}')">`
+      : `<div class="photo-slot-empty">Sem foto</div>`;
+    const labelInput = s.key.startsWith('livre')
+      ? `<input type="text" class="photo-slot-tag" id="photoLabel-${s.key}" placeholder="Rótulo (opcional)" value="${esc(p?.label || '')}">`
+      : '';
+    return `<div class="photo-slot">
+      <div class="photo-slot-label">${esc(s.label)}</div>
+      <div class="photo-slot-box">${thumb}</div>
+      ${labelInput}
+      <input type="file" accept="image/*" style="display:none" id="photoInput-${s.key}" onchange="handlePhotoSelect(event,'${s.key}')">
+      <div class="photo-slot-actions">
+        <button type="button" class="photo-btn" onclick="document.getElementById('photoInput-${s.key}').click()">${p ? 'Trocar' : 'Selecionar'}</button>
+        ${p ? `<button type="button" class="photo-btn photo-btn-remove" onclick="removePhoto('${s.key}')">Remover</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Grade proporcional (%) sobre a caixa renderizada da imagem — não depende da
+// resolução original da foto, então funciona igual para qualquer tamanho.
+function renderPhotoGridOverlay() {
+  const overlay = document.getElementById('photoGridOverlay');
+  const enabled = document.getElementById('photoGridToggle').checked;
+  overlay.innerHTML = '';
+  overlay.style.display = enabled ? 'block' : 'none';
+  if (!enabled) return;
+  const n = parseInt(document.getElementById('photoGridDensity').value, 10);
+  for (let i = 1; i < n; i++) {
+    const pct = (i / n * 100) + '%';
+    const v = document.createElement('div'); v.className = 'grid-line grid-line-v'; v.style.left = pct; overlay.appendChild(v);
+    const h = document.createElement('div'); h.className = 'grid-line grid-line-h'; h.style.top = pct; overlay.appendChild(h);
+  }
+}
+
+function openPhotoViewerUrl(url, title) {
+  if (!url) return;
+  document.getElementById('photoModalTitle').textContent = title || 'Foto';
+  document.getElementById('photoModalImg').src = url;
+  document.getElementById('photoGridToggle').checked = false;
+  renderPhotoGridOverlay();
+  document.getElementById('photoModal').classList.add('show');
+}
+
+// Fotos da mesma pose nas duas avaliações escolhidas no bloco "primeira × última"
+// (reaproveita compareFromId/compareToId — mesmo par usado pelos gráficos).
+async function renderPhotoComparison(pairA, pairB) {
+  const block = document.getElementById('blockPhotos');
+  if (!pairA || !pairB || pairA.id === pairB.id) { block.style.display = 'none'; return; }
+  const [photosA, photosB] = await Promise.all([fetchPhotosWithUrls(pairA.id), fetchPhotosWithUrls(pairB.id)]);
+  const slotsWithBoth = PHOTO_SLOTS.filter(s => photosA[s.key]?.url && photosB[s.key]?.url);
+  if (!slotsWithBoth.length) { block.style.display = 'none'; return; }
+  block.style.display = 'block';
+  document.getElementById('photosSub').textContent = `${shortDate(pairA.assessment_date)} → ${shortDate(pairB.assessment_date)}`;
+  document.getElementById('photosNote').textContent = 'Toque em uma foto para ampliar e ativar a grade.';
+  document.getElementById('photosCompareGrid').innerHTML = slotsWithBoth.map(s => {
+    const a = photosA[s.key], b = photosB[s.key];
+    return `<div class="photo-compare-pair">
+      <div class="photo-compare-label">${esc(s.label)}</div>
+      <div class="photo-compare-imgs">
+        <img src="${a.url}" alt="${esc(s.label)} — ${esc(shortDate(pairA.assessment_date))}" onclick="openPhotoViewerUrl('${a.url}', '${esc(s.label)} — ${esc(shortDate(pairA.assessment_date))}')">
+        <img src="${b.url}" alt="${esc(s.label)} — ${esc(shortDate(pairB.assessment_date))}" onclick="openPhotoViewerUrl('${b.url}', '${esc(s.label)} — ${esc(shortDate(pairB.assessment_date))}')">
+      </div>
+    </div>`;
+  }).join('');
 }
 
 // === Init ===
