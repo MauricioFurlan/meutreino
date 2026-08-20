@@ -289,16 +289,20 @@
     .end-workout-row {
       display: flex; gap: 8px; padding: 12px 16px; margin-top: 8px;
     }
-    .end-workout-btn, .pause-workout-btn {
+    .end-workout-btn, .pause-workout-btn, .restart-workout-btn {
       flex: 1; background: none; border: 1px solid var(--accent); color: var(--accent);
       font-size: var(--fs-lg); font-weight: 700; padding: 12px;
       border-radius: 8px; cursor: pointer; transition: opacity 0.2s;
     }
-    .end-workout-btn:active, .pause-workout-btn:active { opacity: 0.6; }
+    .end-workout-btn:active, .pause-workout-btn:active, .restart-workout-btn:active { opacity: 0.6; }
+    .restart-workout-btn { border-color: var(--text-muted); color: var(--text-muted); }
     .workout-timer-inline.paused { opacity: 0.7; }
     .workout-done-msg {
       font-size: var(--fs-lg); color: var(--accent); font-weight: 700;
       text-align: center; padding: 12px 16px;
+    }
+    .restart-workout-row {
+      display: flex; padding: 0 16px 12px;
     }
 
     .loading { text-align: center; padding: 40px; color: var(--text-muted2); }
@@ -656,7 +660,7 @@
     <div class="tabs" id="tabs"></div>
     <!-- Botão iniciar treino (discreto, abaixo das tabs, só no dia atual) -->
     <div class="start-workout-row" id="startWorkoutRow" style="display:none;">
-      <button class="start-workout-btn" id="timerStartBtn" onclick="confirmStartWorkout()">▶ Iniciar Treino</button>
+      <button class="start-workout-btn" id="timerStartBtn" onclick="confirmStartWorkout()">Iniciar Treino</button>
       <span class="workout-timer-inline" id="timerInline" style="display:none;">⏱ <span id="timerDisplay">00:00:00</span><span id="timerLabel" style="margin-left:8px;font-weight:500;font-size: var(--fs-base);opacity:0.8;"></span></span>
     </div>
   </div>
@@ -1699,6 +1703,7 @@ function renderExerciseCard(day, exIdx, ex) {
 let timerInterval = null;
 let sessionStartTime = null;
 let currentSessionId = null;
+let todaySessionId = null; // id da sessão de hoje (mantido mesmo após encerrar, p/ permitir reiniciar)
 let currentTabDay = null;
 let pausedSeconds = 0;     // total já fechado (vem do banco)
 let pauseStartedAt = null; // ms (Date.now) do início da pausa atual, ou null
@@ -1727,6 +1732,7 @@ function updateTimerVisibility() {
   // Remove botão encerrar antigo de todos os dias
   document.querySelectorAll('.end-workout-row').forEach(el => el.remove());
   document.querySelectorAll('.workout-done-msg').forEach(el => el.remove());
+  document.querySelectorAll('.restart-workout-row').forEach(el => el.remove());
 
   if (!isCurrentTabToday()) {
     row.style.display = 'none';
@@ -1780,7 +1786,8 @@ function appendEndButton() {
   const pauseLabel = pauseStartedAt ? 'Retomar' : 'Pausar';
   const pauseAction = pauseStartedAt ? 'resumeWorkout()' : 'pauseWorkout()';
   div.innerHTML = `<button class="pause-workout-btn" onclick="${pauseAction}">${pauseLabel}</button>` +
-    '<button class="end-workout-btn" onclick="stopWorkoutSession()">⏹ Encerrar Treino</button>';
+    '<button class="end-workout-btn" onclick="stopWorkoutSession()">Encerrar Treino</button>' +
+    '<button class="restart-workout-btn" onclick="restartWorkout()">Reiniciar</button>';
   dayEl.appendChild(div);
 }
 
@@ -1793,6 +1800,10 @@ function appendDoneMessage() {
   div.className = 'workout-done-msg';
   div.textContent = 'Treino concluído · ' + formatDuration(elapsed);
   dayEl.appendChild(div);
+  const restartRow = document.createElement('div');
+  restartRow.className = 'restart-workout-row';
+  restartRow.innerHTML = '<button class="restart-workout-btn" onclick="restartWorkout()">Reiniciar Treino</button>';
+  dayEl.appendChild(restartRow);
 }
 
 let sessionEndDuration = 0;
@@ -1822,6 +1833,7 @@ async function loadTodaySession() {
     } else {
       // Sessão em andamento válida
       currentSessionId = data.id;
+      todaySessionId = data.id;
       sessionStartTime = new Date(data.started_at).getTime();
       pausedSeconds = data.paused_seconds || 0;
       pauseStartedAt = data.pause_started_at ? new Date(data.pause_started_at).getTime() : null;
@@ -1839,6 +1851,7 @@ async function loadTodaySession() {
   } else if (data && data.ended_at) {
     if (data.duration_seconds !== null) {
       // Encerrou normalmente
+      todaySessionId = data.id;
       sessionEndDuration = data.duration_seconds;
       const marker = document.createElement('span');
       marker.className = 'session-ended';
@@ -1915,6 +1928,7 @@ async function startWorkoutSession() {
   }
 
   currentSessionId = data.id;
+  todaySessionId = data.id;
   sessionStartTime = new Date(data.started_at).getTime();
   pausedSeconds = 0;
   pauseStartedAt = null;
@@ -1990,6 +2004,30 @@ async function stopWorkoutSession() {
 
   updateTimerVisibility();
   showToast('Treino encerrado! ' + formatDuration(durationSeconds));
+}
+
+async function restartWorkout() {
+  if (!confirm('Reiniciar o treino de hoje? O tempo registrado será apagado.')) return;
+
+  if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+
+  if (todaySessionId) {
+    const { error } = await _sb.from('workout_sessions').delete().eq('id', todaySessionId);
+    if (error) {
+      showToast('Erro ao reiniciar: ' + error.message, true);
+      return;
+    }
+  }
+
+  currentSessionId = null;
+  todaySessionId = null;
+  sessionStartTime = null;
+  pausedSeconds = 0;
+  pauseStartedAt = null;
+  sessionEndDuration = 0;
+  document.querySelectorAll('.session-ended').forEach(el => el.remove());
+  updateTimerVisibility();
+  showToast('Treino reiniciado.');
 }
 
 // === Menu lateral ===
