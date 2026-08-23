@@ -252,6 +252,8 @@
     .col-title { font-size: var(--fs-2xs); color: var(--text-muted2); text-align: center; font-weight: 700; text-transform: uppercase; }
     .set-row input::placeholder { color: var(--text-muted); font-size: 14px; font-weight: 500; }
     .set-row input:focus { outline: none; border-color: var(--accent); }
+    /* Treino do dia: placeholder de referência (peso/reps da semana passada) em destaque. */
+    .today-tab .set-row input::placeholder { color: var(--accent); font-size: 15px; font-weight: 600; opacity: 0.85; }
     .save-btn {
       width: 100%; padding: 12px; border: none; border-radius: 8px;
       background: var(--accent); color: var(--text-dark); font-weight: 700; font-size: var(--fs-lg);
@@ -1556,7 +1558,7 @@ function openCyclicWorkout(letter) {
   // Esconde tabs e mostra o treino selecionado
   document.getElementById('tabs').style.display = 'none';
 
-  let html = `<div class="cyclic-view" id="day-${letter}">`;
+  let html = `<div class="cyclic-view today-tab" id="day-${letter}">`;
   html += `<button class="cyclic-back-btn" onclick="backToCyclicMenu()">← Voltar</button>`;
   html += `<div class="cyclic-day-title">Treino ${letter}</div>`;
   if (subtitle) html += `<div class="cyclic-day-subtitle">${esc(subtitle)}</div>`;
@@ -2456,7 +2458,7 @@ guard('student', {
         tabsEl.appendChild(tab);
 
         const div = document.createElement('div');
-        div.className = 'day-content' + (day === today ? ' active' : '');
+        div.className = 'day-content' + (day === today ? ' active today-tab' : '');
         div.id = 'day-' + day;
         // Adiciona subtítulo acima dos exercícios
         let dayHtml = '';
