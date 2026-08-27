@@ -468,6 +468,19 @@
        ganha uma coluna de 960px (bem mais que a faixa de celular usada no
        resto do app) para caber séries, exercícios e biset sem apertar. */
     @media (min-width: 640px) {
+      /* Tela larga = navegador/desktop, não o celular do aluno. Fontes maiores
+         aqui ajudam quem tem dificuldade de leitura pra montar o treino. */
+      :root {
+        --fs-2xs: 0.78rem;
+        --fs-xs: 0.85rem;
+        --fs-sm: 0.9rem;
+        --fs-base: 0.95rem;
+        --fs-md: 1rem;
+        --fs-lg: 1.05rem;
+        --fs-xl: 1.15rem;
+        --fs-2xl: 1.3rem;
+        --fs-3xl: 1.5rem;
+      }
       .header, .title-section, .dates-row, .options-row, .mode-section,
       #daysContainer, .save-bar {
         max-width: 960px;
