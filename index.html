@@ -7,7 +7,7 @@
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#00d5ff">
   <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:;">
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://*.supabase.co; img-src 'self' data:; frame-src https://www.youtube-nocookie.com;">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -450,6 +450,34 @@
       overflow-y: auto; padding: 12px 16px 20px; flex: 1;
     }
 
+    /* ── Modal de vídeo do exercício (embutido, sem sair do app) ────── */
+    .video-modal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.92); z-index: 1000;
+      align-items: flex-end; justify-content: center;
+    }
+    .video-modal.show { display: flex; }
+    .video-modal-sheet {
+      background: var(--bg-card); border-radius: 16px 16px 0 0;
+      width: 100%; max-width: 480px; padding: 14px 16px 24px;
+      border: 1px solid var(--border); border-bottom: none;
+    }
+    .video-modal-header {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;
+    }
+    .video-modal-header h3 { color: var(--accent); font-size: var(--fs-lg); font-weight: 700; }
+    .video-modal-frame-wrap {
+      position: relative; width: 100%; max-width: 260px; margin: 0 auto;
+      aspect-ratio: 9 / 16; border-radius: 12px; overflow: hidden;
+      background: #000; border: 1px solid var(--border);
+    }
+    .video-modal-frame-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+    .video-modal-fallback {
+      display: block; text-align: center; margin-top: 12px; font-size: var(--fs-sm);
+      color: var(--text-muted2); text-decoration: none;
+    }
+    .video-modal-fallback:active { opacity: 0.6; }
+
     /* ── Renderização das notas ──────────────────────────────── */
     .note-render { line-height: 1.7; font-size: var(--fs-lg); }
     .note-render .note-section {
@@ -762,6 +790,23 @@
       <div class="notes-modal-body" id="notesModalBody">
         <div style="text-align:center;padding:32px;color:#555">Carregando...</div>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal de vídeo de execução do exercício -->
+  <div class="video-modal" id="videoModal">
+    <div class="video-modal-sheet">
+      <div class="video-modal-header">
+        <h3 id="videoModalTitle">Execução</h3>
+        <button class="notes-modal-close" onclick="closeVideoModal()">✕</button>
+      </div>
+      <div class="video-modal-frame-wrap">
+        <iframe id="videoModalFrame" src="" title="Vídeo de execução do exercício"
+                allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+      </div>
+      <a id="videoModalOpenExternal" class="video-modal-fallback" href="#" target="_blank" rel="noopener">
+        Não carregou? Abrir no YouTube
+      </a>
     </div>
   </div>
 
@@ -1443,9 +1488,94 @@ function frequencyHtml(dates) {
 }
 
 // === Vídeo ===
-function openVideo(url, exerciseName) {
-  const target = url || 'https://www.youtube.com/results?search_query=' + encodeURIComponent(exerciseName + ' execução correta');
-  window.location.href = target;
+// Fallback de vídeo por exercício, usado só quando o professor não cadastrou
+// um video_url próprio. Chave = nome do exercício normalizado (lower+trim),
+// igual ao name_lower de exercise_library. Cobre o que já foi curado até
+// agora (grupos Peito e Costas + variações reais vistas em exercise_library/
+// workout_logs) — segue incompleto de propósito, cresce aos poucos.
+const DEFAULT_EXERCISE_VIDEOS = {
+  'agachamento livre': 'itucObZpMWk',
+  'barra fixa': 'wyFyVKuOUiE',
+  'cadeira extensora': 'R48aWM4NH5w',
+  'chest press': '2qlsRB71Ixc',
+  'crossover': 'LY90W4TS18c',
+  'crossover alto': 'LY90W4TS18c',
+  'crucifixo inclinado': '3j6HZaqsvoY',
+  'crucifixo reto': 's7gBuCccHNc',
+  'desenvolvimento militar': 'Xy0HBD2K4Jk',
+  'elevação lateral': '7odpb3ONhuc',
+  'flexão de braço': 'cmH9E_DEEKo',
+  'leg press 45°': 'FREdP43JDk4',
+  'levantamento terra': 'ASO89bLkLqU',
+  'panturrilha em pé': '4QXYm9o-clg',
+  'panturrilha no leg press': 'aPfW5aCfxG0',
+  'peck deck': 'MENdoLpyj7c',
+  'pulldown': 'QXVNbBo1tc8',
+  'pullover': 'sEzbtJ_Mz68',
+  'pullover na polia': 'lrpeLCg1y1E',
+  'puxada frontal': 'dZqL3bSeVc8',
+  'puxada supinada': 'vXKcuyaQD0w',
+  'puxada triângulo': 'aQFHdA_8hOE',
+  'puxador frente': 'T_wGK8PEO6I',
+  'remada alta': 'csF_uw7niTI',
+  'remada baixa (barra reta)': '2Vx9u52k0oI',
+  'remada baixa (triângulo)': 'fEA4O71kFr4',
+  'remada cavalinho': '422ZfyKQMfk',
+  'remada curvada': 'r2BIpnqmoJA',
+  'remada serrote': 'mNHZGDLUPtg',
+  'remada unilateral': 'A6Rjc6aUUB8',
+  'remada unilateral com halter': 'A6Rjc6aUUB8',
+  'rosca direta barra': 'kdvuXL_LC_o',
+  'rosca direta com barra': 'kdvuXL_LC_o',
+  'rosca martelo': 'L1JXNs-MgXg',
+  'stiff': 'LvD0Wz8nDCM',
+  'supino declinado': 'tKuaxE6NNx8',
+  'supino inclinado com halteres': 'eBT3llJhxU8',
+  'supino inclinado halter': 'eBT3llJhxU8',
+  'supino na máquina': 'dashO-xzD4E',
+  'supino reto': 'AjTLUlx4nEs',
+  'supino reto com barra': 'AjTLUlx4nEs',
+  'supino reto com halteres': 'NIzt_fAXL2w',
+  'tríceps corda': '-QGC1cL6ETE',
+  'tríceps pulley (corda)': '-QGC1cL6ETE',
+};
+
+// Aceita watch?v=, youtu.be/, shorts/ e embed/ — qualquer formato que o
+// professor cole. Se não for reconhecido (Vimeo, Instagram, Drive...),
+// retorna null e o link abre externo em vez de forçar um embed quebrado.
+function extractYouTubeId(url) {
+  if (!url) return null;
+  const m = String(url).match(/(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  return m ? m[1] : null;
+}
+
+function openVideo(url, exerciseName, nameLower) {
+  const customId = extractYouTubeId(url);
+  if (url && !customId) {
+    // Link do professor não é (ou não foi reconhecido como) YouTube — respeita
+    // a escolha dele, mas não dá pra embutir, então abre numa aba nova.
+    window.open(url, '_blank');
+    return;
+  }
+  const videoId = customId || DEFAULT_EXERCISE_VIDEOS[nameLower] || null;
+  if (videoId) {
+    showVideoModal(videoId, exerciseName);
+  } else {
+    const searchUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(exerciseName + ' execução correta');
+    window.open(searchUrl, '_blank');
+  }
+}
+
+function showVideoModal(videoId, exerciseName) {
+  document.getElementById('videoModalTitle').textContent = 'Execução — ' + exerciseName;
+  document.getElementById('videoModalFrame').src = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`;
+  document.getElementById('videoModalOpenExternal').href = `https://www.youtube.com/watch?v=${videoId}`;
+  document.getElementById('videoModal').classList.add('show');
+}
+
+function closeVideoModal() {
+  document.getElementById('videoModal').classList.remove('show');
+  document.getElementById('videoModalFrame').src = ''; // para o vídeo ao fechar
 }
 
 // === Notas toggle ===
@@ -1690,6 +1820,7 @@ function renderExerciseCard(day, exIdx, ex) {
   const cardId = `card-${day}-${exIdx}`;
   const exName = esc(ex.name);
   const videoUrl = ex.video_url || '';
+  const nameLower = String(ex.name || '').toLowerCase().trim();
   const exNote = ex.note || '';
   const sets = ex.sets || [];
   const descanso = restSummary(sets, ex.rest);
@@ -1700,7 +1831,7 @@ function renderExerciseCard(day, exIdx, ex) {
   // Header
   html += `<div class="exercise-header">`;
   html += `<div class="exercise-name">${exName}</div>`;
-  html += `<button class="video-btn ${videoUrl ? 'visible' : ''}" onclick="openVideo('${esc(videoUrl).replace(/'/g,"\\'")}','${exName.replace(/'/g,"\\'")}')">▶</button>`;
+  html += `<button class="video-btn visible" onclick="openVideo('${esc(videoUrl).replace(/'/g,"\\'")}','${exName.replace(/'/g,"\\'")}','${esc(nameLower).replace(/'/g,"\\'")}')">▶</button>`;
   html += `<button class="note-icon ${exNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}')">!</button>`;
   html += `</div>`;
   // Nota do exercício
