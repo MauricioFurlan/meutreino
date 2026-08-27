@@ -1495,8 +1495,10 @@ function frequencyHtml(dates) {
 // workout_logs) — segue incompleto de propósito, cresce aos poucos.
 const DEFAULT_EXERCISE_VIDEOS = {
   'agachamento livre': 'itucObZpMWk',
+  'banco romano': 'nSnZvrhre20',
   'barra fixa': 'wyFyVKuOUiE',
   'cadeira extensora': 'R48aWM4NH5w',
+  'cadeira flexora': '5K0dcOVGwZ8',
   'chest press': '2qlsRB71Ixc',
   'crossover': 'LY90W4TS18c',
   'crossover alto': 'LY90W4TS18c',
@@ -1549,6 +1551,15 @@ function extractYouTubeId(url) {
   return m ? m[1] : null;
 }
 
+// Remove qualificadores de método de treino que o professor costuma anotar
+// junto do nome ("Peck Deck (ativação)", "Cadeira Extensora (pico de
+// contração)") — eles não mudam QUAL exercício é, só como a série é feita.
+// Propositalmente NÃO mexe em qualificadores de equipamento/pegada/ângulo
+// ("Remada Baixa (Triângulo)" vs "(Barra Reta)" são exercícios diferentes).
+function stripTrainingAnnotation(nameLower) {
+  return nameLower.replace(/\s*\((?:ativação|aquecimento|pico de contração|drop ?set)\)\s*$/i, '').trim();
+}
+
 function openVideo(url, exerciseName, nameLower) {
   const customId = extractYouTubeId(url);
   if (url && !customId) {
@@ -1559,7 +1570,10 @@ function openVideo(url, exerciseName, nameLower) {
     window.location.href = url;
     return;
   }
-  const videoId = customId || DEFAULT_EXERCISE_VIDEOS[nameLower] || null;
+  const videoId = customId
+    || DEFAULT_EXERCISE_VIDEOS[nameLower]
+    || DEFAULT_EXERCISE_VIDEOS[stripTrainingAnnotation(nameLower)]
+    || null;
   if (videoId) {
     showVideoModal(videoId, exerciseName);
   } else {
