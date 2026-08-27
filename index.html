@@ -1553,8 +1553,10 @@ function openVideo(url, exerciseName, nameLower) {
   const customId = extractYouTubeId(url);
   if (url && !customId) {
     // Link do professor não é (ou não foi reconhecido como) YouTube — respeita
-    // a escolha dele, mas não dá pra embutir, então abre numa aba nova.
-    window.open(url, '_blank');
+    // a escolha dele, mas não dá pra embutir. window.open('_blank') deixava uma
+    // aba/janela órfã em branco ao voltar dentro do PWA instalado — mesma
+    // navegação na aba atual, como já era antes deste recurso existir.
+    window.location.href = url;
     return;
   }
   const videoId = customId || DEFAULT_EXERCISE_VIDEOS[nameLower] || null;
@@ -1562,7 +1564,7 @@ function openVideo(url, exerciseName, nameLower) {
     showVideoModal(videoId, exerciseName);
   } else {
     const searchUrl = 'https://www.youtube.com/results?search_query=' + encodeURIComponent(exerciseName + ' execução correta');
-    window.open(searchUrl, '_blank');
+    window.location.href = searchUrl;
   }
 }
 
