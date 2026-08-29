@@ -128,6 +128,30 @@
     .theme-card[data-theme="highvis"].active { border-color: #ffd600; }
     .theme-card[data-theme="highvis"].active::after { color: #ffd600; }
 
+    /* Preferências do cronômetro de descanso */
+    .pref-list { padding: 0 16px 8px; display: flex; flex-direction: column; gap: 10px; }
+    .pref-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--bg-card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 14px;
+    }
+    .pref-text { flex: 1; min-width: 0; }
+    .pref-name { font-size: var(--fs-base); font-weight: 600; color: var(--text); }
+    .pref-desc { font-size: var(--fs-2xs); color: var(--text-muted); margin-top: 3px; line-height: 1.4; }
+    .pref-switch {
+      flex-shrink: 0; width: 46px; height: 26px; border-radius: 13px; cursor: pointer;
+      background: var(--bg-input); border: 1px solid var(--border);
+      position: relative; transition: background 0.2s, border-color 0.2s;
+    }
+    .pref-switch::after {
+      content: ''; position: absolute; top: 3px; left: 3px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: var(--text-dim); transition: transform 0.2s, background 0.2s;
+    }
+    .pref-switch.on { background: rgba(var(--accent-rgb), 0.2); border-color: var(--accent); }
+    .pref-switch.on::after { transform: translateX(20px); background: var(--accent); }
+    .pref-switch:active { opacity: 0.7; }
+
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       background: var(--accent); color: var(--text-dark); padding: 10px 20px;
@@ -152,7 +176,7 @@
     .loading-text { color: var(--text-muted); font-size: var(--fs-base); font-weight: 500; letter-spacing: 0.5px; }
 
     @media (min-width: 640px) {
-      .header, .section-title, .theme-grid {
+      .header, .section-title, .theme-grid, .pref-list {
         max-width: 480px;
         margin-left: auto;
         margin-right: auto;
@@ -258,6 +282,32 @@
     </div>
   </div>
 
+  <div class="section-title">Cronômetro de descanso</div>
+
+  <div class="pref-list">
+    <div class="pref-row">
+      <div class="pref-text">
+        <div class="pref-name">Apito ao terminar</div>
+        <div class="pref-desc">Toca um apito quando o descanso zera. Não toca com o celular no silencioso.</div>
+      </div>
+      <div class="pref-switch" id="prefSound" onclick="togglePref('sound')"></div>
+    </div>
+    <div class="pref-row">
+      <div class="pref-text">
+        <div class="pref-name">Vibrar ao terminar</div>
+        <div class="pref-desc">Vibração junto com o apito. O iPhone não permite vibração pelo navegador.</div>
+      </div>
+      <div class="pref-switch" id="prefVibrate" onclick="togglePref('vibrate')"></div>
+    </div>
+    <div class="pref-row">
+      <div class="pref-text">
+        <div class="pref-name">Manter a tela ligada</div>
+        <div class="pref-desc">Impede a tela de apagar enquanto o descanso está correndo.</div>
+      </div>
+      <div class="pref-switch" id="prefScreen" onclick="togglePref('screen')"></div>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -294,6 +344,33 @@ function selectTheme(theme) {
   showToast('Tema aplicado!');
 }
 
+// Preferências do cronômetro de descanso (lidas em index.html).
+// Ficam só no aparelho: são sobre o ambiente (som, silencioso, bateria),
+// não sobre o aluno — não faz sentido sincronizar entre celulares.
+const REST_PREFS = {
+  sound: { key: 'rest-timer-sound', el: 'prefSound' },
+  vibrate: { key: 'rest-timer-vibrate', el: 'prefVibrate' },
+  screen: { key: 'rest-timer-screen', el: 'prefScreen' }
+};
+
+function restPrefOn(name) { // padrão ligado: só o valor '0' desliga
+  try { return localStorage.getItem(REST_PREFS[name].key) !== '0'; } catch (e) { return true; }
+}
+
+function renderRestPrefs() {
+  Object.keys(REST_PREFS).forEach(name => {
+    const el = document.getElementById(REST_PREFS[name].el);
+    if (el) el.classList.toggle('on', restPrefOn(name));
+  });
+}
+
+function togglePref(name) {
+  const ligado = !restPrefOn(name);
+  try { localStorage.setItem(REST_PREFS[name].key, ligado ? '1' : '0'); } catch (e) {}
+  renderRestPrefs();
+  showToast(ligado ? 'Ativado' : 'Desativado');
+}
+
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', currentTheme);
   document.querySelectorAll('.theme-card').forEach(c => {
@@ -322,6 +399,7 @@ guard('student', {
 
 // Aplica tema imediatamente (antes do guard resolver)
 applyTheme();
+renderRestPrefs();
 
 if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 </script>

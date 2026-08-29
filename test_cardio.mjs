@@ -285,11 +285,14 @@ const renderCtx = {
 const renderApi = new vm.Script(
   src['index.html'].match(/const esc = \(s\) => \{[\s\S]*?\};/)[0] + '\n' +
   grabFrom(src['index.html'], 'normalizeRest') + '\n' +
+  src['index.html'].match(/const REST_UNIT = .*;/)[0] + '\n' +
+  grabFrom(src['index.html'], 'restUnitToSeconds') + '\n' +
+  grabFrom(src['index.html'], 'restToSeconds') + '\n' +
   grabFrom(src['index.html'], 'restLabel') + '\n' +
   grabFrom(src['index.html'], 'restSummary') + '\n' +
   grabFrom(src['index.html'], 'isCardioSet') + '\n' +
   grabFrom(src['index.html'], 'renderExerciseCard') + '\n' +
-  '({ renderExerciseCard })'
+  '({ renderExerciseCard, restToSeconds })'
 ).runInNewContext(renderCtx);
 
 const cardCardio = renderApi.renderExerciseCard('Segunda', 0, {
@@ -309,11 +312,18 @@ const cardForca = renderApi.renderExerciseCard('Segunda', 1, {
     { type: 'hard', reps: '8-12', rest: '3min', note: null }
   ]
 });
-eq('força: descanso em linha própria', /<div class="rest-line">/.test(cardForca), true);
-eq('força: resumo por tipo',
-  /Descansos:<\/span> <span class="rest-value">AQUEC-2min \/ FED-2min \/ HARD-3min<\/span>/.test(cardForca), true);
-eq('força: descanso vem antes do histórico',
-  cardForca.indexOf('rest-line') < cardForca.indexOf('history-btn'), true);
+// O descanso prescrito vira botão na linha da série (2min, 2min, 3min).
+eq('força: um botão de descanso por série',
+  (cardForca.match(/class="rest-timer-btn"/g) || []).length, 3);
+eq('força: botão abre o tempo daquela série',
+  /openRestTimer\(120,[\s\S]*openRestTimer\(120,[\s\S]*openRestTimer\(180,/.test(cardForca), true);
+eq('força: rótulo do botão é o tempo prescrito',
+  />2min<\/button>[\s\S]*>3min<\/button>/.test(cardForca), true);
+// Sem pill: repetir na pill o que já está em cada linha era ruído.
+eq('força: sem pill quando todo descanso virou botão',
+  /rest-pill/.test(cardForca), false);
+eq('força: coluna do descanso tem título',
+  /col-title col-rest/.test(cardForca), true);
 eq('força: mantém KG e REPS',       /KG[\s\S]*REPS/.test(cardForca), true);
 eq('força: sem input de minutos',   /minutes-input/.test(cardForca), false);
 
@@ -323,8 +333,10 @@ const cardUniforme = renderApi.renderExerciseCard('Segunda', 2, {
     { type: 'hard', reps: '10', rest: '90s', note: null }
   ]
 });
-eq('descanso igual: singular e valor único',
-  /Descanso:<\/span> <span class="rest-value">90s<\/span>/.test(cardUniforme), true);
+eq('descanso igual: botão em cada uma das duas séries',
+  (cardUniforme.match(/class="rest-timer-btn"/g) || []).length, 2);
+eq('descanso igual: "90" e "90s" dão o mesmo tempo',
+  (cardUniforme.match(/openRestTimer\(90,/g) || []).length, 2);
 
 const semDescanso = renderApi.renderExerciseCard('Segunda', 3, {
   name: 'Elevação lateral', sets: [{ type: 'hard', reps: '10', note: null }]
@@ -348,8 +360,30 @@ const misto = renderApi.renderExerciseCard('Segunda', 6, {
 });
 eq('misto: tem carga e minutos',    /weight-input/.test(misto) && /minutes-input/.test(misto), true);
 eq('misto: header segue KG/REPS',   /col-title">KG/.test(misto), true);
-eq('misto: resumo cita os dois tipos',
-  /HARD-60s \/ CARDIO-1min/.test(misto), true);
+eq('misto: botão de descanso nas duas linhas',
+  /openRestTimer\(60,[\s\S]*openRestTimer\(60,/.test(misto), true);
+eq('misto: linha de cardio também tem título da coluna',
+  /col-title col-rest/.test(misto), true);
+
+// Texto livre não vira cronômetro: continua visível como leitura na pill.
+const livre = renderApi.renderExerciseCard('Segunda', 7, {
+  name: 'Prancha', sets: [
+    { type: 'hard', reps: '30s', rest: 'até recuperar', note: null },
+    { type: 'hard', reps: '30s', rest: '90s', note: null }
+  ]
+});
+eq('livre: só a série com tempo válido ganha botão',
+  (livre.match(/class="rest-timer-btn"/g) || []).length, 1);
+eq('livre: singular quando a pill lista um item só',
+  /Descanso:<\/span>/.test(livre), true);
+eq('livre: a pill guarda o que não virou botão',
+  /rest-value">HARD-até recuperar<\/span>/.test(livre), true);
+eq('livre: célula vazia mantém a grade alinhada',
+  (livre.match(/<span class="rest-cell"><\/span>/g) || []).length, 1);
+eq('faixa 60-90s usa o maior valor',
+  /openRestTimer\(90,/.test(renderApi.renderExerciseCard('Segunda', 8, {
+    name: 'Remada', sets: [{ type: 'hard', reps: '10', rest: '60-90s', note: null }]
+  })), true);
 
 // ---------- regras do gráfico de cardio ----------
 // O que estava confuso na tela: números que se repetem com pouca amostra e

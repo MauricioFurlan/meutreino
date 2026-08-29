@@ -198,7 +198,7 @@
     }
     .set-row {
       display: grid;
-      grid-template-columns: auto 1fr 1fr 40px;
+      grid-template-columns: auto 1fr 1fr 52px 40px;
       gap: 8px;
       align-items: center;
       margin-bottom: 10px;
@@ -216,7 +216,7 @@
     .set-label.type-hard { color: var(--error-light); }
     .set-label.type-cardio { color: var(--warning); }
     /* Cardio: uma coluna só (minutos) em vez de KG × REPS */
-    .set-row.cardio-row { grid-template-columns: auto 1fr 40px; }
+    .set-row.cardio-row { grid-template-columns: auto 1fr 52px 40px; }
     .set-row.cardio-row input { border-color: var(--accent-dark); }
     .set-row.cardio-row input:focus { border-color: var(--warning); }
     /* Descanso prescrito: sempre visível, em linha PRÓPRIA — quando era
@@ -250,6 +250,7 @@
     }
     .set-header { margin-bottom: 0; padding: 0; }
     .col-title { font-size: var(--fs-2xs); color: var(--text-muted2); text-align: center; font-weight: 700; text-transform: uppercase; }
+    .col-title.col-rest { font-size: var(--fs-base); }
     .set-row input::placeholder { color: var(--text-muted); font-size: 14px; font-weight: 500; }
     .set-row input:focus { outline: none; border-color: var(--accent); }
     /* Treino do dia: placeholder de referência (peso/reps da semana passada) em destaque. */
@@ -273,6 +274,93 @@
     .check-icon svg { display: none; }
     .check-icon.done { border-color: var(--save-done); background: var(--save-done); }
     .check-icon.done svg { display: block; }
+    /* ── Descanso: botão por série + cronômetro ──────────────────────
+       O valor prescrito daquela série vira o próprio botão ("90s"), então
+       o aluno vê o tempo e dispara a contagem no mesmo toque. Séries sem
+       descanso prescrito (ou com texto livre, "até recuperar") mantêm a
+       célula vazia para a grade não desalinhar. */
+    .rest-cell { min-width: 0; }
+    .rest-timer-btn {
+      width: 100%; background: none; border: 1px solid var(--accent-dark); color: var(--accent);
+      font-size: var(--fs-2xs); font-weight: 700; font-variant-numeric: tabular-nums;
+      padding: 7px 2px; border-radius: 8px; cursor: pointer; white-space: nowrap;
+      min-width: 0; transition: opacity 0.2s;
+    }
+    .rest-timer-btn:active { opacity: 0.6; }
+    .rest-timer-btn.running { border-color: var(--accent); background: rgba(var(--accent-rgb), 0.15); }
+
+    .rest-modal {
+      display: none; position: fixed; inset: 0; background: var(--overlay-bg);
+      z-index: 1300; align-items: center; justify-content: center; padding: 20px;
+    }
+    .rest-modal.show { display: flex; animation: restFadeIn 0.18s ease-out; }
+    @keyframes restFadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .rest-modal-sheet {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px;
+      padding: 22px 20px 18px; width: 100%; max-width: 360px; text-align: center;
+      animation: restSheetIn 0.22s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+    }
+    @keyframes restSheetIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .rest-modal-title {
+      font-size: var(--fs-sm); color: var(--text-muted2); text-transform: uppercase;
+      letter-spacing: 1.5px; font-weight: 700;
+    }
+    .rest-modal-sub {
+      font-size: var(--fs-md); color: var(--text-muted3); margin-top: 4px;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .rest-ring-wrap { position: relative; width: 216px; height: 216px; margin: 16px auto 8px; }
+    .rest-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .rest-ring-track { fill: none; stroke: var(--border); stroke-width: 10; }
+    .rest-ring-bar {
+      fill: none; stroke: var(--accent); stroke-width: 10; stroke-linecap: round;
+      filter: drop-shadow(0 0 6px rgba(var(--accent-rgb), 0.55));
+      transition: stroke 0.3s;
+    }
+    .rest-ring-center {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 2px;
+    }
+    .rest-time {
+      font-size: 3.1rem; line-height: 1; font-weight: 800; color: var(--text-bright);
+      font-variant-numeric: tabular-nums; letter-spacing: 1px;
+    }
+    .rest-of {
+      font-size: var(--fs-xs); color: var(--text-muted3); font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    /* Últimos 5s: o anel respira junto com a contagem. */
+    .rest-modal.warning .rest-ring-bar { stroke: var(--warning); filter: drop-shadow(0 0 8px var(--warning)); }
+    .rest-modal.warning .rest-time { color: var(--warning); animation: restPulse 1s ease-in-out infinite; }
+    @keyframes restPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+    .rest-modal.paused .rest-ring-bar { stroke: var(--text-dim); filter: none; }
+    .rest-modal.paused .rest-time { color: var(--text-muted); }
+    .rest-modal.done .rest-ring-bar { stroke: var(--success); filter: drop-shadow(0 0 10px var(--success)); }
+    .rest-modal.done .rest-ring-wrap { animation: restDone 0.5s ease-out 2; }
+    @keyframes restDone { 0%, 100% { transform: scale(1); } 45% { transform: scale(1.07); } }
+    .rest-modal.done .rest-time { color: var(--success); font-size: 2.1rem; }
+    .rest-status {
+      font-size: var(--fs-md); font-weight: 700; color: var(--text-muted2);
+      min-height: 18px; letter-spacing: 0.5px;
+    }
+    .rest-modal.done .rest-status { color: var(--success); }
+    .rest-controls { display: flex; gap: 8px; margin-top: 16px; }
+    .rest-controls button {
+      flex: 1; background: none; border: 1px solid var(--border); color: var(--text);
+      font-size: var(--fs-md); font-weight: 700; padding: 11px 4px; border-radius: 10px;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    .rest-controls button:active { opacity: 0.6; }
+    .rest-controls .rest-main-btn { border-color: var(--accent); color: var(--accent); }
+    .rest-close-btn {
+      width: 100%; margin-top: 10px; background: none; border: none;
+      color: var(--text-muted3); font-size: var(--fs-md); font-weight: 600;
+      padding: 10px; cursor: pointer;
+    }
+    .rest-close-btn:active { opacity: 0.6; }
+    .rest-modal-note {
+      font-size: var(--fs-2xs); color: var(--text-muted3); margin-top: 2px;
+    }
     /* Timer de treino - discreto */
     .start-workout-row {
       display: flex; flex-direction: column; align-items: stretch; gap: 8px;
@@ -807,6 +895,33 @@
       <a id="videoModalOpenExternal" class="video-modal-fallback" href="#" target="_blank" rel="noopener">
         Não carregou? Abrir no YouTube
       </a>
+    </div>
+  </div>
+
+  <!-- Cronômetro de descanso (r=96 → circunferência 603.19, usada no JS) -->
+  <div class="rest-modal" id="restModal" onclick="handleRestModalClick(event)">
+    <div class="rest-modal-sheet">
+      <div class="rest-modal-title">Descanso</div>
+      <div class="rest-modal-sub" id="restModalSub"></div>
+      <div class="rest-ring-wrap">
+        <svg class="rest-ring" viewBox="0 0 216 216" aria-hidden="true">
+          <circle class="rest-ring-track" cx="108" cy="108" r="96"></circle>
+          <circle class="rest-ring-bar" id="restRingBar" cx="108" cy="108" r="96"
+                  stroke-dasharray="603.19" stroke-dashoffset="0"></circle>
+        </svg>
+        <div class="rest-ring-center">
+          <div class="rest-time" id="restTime">0:00</div>
+          <div class="rest-of" id="restOf"></div>
+        </div>
+      </div>
+      <div class="rest-status" id="restStatus"></div>
+      <div class="rest-controls">
+        <button type="button" onclick="restAdjust(-15)">-15s</button>
+        <button type="button" class="rest-main-btn" id="restMainBtn" onclick="restToggle()">Pausar</button>
+        <button type="button" onclick="restAdjust(15)">+15s</button>
+      </div>
+      <button type="button" class="rest-close-btn" onclick="closeRestTimer()">Fechar</button>
+      <div class="rest-modal-note" id="restModalNote"></div>
     </div>
   </div>
 
@@ -1594,6 +1709,290 @@ function closeVideoModal() {
   document.getElementById('videoModalFrame').src = ''; // para o vídeo ao fechar
 }
 
+// =====================================================================
+// Cronômetro de descanso
+// O descanso prescrito pelo professor vira botão na própria linha da série
+// ("90s"), e o toque abre a contagem em destaque. A contagem é calculada a
+// partir de Date.now(), não somando ticks: se a tela apagar ou o app for
+// para segundo plano, o tempo restante continua certo ao voltar.
+// =====================================================================
+
+// '90s'/'2min'/'1min30s'/'1:30' → segundos. Faixa ('60-90s') usa o MAIOR.
+// Texto livre ('até recuperar') devolve 0 — esse não vira botão.
+const REST_UNIT = '(s|seg|segs|segundo|segundos|m|min|mins|minuto|minutos)';
+
+function restUnitToSeconds(n, unit) {
+  const secs = String(unit || '').startsWith('m') ? n * 60 : n; // sem unidade = segundos
+  return (secs > 0 && secs <= 3600) ? secs : 0;
+}
+
+function restToSeconds(raw) {
+  const t = String(raw || '').trim().toLowerCase().replace(/\s+/g, '');
+  if (!t) return 0;
+  const faixa = t.match(new RegExp('^(\\d+)[-–a](\\d+)' + REST_UNIT + '?$'));
+  if (faixa) return restUnitToSeconds(Number(faixa[2]), faixa[3]);
+  const mmss = t.match(/^(\d+):([0-5]\d)$/);
+  if (mmss) return Number(mmss[1]) * 60 + Number(mmss[2]);
+  const composto = t.match(/^(\d+)(?:m|min|mins|minuto|minutos)(\d+)(?:s|seg|segs|segundos?)?$/);
+  if (composto) return Number(composto[1]) * 60 + Number(composto[2]);
+  const simples = t.match(new RegExp('^(\\d+)' + REST_UNIT + '?$'));
+  if (simples) return restUnitToSeconds(Number(simples[1]), simples[2]);
+  return 0;
+}
+
+function formatRestClock(seconds) {
+  const s = Math.max(0, Math.ceil(seconds));
+  return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+
+// Preferências (som, vibração, tela ligada) — ficam em config.html.
+// Padrão ligado: só o valor '0' desliga.
+const REST_PREF_KEYS = { sound: 'rest-timer-sound', vibrate: 'rest-timer-vibrate', screen: 'rest-timer-screen' };
+function restPref(key) {
+  try { return localStorage.getItem(REST_PREF_KEYS[key]) !== '0'; } catch (e) { return true; }
+}
+
+// --- Apito (Web Audio, sem arquivo de áudio) ---------------------------
+// Sopro = ruído filtrado; a "bolinha" do apito = vibrato rápido no tom.
+let restAudioCtx = null;
+let restNoiseBuffer = null;
+
+function restEnsureAudio() {
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    if (!restAudioCtx) restAudioCtx = new Ctx();
+    // iOS/Chrome só liberam áudio dentro de um gesto do usuário — este
+    // resume roda no mesmo toque que abriu o cronômetro.
+    if (restAudioCtx.state === 'suspended') restAudioCtx.resume();
+    return restAudioCtx;
+  } catch (e) { return null; }
+}
+
+function restGetNoise(ctx) {
+  if (restNoiseBuffer) return restNoiseBuffer;
+  const len = Math.floor(ctx.sampleRate * 0.8);
+  const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+  restNoiseBuffer = buf;
+  return buf;
+}
+
+function restWhistleBlast(ctx, t0, dur) {
+  const master = ctx.createGain();
+  master.connect(ctx.destination);
+  master.gain.setValueAtTime(0.0001, t0);
+  master.gain.exponentialRampToValueAtTime(0.45, t0 + 0.02);
+  master.gain.setValueAtTime(0.45, t0 + Math.max(0.04, dur - 0.06));
+  master.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(2350, t0);
+  const vibrato = ctx.createOscillator();
+  vibrato.frequency.value = 38;
+  const vibratoGain = ctx.createGain();
+  vibratoGain.gain.value = 120;
+  vibrato.connect(vibratoGain);
+  vibratoGain.connect(osc.frequency);
+  const oscGain = ctx.createGain();
+  oscGain.gain.value = 0.55;
+  osc.connect(oscGain);
+  oscGain.connect(master);
+
+  const noise = ctx.createBufferSource();
+  noise.buffer = restGetNoise(ctx);
+  noise.loop = true;
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 2400;
+  bp.Q.value = 5;
+  const noiseGain = ctx.createGain();
+  noiseGain.gain.value = 0.22;
+  noise.connect(bp);
+  bp.connect(noiseGain);
+  noiseGain.connect(master);
+
+  osc.start(t0); vibrato.start(t0); noise.start(t0);
+  osc.stop(t0 + dur); vibrato.stop(t0 + dur); noise.stop(t0 + dur);
+}
+
+function restPlayWhistle() {
+  const ctx = restEnsureAudio();
+  if (!ctx) return;
+  const now = ctx.currentTime + 0.02;
+  restWhistleBlast(ctx, now, 0.16);
+  restWhistleBlast(ctx, now + 0.24, 0.16);
+  restWhistleBlast(ctx, now + 0.48, 0.55);
+}
+
+// --- Tela ligada durante o descanso ------------------------------------
+let restWakeLock = null;
+
+function restRequestWakeLock() {
+  if (!restPref('screen') || !navigator.wakeLock) return;
+  navigator.wakeLock.request('screen')
+    .then(lock => {
+      // Se o cronômetro já fechou enquanto a promise resolvia, solta na hora.
+      if (!restState) { lock.release().catch(() => {}); return; }
+      restWakeLock = lock;
+      lock.addEventListener('release', () => { restWakeLock = null; });
+    })
+    .catch(() => {});
+}
+
+function restReleaseWakeLock() {
+  if (restWakeLock) { restWakeLock.release().catch(() => {}); restWakeLock = null; }
+}
+
+// --- Contagem ----------------------------------------------------------
+const REST_RING_CIRCUMFERENCE = 603.19; // 2πr, r=96 (igual ao SVG)
+let restState = null;    // { total, endsAt, restante, pausado, concluido, btn }
+let restRafId = null;
+let restBackstop = null; // em segundo plano o rAF congela; o interval garante o fim
+
+function openRestTimer(seconds, label, btn) {
+  const total = Number(seconds) || 0;
+  if (total <= 0) return;
+  restEnsureAudio(); // libera o áudio dentro do gesto que abriu o modal
+  restClearRunners();
+  if (restState && restState.btn) restState.btn.classList.remove('running');
+  restState = {
+    total: total,
+    endsAt: Date.now() + total * 1000,
+    restante: total,
+    pausado: false,
+    concluido: false,
+    btn: btn || null
+  };
+  if (btn) btn.classList.add('running');
+
+  const modal = document.getElementById('restModal');
+  modal.classList.remove('warning', 'paused', 'done');
+  modal.classList.add('show');
+  document.getElementById('restModalSub').textContent = label || '';
+  document.getElementById('restOf').textContent = 'de ' + formatRestClock(total);
+  document.getElementById('restStatus').textContent = '';
+  document.getElementById('restMainBtn').textContent = 'Pausar';
+  document.getElementById('restModalNote').textContent =
+    (restPref('sound') || restPref('vibrate')) ? '' : 'Alertas desligados nas configurações.';
+  restRender();
+  restStartRunners();
+  restRequestWakeLock();
+}
+
+function restStartRunners() {
+  const loop = () => {
+    restTick();
+    if (restState && !restState.concluido && !restState.pausado) restRafId = requestAnimationFrame(loop);
+  };
+  restRafId = requestAnimationFrame(loop);
+  restBackstop = setInterval(restTick, 500);
+}
+
+function restClearRunners() {
+  if (restRafId) { cancelAnimationFrame(restRafId); restRafId = null; }
+  if (restBackstop) { clearInterval(restBackstop); restBackstop = null; }
+}
+
+function restTick() {
+  if (!restState || restState.concluido || restState.pausado) return;
+  restState.restante = (restState.endsAt - Date.now()) / 1000;
+  if (restState.restante <= 0) { restState.restante = 0; restFinish(); return; }
+  restRender();
+}
+
+function restRender() {
+  if (!restState) return;
+  const restante = Math.max(0, restState.restante);
+  const modal = document.getElementById('restModal');
+  document.getElementById('restTime').textContent =
+    restState.concluido ? 'Pode voltar' : formatRestClock(restante);
+  const fracao = restState.total > 0 ? Math.min(1, restante / restState.total) : 0;
+  document.getElementById('restRingBar').setAttribute(
+    'stroke-dashoffset', String(REST_RING_CIRCUMFERENCE * (1 - fracao))
+  );
+  modal.classList.toggle('warning', !restState.concluido && !restState.pausado && restante <= 5);
+  modal.classList.toggle('paused', restState.pausado);
+}
+
+function restFinish() {
+  if (!restState || restState.concluido) return;
+  restState.concluido = true;
+  restClearRunners();
+  restReleaseWakeLock();
+  const modal = document.getElementById('restModal');
+  modal.classList.remove('warning', 'paused');
+  modal.classList.add('done');
+  document.getElementById('restOf').textContent = 'Descanso de ' + formatRestClock(restState.total);
+  document.getElementById('restStatus').textContent = 'Descanso concluído';
+  document.getElementById('restMainBtn').textContent = 'Repetir';
+  if (restState.btn) restState.btn.classList.remove('running');
+  restRender();
+  if (restPref('sound')) restPlayWhistle();
+  if (restPref('vibrate') && navigator.vibrate) {
+    try { navigator.vibrate([220, 120, 220, 120, 500]); } catch (e) {}
+  }
+}
+
+function restToggle() {
+  if (!restState) return;
+  if (restState.concluido) { // "Repetir": roda o mesmo descanso de novo
+    openRestTimer(restState.total, document.getElementById('restModalSub').textContent, restState.btn);
+    return;
+  }
+  if (restState.pausado) {
+    restState.pausado = false;
+    restState.endsAt = Date.now() + restState.restante * 1000;
+    document.getElementById('restMainBtn').textContent = 'Pausar';
+    restStartRunners();
+    restRequestWakeLock();
+  } else {
+    restState.pausado = true;
+    restState.restante = Math.max(0, (restState.endsAt - Date.now()) / 1000);
+    document.getElementById('restMainBtn').textContent = 'Retomar';
+    restClearRunners();
+    restReleaseWakeLock();
+  }
+  restRender();
+}
+
+function restAdjust(delta) {
+  if (!restState) return;
+  if (restState.concluido) { // já acabou: +15s recomeça uma contagem curta
+    if (delta <= 0) return;
+    openRestTimer(delta, document.getElementById('restModalSub').textContent, restState.btn);
+    return;
+  }
+  const base = restState.pausado ? restState.restante : (restState.endsAt - Date.now()) / 1000;
+  const novo = Math.max(1, Math.min(3600, base + delta));
+  restState.restante = novo;
+  restState.total = Math.max(restState.total, novo);
+  if (!restState.pausado) restState.endsAt = Date.now() + novo * 1000;
+  document.getElementById('restOf').textContent = 'de ' + formatRestClock(restState.total);
+  restRender();
+}
+
+function closeRestTimer() {
+  restClearRunners();
+  restReleaseWakeLock();
+  if (restState && restState.btn) restState.btn.classList.remove('running');
+  restState = null;
+  document.getElementById('restModal').classList.remove('show', 'warning', 'paused', 'done');
+}
+
+function handleRestModalClick(event) {
+  if (event.target.id === 'restModal') closeRestTimer();
+}
+
+// O sistema solta o wake lock sozinho ao trocar de app: repede ao voltar.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && restState && !restState.pausado && !restState.concluido) {
+    restRequestWakeLock();
+  }
+});
+
 // === Notas toggle ===
 function toggleNote(id) {
   const bubble = document.getElementById(id);
@@ -1839,7 +2238,16 @@ function renderExerciseCard(day, exIdx, ex) {
   const nameLower = String(ex.name || '').toLowerCase().trim();
   const exNote = ex.note || '';
   const sets = ex.sets || [];
-  const descanso = restSummary(sets, ex.rest);
+  // A pilula resume so os descansos que NAO viram botao na linha (texto
+  // livre como 'ate recuperar'). Repetir os que ja aparecem em cada serie
+  // era ruido: a mesma informacao duas vezes na mesma tela.
+  const descanso = restSummary(
+    sets.map(sv => {
+      const bruto = sv.rest || ex.rest || '';
+      return restToSeconds(bruto) > 0 ? Object.assign({}, sv, { rest: '' }) : sv;
+    }),
+    restToSeconds(ex.rest) > 0 ? '' : ex.rest
+  );
   const allCardio = sets.length > 0 && sets.every(s => isCardioSet(s.type));
 
   let html = '';
@@ -1854,7 +2262,9 @@ function renderExerciseCard(day, exIdx, ex) {
   html += `<div class="note-bubble" id="nb-${day}-${exIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span>${esc(exNote)}</span></div>`;
   // Descanso prescrito (só aparece se foi prescrito), em linha própria
   if (descanso.text) {
-    const chave = descanso.uniform ? 'Descanso' : 'Descansos';
+    // Plural pelo que a pill REALMENTE lista: com o filtro acima ela pode
+    // ficar com um item so mesmo quando as series tem descansos diferentes.
+    const chave = descanso.text.includes(' / ') ? 'Descansos' : 'Descanso';
     html += `<div class="rest-line"><span class="rest-pill">⏱ <span class="rest-key">${chave}:</span> <span class="rest-value">${esc(descanso.text)}</span></span></div>`;
   }
   // Histórico (o modal também abre o gráfico de evolução deste exercício)
@@ -1867,9 +2277,9 @@ function renderExerciseCard(day, exIdx, ex) {
   }
   // Header colunas
   if (allCardio) {
-    html += `<div class="set-row cardio-row set-header"><span class="set-label"></span><span class="col-title">MINUTOS</span><span></span></div>`;
+    html += `<div class="set-row cardio-row set-header"><span class="set-label"></span><span class="col-title">MINUTOS</span><span class="col-title col-rest">⏱</span><span></span></div>`;
   } else {
-    html += `<div class="set-row set-header"><span class="set-label"></span><span class="col-title">KG</span><span class="col-title">REPS</span><span></span></div>`;
+    html += `<div class="set-row set-header"><span class="set-label"></span><span class="col-title">KG</span><span class="col-title">REPS</span><span class="col-title col-rest">⏱</span><span></span></div>`;
   }
   // Sets
   sets.forEach((set, setIdx) => {
@@ -1888,6 +2298,18 @@ function renderExerciseCard(day, exIdx, ex) {
     } else {
       html += `<input type="number" class="weight-input" placeholder="-" inputmode="decimal">`;
       html += `<input type="number" class="reps-input" placeholder="${esc(repsText)}" data-prescribed="${esc(repsText)}" inputmode="numeric">`;
+    }
+    // Descanso desta serie: o valor prescrito e o proprio botao do cronometro.
+    // Sem descanso (ou texto livre, 'ate recuperar') a celula fica vazia para
+    // nao desalinhar a grade.
+    const setRestText = normalizeRest(set.rest || ex.rest || '');
+    const setRestSecs = restToSeconds(setRestText);
+    if (setRestSecs > 0) {
+      const rowLabel = typeLabel + (cardio && sets.length === 1 ? '' : ' ' + (setIdx + 1));
+      const restLabelJs = (ex.name + ' - ' + rowLabel).replace(/'/g, "\\'");
+      html += `<span class="rest-cell"><button type="button" class="rest-timer-btn" onclick="openRestTimer(${setRestSecs}, '${esc(restLabelJs)}', this)">${esc(setRestText)}</button></span>`;
+    } else {
+      html += `<span class="rest-cell"></span>`;
     }
     html += checkHtml;
     html += `</div>`;
