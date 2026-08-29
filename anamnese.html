@@ -196,6 +196,22 @@
     .photo-compare-imgs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
     .photo-compare-imgs img { width: 100%; aspect-ratio: 3/4; object-fit: cover; border-radius: 8px; cursor: pointer; border: 1px solid var(--border); }
 
+    /* Fotos no modal do Histórico */
+    .detail-photos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .detail-photo-box { aspect-ratio: 3/4; border-radius: 8px; overflow: hidden; background: var(--bg-input); border: 1px solid var(--border); }
+    .detail-photo-box img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; display: block; }
+    .detail-photo-cap { font-size: var(--fs-2xs); color: var(--text-muted2); text-align: center; margin-top: 3px; }
+
+    /* Esqueleto enquanto as URLs assinadas das fotos não chegam */
+    .photo-skeleton { position: relative; overflow: hidden; aspect-ratio: 3/4; border-radius: 8px; background: var(--bg-input); border: 1px solid var(--border); }
+    .photo-skeleton::after {
+      content: ''; position: absolute; inset: 0; transform: translateX(-100%);
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+      animation: photoShimmer 1.3s infinite;
+    }
+    @keyframes photoShimmer { 100% { transform: translateX(100%); } }
+    .photo-loading-text { font-size: var(--fs-2xs); color: var(--text-muted3); margin-top: 6px; }
+
     /* Loading overlay */
     .loading-overlay {
       position: fixed; top: 0; left: 0; right: 0; bottom: 0;
@@ -878,8 +894,44 @@ function viewAssessment(id) {
 
   if (!html) html = '<div class="empty-state">Nenhum dado registrado nesta avaliação.</div>';
 
+  // Fotos desta avaliação: bucket privado, uma URL assinada por foto. Chega
+  // async, então entra um esqueleto e loadDetailPhotos() troca pelo conteúdo
+  // (ou some a seção se a avaliação não tiver foto).
+  html += `<div class="detail-section" id="detailPhotosSection">
+    <h4>Fotos</h4>
+    <div id="detailPhotosBody">
+      <div class="detail-photos-grid">${'<div class="photo-skeleton"></div>'.repeat(3)}</div>
+      <div class="photo-loading-text">Carregando fotos...</div>
+    </div>
+  </div>`;
+
   document.getElementById('detailBody').innerHTML = html;
   document.getElementById('detailModal').classList.add('show');
+  loadDetailPhotos(id);
+}
+
+// Fotos da avaliação aberta no modal do Histórico. Vale para aluno e professor
+// (o RLS já libera a leitura das próprias fotos). Some a seção inteira quando a
+// avaliação não tem nenhuma foto.
+async function loadDetailPhotos(assessmentId) {
+  const section = document.getElementById('detailPhotosSection');
+  const body = document.getElementById('detailPhotosBody');
+  if (!section || !body) return;
+  let photos = {};
+  try { photos = await fetchPhotosWithUrls(assessmentId); } catch (e) { photos = {}; }
+  // Modal pode ter sido fechado ou trocado de avaliação enquanto assinava as URLs.
+  if (currentAssessmentId !== assessmentId) return;
+  const withUrl = PHOTO_SLOTS.filter(s => photos[s.key]?.url);
+  if (!withUrl.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  body.innerHTML = '<div class="detail-photos-grid">' + withUrl.map(s => {
+    const ph = photos[s.key];
+    const cap = ph.label || s.label;
+    return `<div>
+      <div class="detail-photo-box"><img src="${ph.url}" alt="${esc(cap)}" onclick="openPhotoViewerUrl('${ph.url}', '${esc(cap)}')"></div>
+      <div class="detail-photo-cap">${esc(cap)}</div>
+    </div>`;
+  }).join('') + '</div>';
 }
 
 // === Gráficos ===
@@ -2032,16 +2084,23 @@ function openPhotoViewerUrl(url, title) {
 
 // Fotos da mesma pose nas duas avaliações escolhidas no bloco "primeira × última"
 // (reaproveita compareFromId/compareToId — mesmo par usado pelos gráficos).
+let photoCompareToken = 0;
 async function renderPhotoComparison(pairA, pairB, isCustom) {
   const block = document.getElementById('blockPhotos');
+  const token = ++photoCompareToken;
   if (!pairA || !pairB || pairA.id === pairB.id) { block.style.display = 'none'; return; }
-  const [photosA, photosB] = await Promise.all([fetchPhotosWithUrls(pairA.id), fetchPhotosWithUrls(pairB.id)]);
-  const slotsWithBoth = PHOTO_SLOTS.filter(s => photosA[s.key]?.url && photosB[s.key]?.url);
-  if (!slotsWithBoth.length) { block.style.display = 'none'; return; }
+  // Mostra o bloco já com um esqueleto — as URLs assinadas das fotos são async.
   block.style.display = 'block';
   renderCompareDates(document.getElementById('photosSub'), pairA, pairB, isCustom);
+  const grid = document.getElementById('photosCompareGrid');
+  grid.innerHTML = '<div class="photo-compare-pair"><div class="photo-compare-imgs"><div class="photo-skeleton"></div><div class="photo-skeleton"></div></div></div>';
+  document.getElementById('photosNote').textContent = 'Carregando fotos...';
+  const [photosA, photosB] = await Promise.all([fetchPhotosWithUrls(pairA.id), fetchPhotosWithUrls(pairB.id)]);
+  if (token !== photoCompareToken) return; // par de avaliações mudou enquanto carregava
+  const slotsWithBoth = PHOTO_SLOTS.filter(s => photosA[s.key]?.url && photosB[s.key]?.url);
+  if (!slotsWithBoth.length) { block.style.display = 'none'; return; }
   document.getElementById('photosNote').textContent = 'Toque em uma foto para ampliar e ativar a grade.';
-  document.getElementById('photosCompareGrid').innerHTML = slotsWithBoth.map(s => {
+  grid.innerHTML = slotsWithBoth.map(s => {
     const a = photosA[s.key], b = photosB[s.key];
     return `<div class="photo-compare-pair">
       <div class="photo-compare-label">${esc(s.label)}</div>
