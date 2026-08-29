@@ -212,7 +212,7 @@
       font-size: var(--fs-sm);
       color: var(--text);
       text-transform: uppercase;
-      min-width: 60px;
+      min-width: 72px;
       font-weight: 600;
     }
     .set-label.type-aquec { color: var(--success-light); }
@@ -732,7 +732,7 @@
       /* card dentro de biset: a moldura do grupo ja da o recuo */
       .biset-wrapper .exercise-card { padding-left: 6px; padding-right: 6px; }
       .set-row { gap: 6px; }
-      .set-label { min-width: 54px; }
+      .set-label { min-width: 64px; }
       /* o texto do placeholder vale mais que o respiro interno do campo */
       .set-row input { padding: 10px 4px; }
     }
@@ -1429,7 +1429,7 @@ async function renderStrengthChart(exerciseName, canvas, setInfo) {
     .select('session_date, weight, reps')
     .eq('student_id', studentId)
     .eq('exercise_name', exerciseName)
-    .not('set_type', 'in', '(aquec,feeder,cardio)')
+    .not('set_type', 'in', '(aquec,ativação,feeder,cardio)')
     .gte('session_date', toLocalISO(from))
     .order('session_date', { ascending: true })
     .limit(400);

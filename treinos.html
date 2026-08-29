@@ -376,6 +376,7 @@ function normalizeRest(raw) {
 function restLabel(type) {
   const t = String(type || '').trim().toLowerCase();
   if (t === 'feeder') return 'FED';
+  if (t === 'ativação') return 'ATIV';
   if (!t) return 'SET';
   const first = t.split(/[^0-9a-záàâãéêíóôõúç]+/i)[0] || t;
   return first.slice(0, 6).toUpperCase();

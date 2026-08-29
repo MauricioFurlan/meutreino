@@ -169,6 +169,17 @@
       margin-bottom: 10px;
     }
     .chart-btn:active { opacity: 0.7; }
+    /* Botão discreto no resumo semanal/mensal que abre o modal com os relatos */
+    .relato-link {
+      background: none; border: 1px solid #00d5ff; color: #00d5ff;
+      font-size: var(--fs-2xs); font-weight: 600; padding: 2px 8px;
+      border-radius: 6px; cursor: pointer;
+    }
+    .relato-link:active { opacity: 0.7; }
+    .relato-item { padding: 10px 0; border-bottom: 1px solid #232a33; }
+    .relato-item:last-child { border-bottom: none; }
+    .relato-item-head { font-size: var(--fs-2xs); color: #888; margin-bottom: 4px; }
+    .relato-item-text { font-size: var(--fs-xs); color: #f0f0f0; line-height: 1.5; white-space: pre-wrap; }
     .chart-container {
       display: none;
       background: #08090c;
@@ -595,6 +606,15 @@
       </div>
     </div>
   </div>
+  <div class="note-modal" id="relatosModal">
+    <div class="note-modal-content" style="max-width:440px;">
+      <h3 id="relatosModalTitle">Relatos do aluno</h3>
+      <div id="relatosModalBody" style="max-height:60vh;overflow-y:auto;"></div>
+      <div class="note-modal-btns">
+        <button class="note-cancel-btn" onclick="closeRelatosModal()">Fechar</button>
+      </div>
+    </div>
+  </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="auth-guard.js"></script>
@@ -808,6 +828,17 @@ async function loadDay(day, date) {
       html += `<div class="summary" style="margin-top:-6px;">Volume: <strong>${Math.round(dayVolume).toLocaleString('pt-BR')} kg</strong>${densityText}</div>`;
     }
 
+    // Percepção do aluno: nota (0-5) e relato deixados ao encerrar o treino.
+    const temNota = session && session.rating !== null && session.rating !== undefined;
+    const temRelato = session && session.feedback_text && session.feedback_text.trim();
+    if (temNota || temRelato) {
+      const notaTxt = temNota ? `<strong>${session.rating}/5</strong>` : '<span style="color:#666;">sem nota</span>';
+      html += `<div class="summary" style="margin-top:-6px;">Percepção do aluno: ${notaTxt}</div>`;
+      if (temRelato) {
+        html += `<div class="summary" style="margin-top:-6px;color:#f0f0f0;font-style:italic;white-space:pre-wrap;">“${esc(session.feedback_text.trim())}”</div>`;
+      }
+    }
+
     orderedNames.forEach((name, exIdx) => {
       const sets = exercises[name];
       const chartId = `chart-${day}-${date}-${exIdx}`;
@@ -919,7 +950,7 @@ async function toggleChart(chartId, exerciseName, isCardioExercise) {
     const data = await supaFetch(
       `workout_logs?student_id=eq.${studentId}` +
       `&exercise_name=eq.${encodeURIComponent(exerciseName)}` +
-      `&set_type=not.in.(aquec,feeder,cardio)` +
+      `&set_type=not.in.(aquec,ativa%C3%A7%C3%A3o,feeder,cardio)` +
       `&session_date=gte.${toLocalISO(from)}` +
       `&select=session_date,weight,reps` +
       `&order=session_date.asc&limit=400`
@@ -1206,6 +1237,70 @@ function switchView(view) {
   if (view === 'monthly') { currentMonthOffset = 0; loadMonthly(); }
 }
 
+// =====================================================================
+// PERCEPÇÃO DO TREINO
+// Ao encerrar o treino o aluno dá uma nota de 0 a 5 e pode escrever um
+// relato (workout_sessions.rating / .feedback_text). Esses campos já vêm
+// nas queries de workout_sessions do dia/semana/mês (nenhuma tem select=),
+// então aqui é só leitura — nada de rede a mais.
+// =====================================================================
+let weeklyRelatos = [];
+let monthlyRelatos = [];
+
+// Monta o card "Percepção do treino" do resumo semanal/mensal e devolve
+// também a lista de relatos, para o modal. scope = 'weekly' | 'monthly'.
+function buildPerceptionCard(sessionsData, scope) {
+  const rated = (sessionsData || []).filter(s => s.rating !== null && s.rating !== undefined);
+  const relatos = (sessionsData || [])
+    .filter(s => s.feedback_text && s.feedback_text.trim())
+    .map(s => ({
+      date: toLocalISO(new Date(s.started_at)),
+      rating: (s.rating !== null && s.rating !== undefined) ? s.rating : null,
+      text: s.feedback_text.trim()
+    }))
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  // Sem nota e sem relato no período: card vazio é ruído (mesma regra do cardio).
+  if (rated.length === 0 && relatos.length === 0) return { html: '', relatos: [] };
+
+  let html = `<div class="resume-card"><h3>Percepção do treino</h3>`;
+  if (rated.length > 0) {
+    const media = rated.reduce((sum, s) => sum + s.rating, 0) / rated.length;
+    const cls = media >= 4 ? 'up' : media < 3 ? 'down' : '';
+    html += `<div class="stat-row"><span class="stat-label">Nota média</span><span class="stat-value ${cls}">${media.toFixed(1)} / 5 · ${rated.length} treino${rated.length !== 1 ? 's' : ''}</span></div>`;
+  }
+  if (relatos.length > 0) {
+    html += `<div class="stat-row"><span class="stat-label">Relatos</span><span class="stat-value">${relatos.length} · <button class="relato-link" onclick="openRelatosModal('${scope}')">ver todos</button></span></div>`;
+  }
+  html += `</div>`;
+  return { html, relatos };
+}
+
+function openRelatosModal(scope) {
+  const list = scope === 'monthly' ? monthlyRelatos : weeklyRelatos;
+  document.getElementById('relatosModalTitle').textContent =
+    scope === 'monthly' ? 'Relatos do mês' : 'Relatos da semana';
+  const body = document.getElementById('relatosModalBody');
+  if (!list.length) {
+    body.innerHTML = '<div class="no-data">Nenhum relato no período.</div>';
+  } else {
+    body.innerHTML = list.map(r => {
+      const d = new Date(r.date + 'T12:00:00');
+      const dLabel = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' });
+      const nota = r.rating !== null ? ` · ${r.rating}/5` : '';
+      return `<div class="relato-item">` +
+        `<div class="relato-item-head">${dLabel}${nota}</div>` +
+        `<div class="relato-item-text">${esc(r.text)}</div>` +
+      `</div>`;
+    }).join('');
+  }
+  document.getElementById('relatosModal').classList.add('show');
+}
+
+function closeRelatosModal() {
+  document.getElementById('relatosModal').classList.remove('show');
+}
+
 // === WEEKLY ===
 // getWeekRange(offset) vem de metrics.js (semana de segunda a domingo).
 let currentWeekOffset = 0;
@@ -1397,6 +1492,11 @@ async function loadWeekly() {
       html += `<div class="stat-row"><span class="stat-label">Volume médio</span><span class="stat-value">${Math.round(totalVolume / Math.max(sessoesFeitas, 1)).toLocaleString('pt-BR')} kg / treino</span></div>`;
       html += `</div>`;
     }
+
+    // Percepção do treino: nota e relatos que o aluno deixou ao encerrar
+    const perc = buildPerceptionCard(sessionsData, 'weekly');
+    weeklyRelatos = perc.relatos;
+    html += perc.html;
 
     // Comparativo com semana anterior
     let prevVolume = 0;
@@ -1643,6 +1743,11 @@ async function loadMonthly() {
       html += `<div class="stat-row"><span class="stat-label">Melhor faixa</span><span class="stat-value">Dias ${(bw-1)*7+1}-${Math.min(bw*7, diasNoMes)} (${parseInt(bestWeek[1]).toLocaleString('pt-BR')} kg)</span></div>`;
     }
     html += '</div>';
+
+    // Percepção do treino: nota e relatos que o aluno deixou ao encerrar
+    const percM = buildPerceptionCard(sessionsData, 'monthly');
+    monthlyRelatos = percM.relatos;
+    html += percM.html;
 
     // Comparativo com mês anterior
     let prevVolume = 0;

@@ -218,7 +218,7 @@ function e1rm(weight, reps) {
 
 // Tipos que NÃO entram no volume: existem para preparar a série ou são
 // modalidade diferente (cardio). Qualquer tipo novo (serie, etc.) conta.
-const EXCLUDED_SET_TYPES = new Set(['aquec', 'feeder', 'cardio']);
+const EXCLUDED_SET_TYPES = new Set(['aquec', 'ativação', 'feeder', 'cardio']);
 
 // Retorna true se o set é "efetivo" (conta para volume e métricas de força).
 function isEffectiveSet(setType) {

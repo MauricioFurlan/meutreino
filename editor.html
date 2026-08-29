@@ -1162,6 +1162,7 @@ function normalizeRest(raw) {
 function restLabel(type) {
   const t = String(type || '').trim().toLowerCase();
   if (t === 'feeder') return 'FED';
+  if (t === 'ativação') return 'ATIV';
   if (!t) return 'SET';
   const first = t.split(/[^0-9a-záàâãéêíóôõúç]+/i)[0] || t;
   return first.slice(0, 6).toUpperCase();
@@ -1233,10 +1234,11 @@ function renderSetHtml(idx, set) {
 
 function renderChips() {
   return `<div class="chips">
+    <button class="chip" type="button" onclick="fillLastType(this, 'ativação')">ATIVAÇÃO</button>
     <button class="chip" type="button" onclick="fillLastType(this, 'aquec')">AQUEC</button>
     <button class="chip" type="button" onclick="fillLastType(this, 'feeder')">FEEDER</button>
     <button class="chip" type="button" onclick="fillLastType(this, 'hard')">HARD</button>
-    <button class="chip" type="button" onclick="fillLastType(this, 'serie')">SERIE</button>
+    <button class="chip" type="button" onclick="fillLastType(this, 'série')">SÉRIE</button>
     <button class="chip chip-cardio" type="button" onclick="fillLastType(this, 'cardio')">CARDIO</button>
   </div>`;
 }
