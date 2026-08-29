@@ -137,7 +137,7 @@ eq('daltonismo segue com azul claro', token('colorblind', 'accent'), '#4fc3f7');
 eq('claro segue claro', token('light', 'bg-body'), '#f4f4f5');
 
 // Todo tema precisa de --accent-rgb, senão os brilhos da brand.css sumiriam
-const temas = ['default', 'ember', 'emerald', 'colorblind', 'steel', 'neon', 'highvis', 'light', 'corinthians', 'palmeiras', 'saopaulo', 'santos', 'flamengo'];
+const temas = ['default', 'ember', 'emerald', 'colorblind', 'steel', 'neon', 'highvis', 'light'];
 temas.forEach(t => eq(`${t} define --accent-rgb`, /^\d+,\d+,\d+$/.test(token(t, 'accent-rgb') || ''), true));
 eq('nenhum tema ficou sem --accent-rgb',
   (themeCss.match(/--accent-rgb:/g) || []).length, temas.length);

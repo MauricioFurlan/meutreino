@@ -231,20 +231,3 @@ a:focus-visible,
 /* Tema claro não combina com brilho por cima do branco */
 [data-theme="light"] body::before { display: none; }
 [data-theme="light"] .header::after { opacity: 0.18; }
-
-/* ── Temas de time: brasão discreto atrás do título do cabeçalho ──
-   Só os temas de clube definem --club-emblem; nos demais o var() cai em
-   `none` e o pseudo-elemento não desenha nada. */
-.header::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 40px;
-  height: 40px;
-  transform: translate(-50%, -50%);
-  background: var(--club-emblem, none) center / contain no-repeat;
-  opacity: 0.35;
-  pointer-events: none;
-  z-index: 0;
-}
