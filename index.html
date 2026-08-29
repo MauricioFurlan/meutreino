@@ -273,11 +273,13 @@
       cursor: pointer; padding: 4px 0; margin-bottom: 8px; text-decoration: underline;
     }
     .check-icon {
-      width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--text-dim);
+      width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--text-muted3);
       display: flex; align-items: center; justify-content: center; transition: all 0.2s;
     }
+    /* Respiro entre a coluna do descanso e a bolinha, que estavam coladas. */
+    .set-row.has-rest .check-icon { margin-left: 8px; }
     .check-icon svg { display: none; }
-    .check-icon.done { border-color: var(--save-done); background: var(--save-done); }
+    .check-icon.done { border-color: var(--save-done); background: var(--save-done); border-width: 2px; }
     .check-icon.done svg { display: block; }
     /* ── Descanso: botão por série + cronômetro ──────────────────────
        O valor prescrito daquela série vira o próprio botão ("90s"), então
