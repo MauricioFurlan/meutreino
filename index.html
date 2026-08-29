@@ -904,7 +904,8 @@
   </div>
 
   <!-- Cronômetro de descanso (r=96 → circunferência 603.19, usada no JS) -->
-  <div class="rest-modal" id="restModal" onclick="handleRestModalClick(event)">
+  <!-- Sem fechar por toque no fundo: so o botao Fechar encerra a contagem. -->
+  <div class="rest-modal" id="restModal">
     <div class="rest-modal-sheet">
       <div class="rest-modal-title">Descanso</div>
       <div class="rest-modal-sub" id="restModalSub"></div>
@@ -1985,10 +1986,6 @@ function closeRestTimer() {
   if (restState && restState.btn) restState.btn.classList.remove('running');
   restState = null;
   document.getElementById('restModal').classList.remove('show', 'warning', 'paused', 'done');
-}
-
-function handleRestModalClick(event) {
-  if (event.target.id === 'restModal') closeRestTimer();
 }
 
 // O sistema solta o wake lock sozinho ao trocar de app: repede ao voltar.
