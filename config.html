@@ -128,6 +128,45 @@
     .theme-card[data-theme="highvis"].active { border-color: #ffd600; }
     .theme-card[data-theme="highvis"].active::after { color: #ffd600; }
 
+    /* Temas de time — emblema estilizado no lugar da faixa de cores */
+    .theme-emblem { height: 46px; margin-bottom: 10px; background: center / contain no-repeat; }
+
+    .theme-card[data-theme="corinthians"] { background: #0e0e0e; border-color: #262626; --club-emblem: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Ccircle%20cx='32'%20cy='32'%20r='27'%20fill='%23111111'%20stroke='%23f0f0f0'%20stroke-width='4'/%3E%3Ctext%20x='32'%20y='43'%20font-family='Arial,Helvetica,sans-serif'%20font-size='30'%20font-weight='700'%20fill='%23f0f0f0'%20text-anchor='middle'%3EC%3C/text%3E%3C/svg%3E"); }
+    .theme-card[data-theme="corinthians"] .theme-emblem { background-image: var(--club-emblem); }
+    .theme-card[data-theme="corinthians"] .theme-name { color: #f0f0f0; }
+    .theme-card[data-theme="corinthians"] .theme-desc { color: #999; }
+    .theme-card[data-theme="corinthians"].active { border-color: #ededed; }
+    .theme-card[data-theme="corinthians"].active::after { color: #ededed; }
+
+    .theme-card[data-theme="palmeiras"] { background: #0c110c; border-color: #232a23; --club-emblem: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Ccircle%20cx='32'%20cy='32'%20r='27'%20fill='%2312a150'%20stroke='%23f4f4f4'%20stroke-width='4'/%3E%3Ctext%20x='32'%20y='43'%20font-family='Arial,Helvetica,sans-serif'%20font-size='30'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'%3EP%3C/text%3E%3C/svg%3E"); }
+    .theme-card[data-theme="palmeiras"] .theme-emblem { background-image: var(--club-emblem); }
+    .theme-card[data-theme="palmeiras"] .theme-name { color: #f0f0f0; }
+    .theme-card[data-theme="palmeiras"] .theme-desc { color: #999; }
+    .theme-card[data-theme="palmeiras"].active { border-color: #12a150; }
+    .theme-card[data-theme="palmeiras"].active::after { color: #12a150; }
+
+    .theme-card[data-theme="saopaulo"] { background: #110c0c; border-color: #2a2323; --club-emblem: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Ccircle%20cx='32'%20cy='32'%20r='27'%20fill='%23e12026'%20stroke='%23ffffff'%20stroke-width='4'/%3E%3Ctext%20x='32'%20y='40'%20font-family='Arial,Helvetica,sans-serif'%20font-size='21'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'%3ESP%3C/text%3E%3C/svg%3E"); }
+    .theme-card[data-theme="saopaulo"] .theme-emblem { background-image: var(--club-emblem); }
+    .theme-card[data-theme="saopaulo"] .theme-name { color: #f0f0f0; }
+    .theme-card[data-theme="saopaulo"] .theme-desc { color: #999; }
+    .theme-card[data-theme="saopaulo"].active { border-color: #e12026; }
+    .theme-card[data-theme="saopaulo"].active::after { color: #e12026; }
+
+    .theme-card[data-theme="santos"] { background: #101010; border-color: #292929; --club-emblem: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Ccircle%20cx='32'%20cy='32'%20r='27'%20fill='%23f4f4f4'%20stroke='%23111111'%20stroke-width='4'/%3E%3Ctext%20x='32'%20y='43'%20font-family='Arial,Helvetica,sans-serif'%20font-size='30'%20font-weight='700'%20fill='%23111111'%20text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E"); }
+    .theme-card[data-theme="santos"] .theme-emblem { background-image: var(--club-emblem); }
+    .theme-card[data-theme="santos"] .theme-name { color: #f0f0f0; }
+    .theme-card[data-theme="santos"] .theme-desc { color: #999; }
+    .theme-card[data-theme="santos"].active { border-color: #fbfbfb; }
+    .theme-card[data-theme="santos"].active::after { color: #fbfbfb; }
+
+    .theme-card[data-theme="flamengo"] { background: #0f0b0b; border-color: #281f1f; --club-emblem: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2064%2064'%3E%3Ccircle%20cx='32'%20cy='32'%20r='27'%20fill='%23111111'%20stroke='%23c8102e'%20stroke-width='4'/%3E%3Cpath%20d='M8%2026h48v12H8z'%20fill='%23c8102e'/%3E%3Ctext%20x='32'%20y='43'%20font-family='Arial,Helvetica,sans-serif'%20font-size='30'%20font-weight='700'%20fill='%23ffffff'%20text-anchor='middle'%3EF%3C/text%3E%3C/svg%3E"); }
+    .theme-card[data-theme="flamengo"] .theme-emblem { background-image: var(--club-emblem); }
+    .theme-card[data-theme="flamengo"] .theme-name { color: #f0f0f0; }
+    .theme-card[data-theme="flamengo"] .theme-desc { color: #999; }
+    .theme-card[data-theme="flamengo"].active { border-color: #c8102e; }
+    .theme-card[data-theme="flamengo"].active::after { color: #c8102e; }
+
+
     /* Preferências do cronômetro de descanso */
     .pref-list { padding: 0 16px 8px; display: flex; flex-direction: column; gap: 10px; }
     .pref-row {
@@ -280,6 +319,31 @@
       </div>
       <div class="theme-name">Ampliado</div>
       <div class="theme-desc">Fontes grandes & alto contraste</div>
+    </div>
+    <div class="theme-card" data-theme="corinthians" onclick="selectTheme('corinthians')">
+      <div class="theme-emblem"></div>
+      <div class="theme-name">Corinthians</div>
+      <div class="theme-desc">Timão — preto & branco</div>
+    </div>
+    <div class="theme-card" data-theme="palmeiras" onclick="selectTheme('palmeiras')">
+      <div class="theme-emblem"></div>
+      <div class="theme-name">Palmeiras</div>
+      <div class="theme-desc">Verdão — verde & branco</div>
+    </div>
+    <div class="theme-card" data-theme="saopaulo" onclick="selectTheme('saopaulo')">
+      <div class="theme-emblem"></div>
+      <div class="theme-name">São Paulo</div>
+      <div class="theme-desc">Tricolor — vermelho & branco</div>
+    </div>
+    <div class="theme-card" data-theme="santos" onclick="selectTheme('santos')">
+      <div class="theme-emblem"></div>
+      <div class="theme-name">Santos</div>
+      <div class="theme-desc">Peixe — preto & branco</div>
+    </div>
+    <div class="theme-card" data-theme="flamengo" onclick="selectTheme('flamengo')">
+      <div class="theme-emblem"></div>
+      <div class="theme-name">Flamengo</div>
+      <div class="theme-desc">Mengão — vermelho & preto</div>
     </div>
   </div>
 
