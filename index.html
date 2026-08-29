@@ -198,12 +198,16 @@
     }
     .set-row {
       display: grid;
-      grid-template-columns: auto 1fr 1fr 52px 40px;
+      grid-template-columns: auto 1fr 1fr 40px;
       gap: 8px;
       align-items: center;
       margin-bottom: 10px;
       padding: 6px 0;
     }
+    /* Coluna do descanso: largura FIXA porque cada .set-row e um grid
+       proprio — com 'auto' a linha sem botao dava coluna de 0px e
+       desalinhava KG/REPS entre as series do mesmo exercicio. */
+    .set-row.has-rest { grid-template-columns: auto 1fr 1fr 52px 40px; }
     .set-label {
       font-size: var(--fs-sm);
       color: var(--text);
@@ -216,7 +220,8 @@
     .set-label.type-hard { color: var(--error-light); }
     .set-label.type-cardio { color: var(--warning); }
     /* Cardio: uma coluna só (minutos) em vez de KG × REPS */
-    .set-row.cardio-row { grid-template-columns: auto 1fr 52px 40px; }
+    .set-row.cardio-row { grid-template-columns: auto 1fr 40px; }
+    .set-row.cardio-row.has-rest { grid-template-columns: auto 1fr 52px 40px; }
     .set-row.cardio-row input { border-color: var(--accent-dark); }
     .set-row.cardio-row input:focus { border-color: var(--warning); }
     /* Descanso prescrito: sempre visível, em linha PRÓPRIA — quando era
@@ -2275,11 +2280,16 @@ function renderExerciseCard(day, exIdx, ex) {
     html += `</div>`;
     return html;
   }
+  // A coluna do descanso so existe se algum tempo virar botao: exercicio
+  // sem descanso prescrito nao ganha coluna vazia nem titulo.
+  const temDescanso = sets.some(sv => restToSeconds(sv.rest || ex.rest || '') > 0);
+  const restClass = temDescanso ? ' has-rest' : '';
+  const restHeader = temDescanso ? '<span class="col-title col-rest">⏱</span>' : '';
   // Header colunas
   if (allCardio) {
-    html += `<div class="set-row cardio-row set-header"><span class="set-label"></span><span class="col-title">MINUTOS</span><span class="col-title col-rest">⏱</span><span></span></div>`;
+    html += `<div class="set-row cardio-row set-header${restClass}"><span class="set-label"></span><span class="col-title">MINUTOS</span>${restHeader}<span></span></div>`;
   } else {
-    html += `<div class="set-row set-header"><span class="set-label"></span><span class="col-title">KG</span><span class="col-title">REPS</span><span class="col-title col-rest">⏱</span><span></span></div>`;
+    html += `<div class="set-row set-header${restClass}"><span class="set-label"></span><span class="col-title">KG</span><span class="col-title">REPS</span>${restHeader}<span></span></div>`;
   }
   // Sets
   sets.forEach((set, setIdx) => {
@@ -2290,7 +2300,7 @@ function renderExerciseCard(day, exIdx, ex) {
     const repsText = set.reps || '';
     const notes = repsText.includes('+') ? repsText.split('+')[1].trim() : '';
     const checkHtml = `<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
-    html += `<div class="set-row${cardio ? ' cardio-row' : ''}" data-set-type="${esc(set.type)}" data-notes="${esc(notes)}">`;
+    html += `<div class="set-row${cardio ? ' cardio-row' : ''}${restClass}" data-set-type="${esc(set.type)}" data-notes="${esc(notes)}">`;
     html += `<span class="set-label ${typeClass}">${typeLabel}${cardio && sets.length === 1 ? '' : ' ' + (setIdx+1)} <button class="note-icon ${setNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}-${setIdx}')">!</button></span>`;
     if (cardio) {
       // Um campo só: minutos feitos. O placeholder mostra o que foi prescrito (ex: 40min).
@@ -2300,16 +2310,19 @@ function renderExerciseCard(day, exIdx, ex) {
       html += `<input type="number" class="reps-input" placeholder="${esc(repsText)}" data-prescribed="${esc(repsText)}" inputmode="numeric">`;
     }
     // Descanso desta serie: o valor prescrito e o proprio botao do cronometro.
-    // Sem descanso (ou texto livre, 'ate recuperar') a celula fica vazia para
-    // nao desalinhar a grade.
-    const setRestText = normalizeRest(set.rest || ex.rest || '');
-    const setRestSecs = restToSeconds(setRestText);
-    if (setRestSecs > 0) {
-      const rowLabel = typeLabel + (cardio && sets.length === 1 ? '' : ' ' + (setIdx + 1));
-      const restLabelJs = (ex.name + ' - ' + rowLabel).replace(/'/g, "\\'");
-      html += `<span class="rest-cell"><button type="button" class="rest-timer-btn" onclick="openRestTimer(${setRestSecs}, '${esc(restLabelJs)}', this)">${esc(setRestText)}</button></span>`;
-    } else {
-      html += `<span class="rest-cell"></span>`;
+    // Serie sem tempo (ou com texto livre, 'ate recuperar') fica com a celula
+    // vazia — a coluna existe porque OUTRA serie do exercicio tem tempo, e sem
+    // a celula a grade desalinharia.
+    if (temDescanso) {
+      const setRestText = normalizeRest(set.rest || ex.rest || '');
+      const setRestSecs = restToSeconds(setRestText);
+      if (setRestSecs > 0) {
+        const rowLabel = typeLabel + (cardio && sets.length === 1 ? '' : ' ' + (setIdx + 1));
+        const restLabelJs = (ex.name + ' - ' + rowLabel).replace(/'/g, "\\'");
+        html += `<span class="rest-cell"><button type="button" class="rest-timer-btn" onclick="openRestTimer(${setRestSecs}, '${esc(restLabelJs)}', this)">${esc(setRestText)}</button></span>`;
+      } else {
+        html += `<span class="rest-cell"></span>`;
+      }
     }
     html += checkHtml;
     html += `</div>`;

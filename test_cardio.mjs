@@ -342,6 +342,20 @@ const semDescanso = renderApi.renderExerciseCard('Segunda', 3, {
   name: 'Elevação lateral', sets: [{ type: 'hard', reps: '10', note: null }]
 });
 eq('sem descanso prescrito: sem pill', /rest-pill/.test(semDescanso), false);
+// Sem tempo nenhum a coluna NAO existe: nem célula vazia, nem título, nem
+// a classe que abre a 5ª coluna na grade.
+eq('sem descanso prescrito: sem coluna de tempo',
+  /rest-cell|col-rest|has-rest/.test(semDescanso), false);
+eq('sem descanso prescrito: header volta ao formato antigo',
+  /<div class="set-row set-header"><span class="set-label"><\/span><span class="col-title">KG<\/span><span class="col-title">REPS<\/span><span><\/span><\/div>/.test(semDescanso),
+  true);
+// Texto livre também não cria coluna: nada ali vira cronômetro.
+const soLivre = renderApi.renderExerciseCard('Segunda', 9, {
+  name: 'Alongamento', sets: [{ type: 'hard', reps: '30s', rest: 'até recuperar', note: null }]
+});
+eq('só texto livre: sem coluna de tempo', /col-rest|rest-cell/.test(soLivre), false);
+eq('só texto livre: pill ainda informa o combinado',
+  /rest-value">até recuperar</.test(soLivre), true);
 
 const legado = renderApi.renderExerciseCard('Segunda', 4, {
   name: 'Remada', rest: '60s', sets: [{ type: 'hard', reps: '10', note: null }]
@@ -380,6 +394,8 @@ eq('livre: a pill guarda o que não virou botão',
   /rest-value">HARD-até recuperar<\/span>/.test(livre), true);
 eq('livre: célula vazia mantém a grade alinhada',
   (livre.match(/<span class="rest-cell"><\/span>/g) || []).length, 1);
+eq('livre: uma série com tempo já abre a coluna',
+  /class="set-row has-rest"/.test(livre), true);
 eq('faixa 60-90s usa o maior valor',
   /openRestTimer\(90,/.test(renderApi.renderExerciseCard('Segunda', 8, {
     name: 'Remada', sets: [{ type: 'hard', reps: '10', rest: '60-90s', note: null }]
