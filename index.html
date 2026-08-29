@@ -714,6 +714,22 @@
     /* Acima da largura de um celular a tela esticava de ponta a ponta —
        aqui o app vira uma coluna centralizada, como qualquer app mobile
        aberto num navegador largo (desktop/tablet). */
+    /* Celular: a margem lateral cede espaco para os campos.
+       O placeholder de REPS mostra 'feito na semana passada · prescrito' —
+       com o respiro de 16px+16px ele era cortado em qualquer tela <= 414px. */
+    @media (max-width: 480px) {
+      .day-content { padding: 12px 8px; }
+      .cyclic-view { padding: 12px 8px; }
+      .exercise-card { padding: 14px 10px; }
+      .biset-wrapper { padding: 12px 6px 10px; }
+      /* card dentro de biset: a moldura do grupo ja da o recuo */
+      .biset-wrapper .exercise-card { padding-left: 6px; padding-right: 6px; }
+      .set-row { gap: 6px; }
+      .set-label { min-width: 54px; }
+      /* o texto do placeholder vale mais que o respiro interno do campo */
+      .set-row input { padding: 10px 4px; }
+    }
+
     @media (min-width: 640px) {
       .header, .sticky-top, #content, .block-screen {
         max-width: 480px;
