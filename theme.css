@@ -106,11 +106,25 @@
   --warning: #f59e0b;
   --warning-light: #fbbf24;
   --info: #6ee7b7;
-  --save-done: #059669;
+  /* Roxo de proposito: o 'salvo' precisa de uma cor que nao apareca em
+     mais nada da tela, como o amarelo faz no tema azul. Em verde escuro
+     ele se confundia com o proprio accent. */
+  --save-done: #8b5cf6;
   --spinner-track: rgba(255,255,255,0.1);
   --spinner-accent: #10b981;
   --logo-color: #10b981;
   --overlay-bg: rgba(5,5,5,0.95);
+}
+
+/* Fontes num meio-termo: o highvis vai a 140%, este fica em 120%.
+   Como toda a escala tipografica do app e em rem, mexer no html basta. */
+[data-theme="emerald"] html,
+html[data-theme="emerald"] {
+  font-size: 120%;
+}
+[data-theme="emerald"] body,
+html[data-theme="emerald"] body {
+  line-height: 1.55;
 }
 
 /* === Daltonismo (Alto contraste, sem verde/vermelho) === */
