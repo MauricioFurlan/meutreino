@@ -1639,6 +1639,7 @@ function frequencyHtml(dates) {
 // exercise_library/workout_logs — segue incompleto de propósito, cresce
 // aos poucos conforme novos exercícios aparecem nos treinos.
 const DEFAULT_EXERCISE_VIDEOS = {
+  'abdômen paralela': 'vmqDIz3dVK4',
   'abdominal bicicleta': 'OnQNhK0Ekgk',
   'abdominal canivete': '51Ryd2Ds2CI',
   'abdominal crunch': 'vRDR_MmFHcI',
@@ -1657,6 +1658,7 @@ const DEFAULT_EXERCISE_VIDEOS = {
   'banco romano': 'nSnZvrhre20',
   'barra fixa': 'wyFyVKuOUiE',
   'battle rope': 'JwepS5QiAzs',
+  'bíceps corda': 'EdsGRhdAye0',
   'bicicleta ergométrica': 'zFSTteth0qU',
   'bulgarian split squat': '_WLea70GzJQ',
   'cadeira extensora': 'R48aWM4NH5w',
@@ -1667,6 +1669,7 @@ const DEFAULT_EXERCISE_VIDEOS = {
   'corda (pular)': 'VHgbIIJGBtU',
   'crossover': 'LY90W4TS18c',
   'crossover alto': 'LY90W4TS18c',
+  'crossover baixo para cima': 'Od9914tc8sg',
   'crucifixo inclinado': '3j6HZaqsvoY',
   'crucifixo inverso': 'wUT3hmnzq3c',
   'crucifixo reto': 's7gBuCccHNc',
@@ -1677,6 +1680,8 @@ const DEFAULT_EXERCISE_VIDEOS = {
   'desenvolvimento na máquina': 'uh0oZorifmM',
   'elevação de pernas': 'm0xMQ2LOH7o',
   'elevação frontal': 'GqZRmCow0rw',
+  'elevação frontal halter alternado': 'xvT2oA9Bwsc',
+  'elevação frontal halter simultâneo': 'GqZRmCow0rw',
   'elevação lateral': '7odpb3ONhuc',
   'elevação lateral na polia': 'uRKJFkclq5U',
   'elevação pélvica': 'cOvGedlKlD4',
@@ -1710,15 +1715,18 @@ const DEFAULT_EXERCISE_VIDEOS = {
   'prancha': 'agIwjFG1iyA',
   'prancha lateral': 'x2gzR9zzSCw',
   'pulldown': 'QXVNbBo1tc8',
+  'pulldown corda': 'GDhW19yQrJI',
   'pullover': 'sEzbtJ_Mz68',
   'pullover na polia': 'lrpeLCg1y1E',
   'puxada frontal': 'dZqL3bSeVc8',
   'puxada supinada': 'vXKcuyaQD0w',
   'puxada triângulo': 'aQFHdA_8hOE',
   'puxador frente': 'T_wGK8PEO6I',
+  'puxador frente aberto barra anatômica': 'tn6z235J5_g',
   'remada alta': 'csF_uw7niTI',
   'remada baixa (barra reta)': '2Vx9u52k0oI',
   'remada baixa (triângulo)': 'fEA4O71kFr4',
+  'remada baixa triângulo': '7lc8Ow4vIwA',
   'remada cavalinho': '422ZfyKQMfk',
   'remada curvada': 'r2BIpnqmoJA',
   'remada serrote': 'mNHZGDLUPtg',
@@ -1727,6 +1735,7 @@ const DEFAULT_EXERCISE_VIDEOS = {
   'remo ergométrico': 'FjDkjkuypko',
   'roda abdominal': 'LUOz2ooRdc4',
   'rosca 21': 'HgI_maXcMr8',
+  'rosca alta máquina': 'us56KksglV8',
   'rosca alternada com halteres': 'xXp3mV3OOZo',
   'rosca banco inclinado': 'JQhifspiGKk',
   'rosca concentrada': 'c0vYYI_mbXU',
@@ -1803,7 +1812,11 @@ function openVideo(url, exerciseName, nameLower) {
 
 function showVideoModal(videoId, exerciseName) {
   document.getElementById('videoModalTitle').textContent = 'Execução — ' + exerciseName;
-  document.getElementById('videoModalFrame').src = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0`;
+  // controls=0: o player embutido e pequeno (260px) e o botao central de
+  // play/pause da YouTube cobria metade do video. Sem a barra de controles
+  // o toque no video ainda alterna play/pause; quem quer barra usa o link
+  // "abrir no YouTube" abaixo. playsinline evita fullscreen forcado no iOS.
+  document.getElementById('videoModalFrame').src = `https://www.youtube-nocookie.com/embed/${videoId}?rel=0&controls=0&modestbranding=1&playsinline=1`;
   document.getElementById('videoModalOpenExternal').href = `https://www.youtube.com/watch?v=${videoId}`;
   document.getElementById('videoModal').classList.add('show');
 }
