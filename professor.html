@@ -52,14 +52,38 @@
     .section-title { font-size: var(--fs-md); color: #00d5ff; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 
     /* Alertas */
-    .alert-card { background: #0c1015; border: 1px solid #00d5ff; border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+    .alert-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .alert-chip {
+      font-size: var(--fs-xs); font-weight: 700; padding: 4px 10px; border-radius: 12px;
+      border: 1px solid #1c3d47; background: #0c1015; color: #00d5ff; white-space: nowrap;
+    }
+    .alert-chip .n { opacity: 0.7; font-weight: 600; margin-left: 2px; }
+    .alert-chip.today { border-color: #ff9800; color: #ff9800; background: #1a1a00; }
+    .alert-chip.overdue { border-color: #f44336; color: #f44336; background: #2a0000; }
+
+    .alert-card { background: #0c1015; border: 1px solid #00d5ff; border-left-width: 4px; border-radius: 10px; padding: 12px; margin-bottom: 8px; }
+    .alert-card.today { background: #1a1a00; border-color: #ff9800; }
+    .alert-card.overdue { background: #2a0000; border-color: #f44336; }
     .alert-card.expired { background: #2a0000; border-color: #f44336; }
     .alert-card.plan-expiring { background: #1a1a00; border-color: #ff9800; }
     .alert-card.plan-expiring.expired { background: #2a0000; border-color: #f44336; }
     .alert-card.note-reminder { background: #1a1a00; border-color: #ff9800; }
     .alert-card.note-reminder.expired { background: #2a0000; border-color: #f44336; }
-    .alert-card .name { font-weight: 600; font-size: var(--fs-lg); }
+    .alert-card .name { font-weight: 600; font-size: var(--fs-lg); margin-bottom: 4px; }
     .alert-card .info { font-size: var(--fs-sm); color: #ccc; margin-top: 2px; }
+    .alert-item {
+      font-size: var(--fs-sm); color: #ccc; padding: 5px 0;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex; justify-content: space-between; gap: 8px; align-items: baseline;
+    }
+    .alert-item:first-of-type { border-top: none; }
+    .alert-item.link { cursor: pointer; }
+    .alert-item .go { color: #ff9800; font-size: var(--fs-xs); white-space: nowrap; flex-shrink: 0; }
+    .alerts-more {
+      width: 100%; margin-top: 4px; padding: 8px; border: 1px dashed #2a3540; border-radius: 8px;
+      background: none; color: #999; font-size: var(--fs-xs); font-weight: 600; cursor: pointer;
+    }
+    .alerts-more:active { opacity: 0.6; }
 
     /* Lista de alunos */
     .student-card {
@@ -138,15 +162,6 @@
     .toggle input:checked + .toggle-slider::before { transform: translateX(16px); }
 
     /* Formulário */
-    .form-section { background: #101419; border: 1px solid #232a33; border-radius: 12px; margin-bottom: 16px; overflow: hidden; }
-    .form-section h3 {
-      font-size: var(--fs-lg); color: #00d5ff; padding: 14px 16px; margin: 0; cursor: pointer;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .form-section h3::after { content: '▼'; font-size: var(--fs-2xs); color: #888; transition: transform 0.2s; }
-    .form-section.open h3::after { transform: rotate(180deg); }
-    .form-body { display: none; padding: 0 16px 16px; overflow: hidden; }
-    .form-section.open .form-body { display: block; }
     .form-group { margin-bottom: 12px; overflow: hidden; }
     .form-group label { display: block; font-size: var(--fs-xs); color: #999; margin-bottom: 4px; text-transform: uppercase; font-weight: 600; }
     .form-group input, .form-group select {
@@ -163,10 +178,10 @@
     .submit-btn:disabled { opacity: 0.5; }
     .submit-btn:active { opacity: 0.7; }
 
-    /* Modal de renovação */
+    /* Modais */
     .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 1000; align-items: center; justify-content: center; padding: 16px; }
     .modal.show { display: flex; }
-    .modal-content { background: #101419; border-radius: 12px; padding: 20px; width: 100%; max-width: 360px; border: 1px solid #232a33; }
+    .modal-content { background: #101419; border-radius: 12px; padding: 20px; width: 100%; max-width: 360px; border: 1px solid #232a33; max-height: 90vh; overflow-y: auto; }
     .modal-content h3 { color: #00d5ff; font-size: var(--fs-lg); margin-bottom: 14px; }
     .modal-close { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #161b22; color: #999; font-weight: 600; font-size: var(--fs-md); cursor: pointer; margin-top: 12px; }
 
@@ -269,48 +284,15 @@
     <div class="subtitle" id="subtitle"></div>
   </div>
 
+  <!-- Novo aluno (sempre no topo) -->
+  <div class="section" style="padding-bottom:0;">
+    <button class="submit-btn" onclick="openCreateModal()">Novo Aluno</button>
+  </div>
+
   <!-- Alertas -->
   <div class="section" id="alertsSection" style="display:none;">
     <div class="section-title">⚠️ Atenção</div>
     <div id="alertsList"></div>
-  </div>
-
-  <!-- Criar aluno -->
-  <div class="section">
-    <div class="form-section" id="createForm">
-      <h3 onclick="this.parentElement.classList.toggle('open')">+ Novo Aluno</h3>
-      <div class="form-body">
-        <div class="form-group">
-          <label>Nome completo</label>
-          <input type="text" id="newName" placeholder="Nome do aluno">
-        </div>
-        <div class="form-group">
-          <label>E-mail</label>
-          <input type="email" id="newEmail" inputmode="email" placeholder="email@exemplo.com">
-        </div>
-        <div class="form-group">
-          <label>Academia</label>
-          <input type="text" id="newGym" placeholder="Nome da academia (opcional)">
-        </div>
-        <div class="form-group">
-          <label>Duração (meses)</label>
-          <input type="number" id="newMonths" inputmode="numeric" value="3" min="1" max="24">
-        </div>
-        <div class="form-group">
-          <label>Data de nascimento</label>
-          <input type="date" id="newBirth">
-        </div>
-        <div class="form-group">
-          <label>Sexo</label>
-          <select id="newSex">
-            <option value="">-</option>
-            <option value="M">Masculino</option>
-            <option value="F">Feminino</option>
-          </select>
-        </div>
-        <button class="submit-btn" id="createBtn" onclick="createStudent()">Cadastrar Aluno</button>
-      </div>
-    </div>
   </div>
 
   <!-- Lista de alunos -->
@@ -331,20 +313,40 @@
     </div>
   </div>
 
-  <!-- Modal de renovação -->
-  <div class="modal" id="renewModal">
+  <!-- Modal de novo aluno -->
+  <div class="modal" id="createModal">
     <div class="modal-content">
-      <h3>Renovar Prazo</h3>
+      <h3>Novo Aluno</h3>
       <div class="form-group">
-        <label>Aluno</label>
-        <input type="text" id="renewName" disabled>
+        <label>Nome completo</label>
+        <input type="text" id="newName" placeholder="Nome do aluno">
       </div>
       <div class="form-group">
-        <label>Acrescentar meses</label>
-        <input type="number" id="renewMonths" inputmode="numeric" value="3" min="1" max="24">
+        <label>E-mail</label>
+        <input type="email" id="newEmail" inputmode="email" placeholder="email@exemplo.com">
       </div>
-      <button class="submit-btn" onclick="confirmRenew()">Renovar</button>
-      <button class="modal-close" onclick="closeRenewModal()">Cancelar</button>
+      <div class="form-group">
+        <label>Academia</label>
+        <input type="text" id="newGym" placeholder="Nome da academia (opcional)">
+      </div>
+      <div class="form-group">
+        <label>Duração (meses)</label>
+        <input type="number" id="newMonths" inputmode="numeric" value="3" min="1" max="24">
+      </div>
+      <div class="form-group">
+        <label>Data de nascimento</label>
+        <input type="date" id="newBirth">
+      </div>
+      <div class="form-group">
+        <label>Sexo</label>
+        <select id="newSex">
+          <option value="">-</option>
+          <option value="M">Masculino</option>
+          <option value="F">Feminino</option>
+        </select>
+      </div>
+      <button class="submit-btn" id="createBtn" onclick="createStudent()">Cadastrar Aluno</button>
+      <button class="modal-close" onclick="closeCreateModal()">Cancelar</button>
     </div>
   </div>
 
@@ -359,6 +361,10 @@
       <div class="form-group">
         <label>Nome completo</label>
         <input type="text" id="editName">
+      </div>
+      <div class="form-group">
+        <label>Vencimento do plano</label>
+        <input type="date" id="editExpires">
       </div>
       <div class="form-group">
         <label>Academia</label>
@@ -702,7 +708,7 @@ function renderStudents() {
           <div class="student-meta" style="color:#777; font-size: var(--fs-2xs);">📧 ${esc(s.email)}</div>
           ${getSessionHtml(s.id)}
           <div class="actions">
-            <button class="action-btn" onclick="openRenewModal('${s.id}','${esc(s.full_name).replace(/'/g,"\\'")}')">Renovar</button>
+            <button class="action-btn" onclick="openEditModal('${s.id}')">Renovar</button>
             <button class="action-btn" onclick="location.href='treinador.html?aluno=${s.id}'">📊 Resultados</button>
             <button class="action-btn" onclick="location.href='treinos.html?aluno=${s.id}'">🏋️ Treinos</button>
             <button class="action-btn" onclick="location.href='anamnese.html?aluno=${s.id}'">🩺 Anamnese</button>
@@ -723,36 +729,71 @@ function getStatus(s) {
 }
 
 // === Alertas ===
+// Quantos cards de alerta aparecem antes de recolher o resto atrás do "Ver mais".
+const ALERTS_VISIBLE = 4;
+let alertsShowAll = false;
+function toggleAlertsShowAll() { alertsShowAll = !alertsShowAll; renderAlerts(); }
+
 function renderAlerts() {
   const now = new Date();
-  const in7days = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const MS_DAY = 24 * 60 * 60 * 1000;
+  const in7days = new Date(now.getTime() + 7 * MS_DAY);
+  const in5days = new Date(now.getTime() + 5 * MS_DAY);
+  const dfmt = (iso) => new Date(iso + 'T00:00:00').toLocaleDateString('pt-BR');
+  const daysLeftOf = (exp) => Math.ceil((exp - now) / MS_DAY);
+  // rank de gravidade: 0 = vencido, 1 = vence hoje, 2 = vence esta semana
+  const rankOf = (exp) => exp < now ? 0 : (daysLeftOf(exp) === 0 ? 1 : 2);
 
-  // Alertas de vencimento de acesso
-  const expiringAlerts = students.filter(s => {
-    if (s.status === 'suspended') return false;
-    if (!s.access_expires_at) return false;
+  // Uma entrada por aluno; cada aluno acumula suas pendências em items[].
+  const groups = new Map();
+  const push = (s, item) => {
+    let g = groups.get(s.id);
+    if (!g) { g = { student: s, items: [], rank: 3, when: '9999-99-99' }; groups.set(s.id, g); }
+    g.items.push(item);
+    if (item.rank < g.rank) g.rank = item.rank;
+    if (item.when < g.when) g.when = item.when;
+  };
+
+  // Contadores por categoria (contam tudo, inclusive o que fica recolhido).
+  const cat = {
+    access:   { label: 'Acessos vencendo', n: 0, rank: 3 },
+    plan:     { label: 'Treinos a renovar', n: 0, rank: 3 },
+    note:     { label: 'Lembretes', n: 0, rank: 3 },
+    birthday: { label: 'Aniversários', n: 0, rank: 3 },
+  };
+  const bump = (key, rank) => { cat[key].n++; if (rank < cat[key].rank) cat[key].rank = rank; };
+
+  // Vencimento de acesso ao app
+  students.forEach(s => {
+    if (s.status === 'suspended' || !s.access_expires_at) return;
     const exp = new Date(s.access_expires_at + 'T23:59:59');
-    return exp <= in7days;
-  }).sort((a, b) => a.access_expires_at.localeCompare(b.access_expires_at));
+    if (exp > in7days) return;
+    const rank = rankOf(exp), dl = daysLeftOf(exp);
+    const label = rank === 0 ? 'Acesso vencido'
+      : dl === 0 ? 'Acesso vence hoje'
+      : `Acesso vence em ${dl} dia${dl !== 1 ? 's' : ''}`;
+    push(s, { rank, when: s.access_expires_at, text: `${label} · ${dfmt(s.access_expires_at)}`,
+      onclick: `openEditModal('${s.id}')`, go: 'Ajustar prazo →' });
+    bump('access', rank);
+  });
 
-  // Alertas de vencimento do treino ativo (plan_end_date <= 7 dias)
-  const planExpiringAlerts = students.filter(s => {
-    if (s.status === 'suspended') return false;
+  // Vencimento do treino (plano) ativo
+  students.forEach(s => {
+    if (s.status === 'suspended') return;
     const endDate = planEndMap[s.id];
-    if (!endDate) return false;
+    if (!endDate) return;
     const exp = new Date(endDate + 'T23:59:59');
-    return exp <= in7days;
-  }).map(s => {
-    const endDate = planEndMap[s.id];
-    const exp = new Date(endDate + 'T23:59:59');
-    const isExpired = exp < now;
-    const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
-    return { ...s, planEndDate: endDate, isExpired, daysLeft };
-  }).sort((a, b) => a.planEndDate.localeCompare(b.planEndDate));
+    if (exp > in7days) return;
+    const rank = rankOf(exp), dl = daysLeftOf(exp);
+    const label = rank === 0 ? 'Treino vencido'
+      : dl === 0 ? 'Treino vence hoje'
+      : `Treino vence em ${dl} dia${dl !== 1 ? 's' : ''}`;
+    push(s, { rank, when: endDate, text: `${label} · ${dfmt(endDate)}`,
+      onclick: `location.href='treinos.html?aluno=${s.id}'`, go: 'Editar treino →' });
+    bump('plan', rank);
+  });
 
-  // Alertas de lembrete de anotações (alert_date <= 5 dias) — um card por lembrete
-  const in5days = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
-  const noteAlerts = [];
+  // Lembretes de anotações (alert_date <= 5 dias)
   students.forEach(s => {
     if (s.status === 'suspended') return;
     const reminders = noteAlertMap[s.id];
@@ -760,95 +801,69 @@ function renderAlerts() {
     reminders.forEach(n => {
       const exp = new Date(n.alert_date + 'T23:59:59');
       if (exp > in5days) return;
-      const isExpired = exp < now;
-      const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
-      noteAlerts.push({ ...s, reminderId: n.id, alertDate: n.alert_date, alertMessage: n.message, isExpired, daysLeft });
+      const rank = rankOf(exp), dl = daysLeftOf(exp);
+      const label = rank === 0 ? 'Lembrete' : dl === 0 ? 'Lembrete hoje' : `Lembrete em ${dl} dia${dl !== 1 ? 's' : ''}`;
+      const msg = n.message ? ` — ${esc(n.message)}` : '';
+      push(s, { rank, when: n.alert_date, text: `${label} · ${dfmt(n.alert_date)}${msg}`,
+        onclick: `location.href='anotacoes.html?aluno=${s.id}'`, go: 'Ver anotações →' });
+      bump('note', rank);
     });
   });
-  noteAlerts.sort((a, b) => a.alertDate.localeCompare(b.alertDate));
 
-  // Alertas de aniversário do dia
-  const todayDay = now.getDate();
-  const todayMonth = now.getMonth() + 1;
-  const birthdayAlerts = students.filter(s => {
-    if (!s.birth_date) return false;
+  // Aniversário do dia
+  const td = now.getDate(), tm = now.getMonth() + 1;
+  students.forEach(s => {
+    if (!s.birth_date) return;
     const [y, m, d] = s.birth_date.split('-').map(Number);
-    return d === todayDay && m === todayMonth;
+    if (d !== td || m !== tm) return;
+    const age = now.getFullYear() - y;
+    push(s, { rank: 1, when: '0000-00-00', text: `🎂 Aniversário hoje! Completa ${age} anos. Mande parabéns! 🎉` });
+    bump('birthday', 1);
   });
 
   const section = document.getElementById('alertsSection');
   const container = document.getElementById('alertsList');
-  if (expiringAlerts.length === 0 && birthdayAlerts.length === 0 && planExpiringAlerts.length === 0 && noteAlerts.length === 0) { section.style.display = 'none'; return; }
+  if (groups.size === 0) { section.style.display = 'none'; return; }
   section.style.display = 'block';
 
-  let html = '';
+  // Grupos ordenados por gravidade, depois data mais próxima, depois nome.
+  const ordered = [...groups.values()].sort((a, b) =>
+    a.rank - b.rank || a.when.localeCompare(b.when) || byName(a.student, b.student));
 
-  // Aniversários primeiro
-  if (birthdayAlerts.length > 0) {
-    html += birthdayAlerts.map(s => {
-      const [y] = s.birth_date.split('-').map(Number);
-      const age = now.getFullYear() - y;
-      return `
-        <div class="alert-card" style="background:#2a0a1a; border-color:#e91e63;">
-          <div class="name">🎂 ${esc(s.full_name)}</div>
-          <div class="info">Aniversário hoje! Completa ${age} anos. Mande parabéns! 🎉</div>
-        </div>
-      `;
-    }).join('');
-  }
+  const sevCls = (r) => r === 0 ? 'overdue' : r === 1 ? 'today' : '';
 
-  // Vencimento de treino ativo
-  if (planExpiringAlerts.length > 0) {
-    html += planExpiringAlerts.map(a => {
-      const label = a.isExpired
-        ? 'Treino vencido'
-        : a.daysLeft === 0
-          ? 'Treino vence hoje'
-          : `Treino vence em ${a.daysLeft} dia${a.daysLeft !== 1 ? 's' : ''}`;
-      const dateStr = new Date(a.planEndDate + 'T00:00:00').toLocaleDateString('pt-BR');
-      return `
-        <div class="alert-card plan-expiring ${a.isExpired ? 'expired' : ''}" onclick="location.href='treinos.html?aluno=${a.id}'" style="cursor:pointer;">
-          <div class="name">📋 ${esc(a.full_name)}</div>
-          <div class="info">${label} · ${dateStr} <span style="float:right;color:#ff9800;font-size: var(--fs-xs);">Editar treino →</span></div>
-        </div>
-      `;
-    }).join('');
-  }
+  // Chips: só categorias com ocorrência, coloridas pela pior gravidade do grupo.
+  const chips = Object.values(cat).filter(c => c.n > 0).map(c =>
+    `<span class="alert-chip ${sevCls(c.rank)}">${c.label} <span class="n">· ${c.n}</span></span>`
+  ).join('');
 
-  // Lembrete de anotações a atualizar
-  if (noteAlerts.length > 0) {
-    html += noteAlerts.map(a => {
-      const label = a.isExpired
-        ? 'Lembrete'
-        : a.daysLeft === 0
-          ? 'Hoje'
-          : `Em ${a.daysLeft} dia${a.daysLeft !== 1 ? 's' : ''}`;
-      const dateStr = new Date(a.alertDate + 'T00:00:00').toLocaleDateString('pt-BR');
-      const msg = a.alertMessage ? ` — ${esc(a.alertMessage)}` : '';
-      return `
-        <div class="alert-card note-reminder ${a.isExpired ? 'expired' : ''}" onclick="location.href='anotacoes.html?aluno=${a.id}'" style="cursor:pointer;">
-          <div class="name">${esc(a.full_name)}</div>
-          <div class="info">${label} · ${dateStr}${msg} <span style="float:right;color:#ff9800;font-size: var(--fs-xs);">Ver anotações →</span></div>
-        </div>
-      `;
-    }).join('');
-  }
+  // Todos os urgentes (vencido/hoje) sempre visíveis; completa até ALERTS_VISIBLE com os "desta semana".
+  const urgent = ordered.filter(g => g.rank <= 1);
+  const soon = ordered.filter(g => g.rank === 2);
+  const soonSlots = Math.max(0, ALERTS_VISIBLE - urgent.length);
+  const visibleSoon = alertsShowAll ? soon : soon.slice(0, soonSlots);
+  const hiddenCount = soon.length - visibleSoon.length;
 
-  // Vencimentos de acesso
-  html += expiringAlerts.map(s => {
-    const exp = new Date(s.access_expires_at + 'T23:59:59');
-    const isExpired = exp < now;
-    const daysLeft = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
-    const label = isExpired ? 'Vencido' : `Vence em ${daysLeft} dia${daysLeft !== 1 ? 's' : ''}`;
-    return `
-      <div class="alert-card ${isExpired ? 'expired' : ''}">
-        <div class="name">${esc(s.full_name)}</div>
-        <div class="info">${label} · ${new Date(s.access_expires_at + 'T00:00:00').toLocaleDateString('pt-BR')}</div>
-      </div>
-    `;
+  const cardsHtml = urgent.concat(visibleSoon).map(g => {
+    const items = [...g.items]
+      .sort((a, b) => a.rank - b.rank || a.when.localeCompare(b.when))
+      .map(it => {
+        const go = it.go ? `<span class="go">${it.go}</span>` : '';
+        return it.onclick
+          ? `<div class="alert-item link" onclick="${it.onclick}">${it.text}${go}</div>`
+          : `<div class="alert-item">${it.text}</div>`;
+      }).join('');
+    return `<div class="alert-card ${sevCls(g.rank)}"><div class="name">${esc(g.student.full_name)}</div>${items}</div>`;
   }).join('');
 
-  container.innerHTML = html;
+  let moreBtn = '';
+  if (hiddenCount > 0) {
+    moreBtn = `<button class="alerts-more" onclick="toggleAlertsShowAll()">Ver mais ${hiddenCount}</button>`;
+  } else if (alertsShowAll && soon.length > soonSlots) {
+    moreBtn = `<button class="alerts-more" onclick="toggleAlertsShowAll()">Ver menos</button>`;
+  }
+
+  container.innerHTML = `<div class="alert-chips">${chips}</div>${cardsHtml}${moreBtn}`;
 }
 
 // === Criar aluno ===
@@ -926,6 +941,7 @@ async function createStudent() {
   document.getElementById('newMonths').value = '3';
   document.getElementById('newBirth').value = '';
   document.getElementById('newSex').value = '';
+  closeCreateModal();
   await loadStudents();
 }
 
@@ -939,19 +955,14 @@ async function toggleStatus(studentId, newStatus) {
   await loadStudents();
 }
 
-// === Renovar prazo ===
-let renewStudentId = null;
-
-function openRenewModal(studentId, name) {
-  renewStudentId = studentId;
-  document.getElementById('renewName').value = name;
-  document.getElementById('renewMonths').value = '3';
-  document.getElementById('renewModal').classList.add('show');
+// === Novo aluno (modal) ===
+function openCreateModal() {
+  document.getElementById('createModal').classList.add('show');
+  document.getElementById('newName').focus();
 }
 
-function closeRenewModal() {
-  document.getElementById('renewModal').classList.remove('show');
-  renewStudentId = null;
+function closeCreateModal() {
+  document.getElementById('createModal').classList.remove('show');
 }
 
 function openLogoutModal() {
@@ -966,32 +977,6 @@ function doLogout() {
   location.href = 'login.html?logout';
 }
 
-async function confirmRenew() {
-  if (!renewStudentId) return;
-  const months = parseInt(document.getElementById('renewMonths').value) || 3;
-
-  // Busca a data atual de expiração
-  const student = students.find(s => s.id === renewStudentId);
-  if (!student) { closeRenewModal(); return; }
-
-  // Nova data: a partir de hoje ou da expiração atual (o que for mais tarde) + meses
-  const now = new Date();
-  const currentExp = student.access_expires_at ? new Date(student.access_expires_at + 'T00:00:00') : now;
-  const base = currentExp > now ? currentExp : now;
-  const newExp = new Date(base);
-  newExp.setMonth(newExp.getMonth() + months);
-  const newExpStr = newExp.toISOString().split('T')[0];
-
-  const { error } = await _sb.from('profiles')
-    .update({ access_expires_at: newExpStr, status: 'active' })
-    .eq('id', renewStudentId);
-
-  if (error) { showToast('Erro: ' + error.message, true); return; }
-  showToast(`Prazo renovado até ${newExp.toLocaleDateString('pt-BR')}!`);
-  closeRenewModal();
-  await loadStudents();
-}
-
 // === Editar dados do aluno ===
 let editStudentId = null;
 
@@ -1001,6 +986,7 @@ function openEditModal(studentId) {
   editStudentId = studentId;
   document.getElementById('editEmail').value = s.email || '';
   document.getElementById('editName').value = s.full_name || '';
+  document.getElementById('editExpires').value = s.access_expires_at || '';
   document.getElementById('editGym').value = s.gym_name || '';
   document.getElementById('editBirth').value = s.birth_date || '';
   document.getElementById('editSex').value = s.sex || '';
@@ -1018,12 +1004,20 @@ async function confirmEdit() {
   const gym = document.getElementById('editGym').value.trim();
   const birth = document.getElementById('editBirth').value || null;
   const sex = document.getElementById('editSex').value || null;
+  const expires = document.getElementById('editExpires').value || null;
 
   if (!name) { showToast('Nome é obrigatório.', true); return; }
 
-  const { error } = await _sb.from('profiles')
-    .update({ full_name: name, gym_name: gym || null, birth_date: birth, sex })
-    .eq('id', editStudentId);
+  const patch = { full_name: name, gym_name: gym || null, birth_date: birth, sex, access_expires_at: expires };
+
+  // Se o novo vencimento está no futuro, reativa o acesso (a suspensão manual continua valendo).
+  const student = students.find(s => s.id === editStudentId);
+  if (expires && student && student.status !== 'suspended'
+      && new Date(expires + 'T23:59:59') > new Date()) {
+    patch.status = 'active';
+  }
+
+  const { error } = await _sb.from('profiles').update(patch).eq('id', editStudentId);
 
   if (error) { showToast('Erro: ' + error.message, true); return; }
   showToast('Dados atualizados!');
