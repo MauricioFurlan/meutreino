@@ -462,12 +462,17 @@
     .note-icon.visible { display: inline-flex; align-items: center; justify-content: center; }
     .exercise-header { display: flex; align-items: center; }
     .exercise-name { flex: 1; }
+    /* Bola de 22px com um triangulo nao lia como botao: virou pill com
+       rotulo, fundo tingido do accent e borda da mesma cor. */
     .video-btn {
-      background: none; border: 1px solid var(--text-dim); color: var(--accent); width: 22px; height: 22px;
-      border-radius: 50%; font-size: var(--fs-2xs); cursor: pointer; margin-left: 8px;
-      flex-shrink: 0; display: none; align-items: center; justify-content: center;
+      background: rgba(var(--accent-rgb), 0.14); border: 1px solid var(--accent-dark);
+      color: var(--accent); font-size: var(--fs-2xs); font-weight: 700; line-height: 1;
+      padding: 6px 10px; border-radius: 999px; cursor: pointer; margin-left: 8px;
+      flex-shrink: 0; white-space: nowrap; gap: 4px;
+      display: none; align-items: center; justify-content: center;
     }
-    .video-btn.visible { display: flex; }
+    .video-btn.visible { display: inline-flex; }
+    .video-btn:active { background: rgba(var(--accent-rgb), 0.3); }
     .note-bubble {
       display: none; background: var(--bg-secondary); border: 1px solid var(--accent); border-radius: 8px;
       padding: 10px; margin-bottom: 10px; font-size: var(--fs-base); color: var(--text);
@@ -1627,28 +1632,81 @@ function frequencyHtml(dates) {
 // === Vídeo ===
 // Fallback de vídeo por exercício, usado só quando o professor não cadastrou
 // um video_url próprio. Chave = nome do exercício normalizado (lower+trim),
-// igual ao name_lower de exercise_library. Cobre o que já foi curado até
-// agora (grupos Peito e Costas + variações reais vistas em exercise_library/
-// workout_logs) — segue incompleto de propósito, cresce aos poucos.
+// igual ao name_lower de exercise_library. Cobre o catálogo padrão de
+// DEFAULT_EXERCISES (editor.html) + variações reais vistas em
+// exercise_library/workout_logs — segue incompleto de propósito, cresce
+// aos poucos conforme novos exercícios aparecem nos treinos.
 const DEFAULT_EXERCISE_VIDEOS = {
+  'abdominal bicicleta': 'OnQNhK0Ekgk',
+  'abdominal canivete': '51Ryd2Ds2CI',
+  'abdominal crunch': 'vRDR_MmFHcI',
+  'abdominal infra': 'In0EzoOAILw',
+  'abdominal máquina': 'uAe1Uj3Y05k',
+  'abdominal na polia': 'xVUoefhphK0',
+  'abdução com faixa': 'NykPOcQj6bA',
+  'abdução na máquina': 'TB4BwvHaK9o',
+  'abdução na polia': 'MlzuZq3yC8I',
+  'afundo': 'rltJymhFtHg',
+  'agachamento frontal': '3uZE_E11eg4',
+  'agachamento hack': 'ZsAu3REJnb0',
   'agachamento livre': 'itucObZpMWk',
+  'agachamento no smith': '1oipoiTpbJA',
+  'agachamento sumô': 'xQnvHHKJTLY',
   'banco romano': 'nSnZvrhre20',
   'barra fixa': 'wyFyVKuOUiE',
+  'battle rope': 'JwepS5QiAzs',
+  'bicicleta ergométrica': 'zFSTteth0qU',
+  'bulgarian split squat': '_WLea70GzJQ',
   'cadeira extensora': 'R48aWM4NH5w',
   'cadeira flexora': '5K0dcOVGwZ8',
+  'caminhada inclinada': '3zKYO9y7iVM',
   'chest press': '2qlsRB71Ixc',
+  'coice na polia': 'bJ8KLIqvlfw',
+  'corda (pular)': 'VHgbIIJGBtU',
   'crossover': 'LY90W4TS18c',
   'crossover alto': 'LY90W4TS18c',
   'crucifixo inclinado': '3j6HZaqsvoY',
+  'crucifixo inverso': 'wUT3hmnzq3c',
   'crucifixo reto': 's7gBuCccHNc',
+  'desenvolvimento arnold': 'O3nHTDcdJDo',
+  'desenvolvimento com barra': '930c6LGuO6Q',
+  'desenvolvimento com halteres': '5I7ogOjvdnc',
   'desenvolvimento militar': 'Xy0HBD2K4Jk',
+  'desenvolvimento na máquina': 'uh0oZorifmM',
+  'elevação de pernas': 'm0xMQ2LOH7o',
+  'elevação frontal': 'GqZRmCow0rw',
   'elevação lateral': '7odpb3ONhuc',
+  'elevação lateral na polia': 'uRKJFkclq5U',
+  'elevação pélvica': 'cOvGedlKlD4',
+  'elíptico': 'wF9uAXm3p70',
+  'encolhimento com barra': 'fMTwe00HYWg',
+  'encolhimento com halteres': 'x9Im5d1H-Xw',
+  'escada': 'gpSVC7Y5RIY',
+  'esteira': '86YTZYxQgS8',
+  'face pull': 'zi7waeqXpzw',
+  'farmer walk': 'NJ-7GLhudPI',
   'flexão de braço': 'cmH9E_DEEKo',
+  'flexora em pé': 'L7jouj-t01E',
+  'glúteo na máquina': 'A555PryCZ3g',
+  'good morning': '7cpldMZjLOs',
+  'hiit bike': 'MjxrrelEpNk',
+  'hip thrust': 'cOvGedlKlD4',
+  'kickback na polia': 'XqQlpJhB8xU',
   'leg press 45°': 'FREdP43JDk4',
+  'leg press horizontal': 'F8m05d2upOA',
   'levantamento terra': 'ASO89bLkLqU',
+  'levantamento terra romeno': 'ZPsUi8zwCQ8',
+  'mergulho': 'tLy0MID5d6Q',
+  'mesa flexora': 'IXg1PQ_5gmw',
   'panturrilha em pé': '4QXYm9o-clg',
   'panturrilha no leg press': 'aPfW5aCfxG0',
+  'panturrilha no smith': 'cETqVlftyJs',
+  'panturrilha sentado': 'MVNkkNhdRLc',
+  'panturrilha unilateral': 'BJHeJx1Q1ww',
+  'passada': 'UORBklZn76k',
   'peck deck': 'MENdoLpyj7c',
+  'prancha': 'agIwjFG1iyA',
+  'prancha lateral': 'x2gzR9zzSCw',
   'pulldown': 'QXVNbBo1tc8',
   'pullover': 'sEzbtJ_Mz68',
   'pullover na polia': 'lrpeLCg1y1E',
@@ -1664,10 +1722,24 @@ const DEFAULT_EXERCISE_VIDEOS = {
   'remada serrote': 'mNHZGDLUPtg',
   'remada unilateral': 'A6Rjc6aUUB8',
   'remada unilateral com halter': 'A6Rjc6aUUB8',
+  'remo ergométrico': 'FjDkjkuypko',
+  'roda abdominal': 'LUOz2ooRdc4',
+  'rosca 21': 'HgI_maXcMr8',
+  'rosca alternada com halteres': 'xXp3mV3OOZo',
+  'rosca banco inclinado': 'JQhifspiGKk',
+  'rosca concentrada': 'c0vYYI_mbXU',
+  'rosca de punho': 'QvebRmLyEBQ',
+  'rosca de punho inversa': 'zmoy7s5CAsU',
   'rosca direta barra': 'kdvuXL_LC_o',
   'rosca direta com barra': 'kdvuXL_LC_o',
+  'rosca inversa': '-2IqzqP3j1Q',
   'rosca martelo': 'L1JXNs-MgXg',
+  'rosca na polia': 'x6JCKfdzPJE',
+  'rosca scott': 'QkNciumGy14',
+  'rosca spider': 'SMNPWoHrpjw',
+  'sissy squat': 'J78f55CdoKk',
   'stiff': 'LvD0Wz8nDCM',
+  'stiff unilateral': 'Vc4u9yelEiE',
   'supino declinado': 'tKuaxE6NNx8',
   'supino inclinado com halteres': 'eBT3llJhxU8',
   'supino inclinado halter': 'eBT3llJhxU8',
@@ -1675,8 +1747,16 @@ const DEFAULT_EXERCISE_VIDEOS = {
   'supino reto': 'AjTLUlx4nEs',
   'supino reto com barra': 'AjTLUlx4nEs',
   'supino reto com halteres': 'NIzt_fAXL2w',
+  'transport': 'wF9uAXm3p70',
+  'tríceps banco': 'nm75_SCRlYk',
+  'tríceps coice': 'hg6jySXCaT0',
   'tríceps corda': '-QGC1cL6ETE',
+  'tríceps francês': 'XMkUtMtcOh0',
+  'tríceps pulley (barra reta)': 'M88Bt4MMpkI',
+  'tríceps pulley (barra v)': '-3s5GoUvIHE',
   'tríceps pulley (corda)': '-QGC1cL6ETE',
+  'tríceps testa': 'Cd0-tP9utgM',
+  'tríceps unilateral na polia': 'P1fnoad7WkY',
 };
 
 // Aceita watch?v=, youtu.be/, shorts/ e embed/ — qualquer formato que o
@@ -2273,7 +2353,7 @@ function renderExerciseCard(day, exIdx, ex) {
   // Header
   html += `<div class="exercise-header">`;
   html += `<div class="exercise-name">${exName}</div>`;
-  html += `<button class="video-btn visible" onclick="openVideo('${esc(videoUrl).replace(/'/g,"\\'")}','${exName.replace(/'/g,"\\'")}','${esc(nameLower).replace(/'/g,"\\'")}')">▶</button>`;
+  html += `<button class="video-btn visible" onclick="openVideo('${esc(videoUrl).replace(/'/g,"\\'")}','${exName.replace(/'/g,"\\'")}','${esc(nameLower).replace(/'/g,"\\'")}')">▶ Vídeo</button>`;
   html += `<button class="note-icon ${exNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}')">!</button>`;
   html += `</div>`;
   // Nota do exercício
