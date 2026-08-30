@@ -498,8 +498,9 @@
       cursor: pointer; margin-top: 12px;
     }
     .logout-modal { z-index: 1150; }
-    .history-date { color: var(--accent); font-size: var(--fs-sm); font-weight: 600; margin-top: 10px; margin-bottom: 4px; }
-    .history-sets-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; }
+    .history-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; }
+    .history-day { min-width: 0; }
+    .history-date { color: var(--accent); font-size: var(--fs-sm); font-weight: 600; margin-bottom: 4px; }
     .history-set { font-size: var(--fs-base); color: var(--text); padding: 3px 0; border-bottom: 1px solid var(--border-light); }
     /* Tela de bloqueio */
     .block-screen { display: none; text-align: center; padding: 60px 24px; }
@@ -1301,7 +1302,9 @@ async function loadHistory(exerciseName) {
       body.innerHTML = '<div style="color:#888;text-align:center;padding:20px;">Sem histórico nas últimas 4 semanas</div>';
       return;
     }
-    let html = '', lastDate = '';
+    // Cada dia vira um card; os cards são dispostos numa grade de 2 colunas
+    // (dia 1 col 1, dia 2 col 2, dia 3 linha 2 col 1, ...).
+    let html = '<div class="history-grid">', lastDate = '';
     data.forEach(r => {
       const date = new Date(r.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', weekday:'short' });
       if (date !== lastDate) {
@@ -1309,8 +1312,7 @@ async function loadHistory(exerciseName) {
         // Verifica se tem sessão válida nesse dia
         const sessionDuration = sessionsByDate[r.session_date];
         const durationText = sessionDuration ? ` · ⏱ ${formatDuration(sessionDuration)}` : '';
-        html += `<div class="history-date">${esc(date)}${durationText}</div>`;
-        html += '<div class="history-sets-grid">';
+        html += `<div class="history-day"><div class="history-date">${esc(date)}${durationText}</div>`;
         lastDate = date;
       }
       const detalhe = (r.duration_minutes !== null && r.duration_minutes !== undefined)
@@ -1319,6 +1321,7 @@ async function loadHistory(exerciseName) {
       html += `<div class="history-set">${esc(r.set_type)} ${r.set_number}: ${detalhe}</div>`;
     });
     if (lastDate !== '') html += '</div>';
+    html += '</div>';
     body.innerHTML = html;
   } catch (e) {
     document.getElementById('historyModalBody').innerHTML = '<div style="color:#f44336;">Erro ao carregar</div>';
