@@ -499,6 +499,7 @@
     }
     .logout-modal { z-index: 1150; }
     .history-date { color: var(--accent); font-size: var(--fs-sm); font-weight: 600; margin-top: 10px; margin-bottom: 4px; }
+    .history-sets-grid { display: grid; grid-template-columns: 1fr 1fr; column-gap: 12px; }
     .history-set { font-size: var(--fs-base); color: var(--text); padding: 3px 0; border-bottom: 1px solid var(--border-light); }
     /* Tela de bloqueio */
     .block-screen { display: none; text-align: center; padding: 60px 24px; }
@@ -1304,10 +1305,12 @@ async function loadHistory(exerciseName) {
     data.forEach(r => {
       const date = new Date(r.created_at).toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit', weekday:'short' });
       if (date !== lastDate) {
+        if (lastDate !== '') html += '</div>';
         // Verifica se tem sessão válida nesse dia
         const sessionDuration = sessionsByDate[r.session_date];
         const durationText = sessionDuration ? ` · ⏱ ${formatDuration(sessionDuration)}` : '';
         html += `<div class="history-date">${esc(date)}${durationText}</div>`;
+        html += '<div class="history-sets-grid">';
         lastDate = date;
       }
       const detalhe = (r.duration_minutes !== null && r.duration_minutes !== undefined)
@@ -1315,6 +1318,7 @@ async function loadHistory(exerciseName) {
         : `${r.weight || '-'}kg × ${r.reps || '-'} reps`;
       html += `<div class="history-set">${esc(r.set_type)} ${r.set_number}: ${detalhe}</div>`;
     });
+    if (lastDate !== '') html += '</div>';
     body.innerHTML = html;
   } catch (e) {
     document.getElementById('historyModalBody').innerHTML = '<div style="color:#f44336;">Erro ao carregar</div>';
