@@ -535,7 +535,10 @@ async function onToggle(input) {
         .update({ is_active: true })
         .eq('id', planId);
       if (e2) throw e2;
-      showToast('Treino ativado — o aluno já recebeu a ficha.');
+      // Trocar o treino ativo reseta o histórico que o aluno vê (a referência
+      // de carga é do treino anterior). Nada é apagado: os relatórios e a
+      // evolução continuam com tudo.
+      showToast('Treino ativado — o aluno já recebeu a ficha e começa o histórico do zero.');
     } else {
       const { error } = await _sb.from('workout_plans')
         .update({ is_active: false })

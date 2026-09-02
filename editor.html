@@ -1602,7 +1602,13 @@ async function savePlan() {
 
     otherActivePlan = makeActive ? null : otherActivePlan;
     updateActiveHint();
-    showToast(makeActive ? 'Treino salvo e enviado ao aluno!' : 'Treino salvo no histórico (inativo).');
+    // Ativar um treino DIFERENTE reseta o histórico que o aluno vê (o id do
+    // plano muda e o app do aluno filtra por ele). Reeditar este mesmo treino
+    // mantém tudo — o id é o mesmo.
+    const trocou = makeActive && deactivatedIds.length > 0;
+    showToast(makeActive
+      ? (trocou ? 'Treino enviado ao aluno! O histórico dele recomeça neste treino.' : 'Treino salvo e enviado ao aluno!')
+      : 'Treino salvo no histórico (inativo).');
 
     // Upsert nas bibliotecas de sugestão: exercícios e subtítulos novos
     upsertExerciseLibrary(structure);

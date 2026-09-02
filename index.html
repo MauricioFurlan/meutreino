@@ -268,6 +268,13 @@
     .save-btn:active:not(:disabled) { opacity: 0.7; }
     .save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
     .save-btn.saved { background: var(--save-done); color: var(--text-bright); }
+    /* "Salvando" com os três pontos pulsando em sequência: o botão fica
+       desabilitado durante o POST e, parado, parecia travado. Só a opacidade
+       muda — os pontos ocupam o mesmo espaço o tempo todo, sem pulo de layout. */
+    .saving-dots i { font-style: normal; animation: savingDot 1s infinite; }
+    .saving-dots i:nth-child(2) { animation-delay: 0.16s; }
+    .saving-dots i:nth-child(3) { animation-delay: 0.32s; }
+    @keyframes savingDot { 0%, 60%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
     .history-btn {
       background: none; border: none; color: var(--accent); font-size: var(--fs-sm);
       cursor: pointer; padding: 4px 0; margin-bottom: 8px; text-decoration: underline;
@@ -275,12 +282,50 @@
     .check-icon {
       width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--text-muted3);
       display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+      /* position: o halo do salvar é um ::after ancorado aqui. */
+      position: relative;
+      /* Vazia, a bolinha é um encaixe fundo esperando o ✓. */
+      box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
     }
     /* Respiro entre a coluna do descanso e a bolinha, que estavam coladas. */
     .set-row.has-rest .check-icon { margin-left: 8px; }
     .check-icon svg { display: none; }
-    .check-icon.done { border-color: var(--save-done); background: var(--save-done); border-width: 2px; }
-    .check-icon.done svg { display: block; }
+    /* Cheia: volume em cima da cor do tema — brilho no alto à esquerda, sombra
+       embaixo e um anel externo suave. Tudo em rgba sobre var(--save-done), sem
+       color-mix, para render igual em WebView antigo e em qualquer tema. */
+    .check-icon.done {
+      border-color: var(--save-done); border-width: 2px;
+      background:
+        radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 58%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.22)),
+        var(--save-done);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        inset 0 -2px 3px rgba(0, 0, 0, 0.22),
+        0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+    .check-icon.done svg { display: block; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35)); }
+    /* Confirmação do salvar: a bolinha estufa e o ✓ é desenhado por cima.
+       Só entra no clique do Salvar (classe .just-saved) — ao abrir a tela as
+       séries já feitas aparecem prontas, sem a lista inteira piscando.
+       --pop-delay escalona as séries de cima para baixo. */
+    .check-icon.just-saved {
+      animation: checkPop 420ms ease-out var(--pop-delay, 0ms) backwards;
+    }
+    .check-icon.just-saved svg polyline {
+      stroke-dasharray: 24;
+      animation: checkDraw 300ms ease-out calc(var(--pop-delay, 0ms) + 80ms) backwards;
+    }
+    /* Anel que se abre e some no momento do ✓. opacity 0 na base para que,
+       terminada a animação, não sobre nenhum aro na tela. */
+    .check-icon.just-saved::after {
+      content: ''; position: absolute; inset: -4px; border-radius: 50%;
+      border: 2px solid var(--save-done); opacity: 0;
+      animation: checkHalo 520ms ease-out var(--pop-delay, 0ms);
+    }
+    @keyframes checkPop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+    @keyframes checkDraw { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
+    @keyframes checkHalo { 0% { opacity: 0.8; transform: scale(0.65); } 100% { opacity: 0; transform: scale(1.5); } }
     /* ── Descanso: botão por série + cronômetro ──────────────────────
        O valor prescrito daquela série vira o próprio botão ("90s"), então
        o aluno vê o tempo e dispara a contagem no mesmo toque. Séries sem
@@ -971,6 +1016,41 @@ let planMode = 'weekly';      // 'weekly' | 'cyclic'
 let planSubtitles = {};       // subtítulos por dia/letra
 let planCycleSequence = [];   // sequência do ciclo (ex: ['A','B','rest','C'])
 let cyclicPosition = 0;       // posição atual na sequência (derivada do último log)
+let activePlanId = null;      // id do treino ativo — escopo do histórico do aluno
+let planScoped = false;       // false enquanto a migration 30 não rodou (fallback)
+
+// === Escopo do histórico ===
+// O histórico que o ALUNO vê é o do treino atual. Quando o professor ativa
+// outro treino, activePlanId muda e a referência de carga, o modal de
+// histórico, o gráfico do exercício e a posição do ciclo começam do zero —
+// carga de um treino que não existe mais só atrapalha quem está executando.
+// Nada é apagado: os logs antigos ficam no banco marcados com o plano de
+// origem, e evolucao.html e as telas do professor continuam vendo tudo.
+// Editar o MESMO treino não reseta: o id do plano não muda.
+function scopeToPlan(query) {
+  return planScoped ? query.eq('plan_id', activePlanId) : query;
+}
+
+// Carimbo do plano nos registros novos (vazio enquanto a coluna não existe).
+function planStamp() {
+  return planScoped ? { plan_id: activePlanId } : {};
+}
+
+// Sem a migration 30 a coluna plan_id não existe e todo insert/select com ela
+// falharia. Uma sondagem no boot decide entre escopar por plano ou seguir com
+// o histórico global de antes.
+async function detectPlanScope() {
+  if (!activePlanId) return false;
+  const { error } = await _sb.from('workout_logs')
+    .select('plan_id')
+    .eq('student_id', studentId)
+    .limit(1);
+  if (error) {
+    console.warn('[MeuTreino] Histórico não escopado por treino. Rode sql/30_logs_plan_id.sql no Supabase.', error.message || error);
+    return false;
+  }
+  return true;
+}
 
 // === Helpers ===
 const esc = (s) => { // escape HTML (proteção XSS)
@@ -1027,7 +1107,9 @@ function resetDayInputs(day) {
     if (wi) { wi.value = ''; wi.placeholder = '-'; }
     if (ri) { ri.value = ''; ri.placeholder = ri.dataset.prescribed || ''; }
     if (mi) { mi.value = ''; mi.placeholder = mi.dataset.prescribed || 'minutos'; }
-    if (check) check.classList.remove('done');
+    // Tira também o resíduo da animação: sem isso, um Salvar depois da troca
+    // de dia não reanimaria a bolinha (a classe já estaria lá).
+    if (check) check.classList.remove('done', 'just-saved');
   });
 }
 
@@ -1067,11 +1149,11 @@ async function loadTodayData(day) {
   try {
     resetDayInputs(day);
     const sessionDate = getDateForDay(day);
-    const { data, error } = await _sb.from('workout_logs')
+    const { data, error } = await scopeToPlan(_sb.from('workout_logs')
       .select('*')
       .eq('student_id', studentId)
       .eq('weekday', day)
-      .eq('session_date', sessionDate)
+      .eq('session_date', sessionDate))
       .order('set_number', { ascending: true });
     if (error) throw error;
     if (!data || data.length === 0) { await loadLastWorkout(day); return; }
@@ -1095,10 +1177,10 @@ async function loadTodayData(day) {
 
 async function loadLastWorkout(day, excludeSets) {
   try {
-    let query = _sb.from('workout_logs')
+    let query = scopeToPlan(_sb.from('workout_logs')
       .select('*')
       .eq('student_id', studentId)
-      .eq('weekday', day);
+      .eq('weekday', day));
     // Se já existem dados de hoje, excluir a sessão de hoje para buscar o treino anterior
     if (excludeSets && excludeSets.size > 0) {
       query = query.neq('session_date', getTodayDate());
@@ -1159,6 +1241,25 @@ function rowHasValue(row) {
   return !!(row.querySelector('.weight-input')?.value || row.querySelector('.reps-input')?.value);
 }
 
+// Marca o ✓ da linha depois de salvar, com a animação da bolinha.
+// `ordem` escalona as séries do exercício (a 1ª anima primeiro), limitado a 5
+// para um exercício comprido não terminar de confirmar meio segundo depois.
+function markSaved(row, ordem) {
+  const check = row.querySelector('.check-icon');
+  if (!check) return;
+  const done = rowHasValue(row);
+  check.classList.toggle('done', done);
+  check.classList.remove('just-saved');
+  if (!done) return;
+  check.style.setProperty('--pop-delay', Math.min(ordem || 0, 5) * 70 + 'ms');
+  void check.offsetWidth; // reinicia a animação quando o aluno salva 2x seguidas
+  check.classList.add('just-saved');
+}
+
+// O botão desabilita enquanto o POST corre; os pontos animados são o sinal de
+// que ainda está indo. innerHTML (não textContent) porque cada ponto é um <i>.
+const SAVING_LABEL = 'Salvando<span class="saving-dots"><i>.</i><i>.</i><i>.</i></span>';
+
 // === Salvar ===
 async function saveExercise(day, exerciseName, cardId) {
   const card = document.getElementById(cardId);
@@ -1166,18 +1267,18 @@ async function saveExercise(day, exerciseName, cardId) {
   // Evita cliques duplicados
   if (btn.disabled) return;
   btn.disabled = true;
-  btn.textContent = 'Salvando...';
+  btn.innerHTML = SAVING_LABEL;
 
   const rows = card.querySelectorAll('.set-row:not(.set-header)');
   const records = [];
   const sessionDate = getDateForDay(day);
   rows.forEach((row, i) => {
-    const rec = readSetRow(row, i + 1, {
+    const rec = readSetRow(row, i + 1, Object.assign({
       student_id: studentId,
       session_date: sessionDate,
       weekday: day,
       exercise_name: exerciseName
-    });
+    }, planStamp()));
     if (rec) records.push(rec);
   });
   if (records.length === 0) { showToast('Preencha ao menos um set', true); btn.disabled = false; btn.textContent = 'Salvar'; return; }
@@ -1193,11 +1294,7 @@ async function saveExercise(day, exerciseName, cardId) {
     const { error: insErr } = await _sb.from('workout_logs').insert(records);
     if (insErr) throw insErr;
     btn.textContent = '✓ Salvo!'; btn.classList.add('saved');
-    rows.forEach(row => {
-      const check = row.querySelector('.check-icon');
-      if (!check) return;
-      check.classList.toggle('done', rowHasValue(row));
-    });
+    rows.forEach((row, i) => markSaved(row, i));
     setTimeout(() => { btn.textContent = 'Salvar'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
     showToast('Salvo com sucesso!');
   } catch (e) { showToast('Erro ao salvar: ' + e.message, true); btn.disabled = false; btn.textContent = 'Salvar'; }
@@ -1209,7 +1306,7 @@ async function saveGroup(day, cardIds) {
   const btn = wrapper.querySelector('.save-btn');
   if (btn.disabled) return;
   btn.disabled = true;
-  btn.textContent = 'Salvando...';
+  btn.innerHTML = SAVING_LABEL;
 
   const sessionDate = getDateForDay(day);
   const allRecords = [];
@@ -1221,12 +1318,12 @@ async function saveGroup(day, cardIds) {
     exerciseNames.push(exerciseName);
     const rows = card.querySelectorAll('.set-row:not(.set-header)');
     rows.forEach((row, i) => {
-      const rec = readSetRow(row, i + 1, {
+      const rec = readSetRow(row, i + 1, Object.assign({
         student_id: studentId,
         session_date: sessionDate,
         weekday: day,
         exercise_name: exerciseName
-      });
+      }, planStamp()));
       if (rec) allRecords.push(rec);
     });
   }
@@ -1248,13 +1345,12 @@ async function saveGroup(day, cardIds) {
     if (insErr) throw insErr;
 
     btn.textContent = '✓ Salvo!'; btn.classList.add('saved');
-    // Marca checks
+    // Marca checks. No biset/triset a ordem da animação segue a execução:
+    // todas as séries do 1º exercício, depois as do 2º.
+    let ordem = 0;
     for (const cardId of cardIds) {
       const card = document.getElementById(cardId);
-      card.querySelectorAll('.set-row:not(.set-header)').forEach(row => {
-        const check = row.querySelector('.check-icon');
-        if (check) check.classList.toggle('done', rowHasValue(row));
-      });
+      card.querySelectorAll('.set-row:not(.set-header)').forEach(row => markSaved(row, ordem++));
     }
     setTimeout(() => { btn.textContent = 'Salvar'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
     showToast('Salvo com sucesso!');
@@ -1270,11 +1366,11 @@ async function loadHistory(exerciseName) {
 
     // Buscar logs e sessões em paralelo
     const [logsRes, sessionsRes] = await Promise.all([
-      _sb.from('workout_logs')
+      scopeToPlan(_sb.from('workout_logs')
         .select('*')
         .eq('student_id', studentId)
         .eq('exercise_name', exerciseName)
-        .gte('session_date', since)
+        .gte('session_date', since))
         .order('created_at', { ascending: false })
         .order('set_number', { ascending: true }),
       _sb.from('workout_sessions')
@@ -1299,7 +1395,12 @@ async function loadHistory(exerciseName) {
     const body = document.getElementById('historyModalBody');
     document.getElementById('historyModalTitle').textContent = exerciseName;
     if (!data || data.length === 0) {
-      body.innerHTML = '<div style="color:#888;text-align:center;padding:20px;">Sem histórico nas últimas 4 semanas</div>';
+      // Com o histórico escopado ao plano, "sem registros" pode significar
+      // "o professor acabou de trocar o treino" — o texto diz qual dos dois é.
+      const vazio = planScoped
+        ? 'Sem histórico neste treino nas últimas 4 semanas'
+        : 'Sem histórico nas últimas 4 semanas';
+      body.innerHTML = '<div style="color:#888;text-align:center;padding:20px;">' + vazio + '</div>';
       return;
     }
     // Cada dia vira um card; os cards são dispostos numa grade de 2 colunas
@@ -1432,19 +1533,19 @@ async function renderStrengthChart(exerciseName, canvas, setInfo) {
   const from = new Date();
   from.setDate(from.getDate() - (CHART_WINDOW_DAYS - 1));
 
-  const { data, error } = await _sb.from('workout_logs')
+  const { data, error } = await scopeToPlan(_sb.from('workout_logs')
     .select('session_date, weight, reps')
     .eq('student_id', studentId)
     .eq('exercise_name', exerciseName)
     .not('set_type', 'in', '(aquec,ativação,feeder,cardio)')
-    .gte('session_date', toLocalISO(from))
+    .gte('session_date', toLocalISO(from)))
     .order('session_date', { ascending: true })
     .limit(400);
   if (error) throw error;
 
   if (!data || data.length === 0) {
     canvas.style.display = 'none';
-    setInfo('<div class="no-data">Sem registros nas últimas 12 semanas</div>');
+    setInfo('<div class="no-data">Sem registros' + (planScoped ? ' neste treino' : '') + ' nas últimas 12 semanas</div>');
     return;
   }
   canvas.style.display = '';
@@ -1543,13 +1644,13 @@ async function renderCardioChart(exerciseName, canvas, setInfo) {
   const from = new Date();
   from.setDate(from.getDate() - (CHART_WINDOW_DAYS - 1));
 
-  const { data, error } = await _sb.from('workout_logs')
+  const { data, error } = await scopeToPlan(_sb.from('workout_logs')
     .select('session_date, set_type, duration_minutes')
     .eq('student_id', studentId)
     .eq('exercise_name', exerciseName)
     .eq('set_type', 'cardio')
     .not('duration_minutes', 'is', null)
-    .gte('session_date', toLocalISO(from))
+    .gte('session_date', toLocalISO(from)))
     .order('session_date', { ascending: true })
     .limit(400);
   if (error) throw error;
@@ -2123,9 +2224,9 @@ function toggleNote(id) {
 // === Modo cíclico: determinar próximo treino ===
 async function determineCyclicPosition() {
   // Busca o último log do aluno para saber qual foi o último treino feito
-  const { data } = await _sb.from('workout_logs')
+  const { data } = await scopeToPlan(_sb.from('workout_logs')
     .select('weekday, session_date')
-    .eq('student_id', studentId)
+    .eq('student_id', studentId))
     .order('session_date', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(1);
@@ -2673,7 +2774,7 @@ async function startWorkoutSession() {
   const weekday = planMode === 'cyclic' ? (currentTabDay || getToday()) : getToday();
 
   const { data, error } = await _sb.from('workout_sessions')
-    .insert({ student_id: studentId, weekday: weekday, started_at: new Date().toISOString() })
+    .insert(Object.assign({ student_id: studentId, weekday: weekday, started_at: new Date().toISOString() }, planStamp()))
     .select()
     .single();
 
@@ -3034,7 +3135,7 @@ guard('student', {
     let plan = null;
     {
       let { data, error } = await _sb.from('workout_plans')
-        .select('title, structure, plan_start_date, plan_end_date, mode, subtitles, cycle_sequence')
+        .select('id, title, structure, plan_start_date, plan_end_date, mode, subtitles, cycle_sequence')
         .eq('student_id', studentId)
         .eq('is_active', true)
         .maybeSingle();
@@ -3044,7 +3145,7 @@ guard('student', {
         // Fallback 1: erro de coluna inexistente (migration 17 não rodada) — tenta sem colunas novas
         if (error.message && (error.message.includes('column') || error.code === '42703')) {
           const fallback = await _sb.from('workout_plans')
-            .select('title, structure, plan_start_date, plan_end_date')
+            .select('id, title, structure, plan_start_date, plan_end_date')
             .eq('student_id', studentId)
             .eq('is_active', true)
             .maybeSingle();
@@ -3060,7 +3161,7 @@ guard('student', {
         if (error && error.message && error.message.includes('multiple')) {
           console.warn('[MeuTreino] Múltiplos planos ativos detectados, usando o mais recente.');
           const fallback = await _sb.from('workout_plans')
-            .select('title, structure, plan_start_date, plan_end_date, mode, subtitles, cycle_sequence')
+            .select('id, title, structure, plan_start_date, plan_end_date, mode, subtitles, cycle_sequence')
             .eq('student_id', studentId)
             .eq('is_active', true)
             .order('updated_at', { ascending: false })
@@ -3082,6 +3183,10 @@ guard('student', {
         return;
       }
     }
+
+    // Escopo do histórico: tudo que o aluno lê de volta é filtrado por este id.
+    activePlanId = plan.id || null;
+    planScoped = await detectPlanScope();
 
     if (plan.title) document.getElementById('planTitle').textContent = plan.title;
 
