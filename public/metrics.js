@@ -236,6 +236,46 @@ function hardVolume(rows) {
   }, 0);
 }
 
+// === Medalha da série (a bolinha do Salvar) ===
+// Compara UMA série com a MESMA série do mesmo exercício na sessão anterior
+// daquele dia (a mesma referência que já vira placeholder de carga na tela do
+// aluno). Subiu o volume = ouro, empatou = prata, caiu = bronze. Sem
+// referência — primeira vez, série nova, exercício que acabou de entrar no
+// treino — também é ouro: não existe piorar contra o nada.
+//
+// Volume aqui é da LINHA (kg × reps), não o hardVolume do dia: a bolinha fala
+// de uma série só. Aquecimento e feeder entram do mesmo jeito, porque o aluno
+// vê a bolinha em todas as linhas — deixar algumas sem cor confundiria mais do
+// que explicaria.
+//
+// Cardio compara minutos, que é o volume que aquela linha tem.
+//
+// Quando um dos lados não tem carga (peso corporal, ou o aluno só anotou as
+// reps), a conta cai no denominador comum e compara só as reps: multiplicar por
+// uma carga que existe de um lado só diria "regrediu" para quem apenas deixou
+// o campo em branco.
+function setMedal(atual, anterior) {
+  if (!atual || !anterior) return 'ouro';
+  const num = (v) => { const n = Number(v); return isFinite(n) && n > 0 ? n : 0; };
+  const minAtual = num(atual.duration_minutes);
+  const minAnt = num(anterior.duration_minutes);
+  let va, vp;
+  if (minAtual || minAnt) {
+    va = minAtual; vp = minAnt;
+  } else {
+    const wa = num(atual.weight), wp = num(anterior.weight);
+    const ra = num(atual.reps), rp = num(anterior.reps);
+    const usaCarga = wa > 0 && wp > 0;
+    const usaReps = ra > 0 && rp > 0;
+    if (!usaCarga && !usaReps) return 'ouro'; // nada comparável dos dois lados
+    va = (usaCarga ? wa : 1) * (usaReps ? ra : 1);
+    vp = (usaCarga ? wp : 1) * (usaReps ? rp : 1);
+  }
+  if (va > vp) return 'ouro';
+  if (va < vp) return 'bronze';
+  return 'prata';
+}
+
 // =====================================================================
 // FREQUÊNCIA E SEQUÊNCIA
 // =====================================================================
@@ -375,7 +415,7 @@ if (typeof window !== 'undefined') {
     formatDurationHM, formatMinutes,
     isCardio, isEffectiveSet, sumCardioMinutes, cardioByDate, previousCardioSession,
     cardioComparison, cardioChartInfo,
-    e1rm, hardVolume,
+    e1rm, hardVolume, setMedal,
     prescribedDaySet, isTrainingDate, computeStreak, computeStreakCyclic
   };
 }

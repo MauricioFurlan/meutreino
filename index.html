@@ -287,18 +287,28 @@
       /* Vazia, a bolinha é um encaixe fundo esperando o ✓. */
       box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
     }
+    /* Medalha: a bolinha cheia diz como a série foi contra a MESMA série da
+       sessão anterior (ouro subiu o volume, prata empatou, bronze caiu; sem
+       referência é ouro). São as únicas cores fixas da tela — medalha de prata
+       muda de cor com o tema é uma medalha que não significa nada. O tom entra
+       por --medal, que .done já usa no fundo, na borda e no halo, então nenhuma
+       regra é duplicada; sem classe de medalha vale a cor do tema, como antes. */
+    .check-icon { --medal: var(--save-done); }
+    .check-icon.medal-ouro { --medal: #dfa616; }
+    .check-icon.medal-prata { --medal: #9aa3af; }
+    .check-icon.medal-bronze { --medal: #a86a34; }
     /* Respiro entre a coluna do descanso e a bolinha, que estavam coladas. */
     .set-row.has-rest .check-icon { margin-left: 8px; }
     .check-icon svg { display: none; }
-    /* Cheia: volume em cima da cor do tema — brilho no alto à esquerda, sombra
-       embaixo e um anel externo suave. Tudo em rgba sobre var(--save-done), sem
-       color-mix, para render igual em WebView antigo e em qualquer tema. */
+    /* Cheia: volume em cima da cor da medalha — brilho no alto à esquerda,
+       sombra embaixo e um anel externo suave. Tudo em rgba sobre var(--medal),
+       sem color-mix, para render igual em WebView antigo e em qualquer tema. */
     .check-icon.done {
-      border-color: var(--save-done); border-width: 2px;
+      border-color: var(--medal); border-width: 2px;
       background:
         radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 58%),
         linear-gradient(145deg, rgba(255, 255, 255, 0.3), rgba(0, 0, 0, 0.22)),
-        var(--save-done);
+        var(--medal);
       box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.45),
         inset 0 -2px 3px rgba(0, 0, 0, 0.22),
@@ -320,7 +330,7 @@
        terminada a animação, não sobre nenhum aro na tela. */
     .check-icon.just-saved::after {
       content: ''; position: absolute; inset: -4px; border-radius: 50%;
-      border: 2px solid var(--save-done); opacity: 0;
+      border: 2px solid var(--medal); opacity: 0;
       animation: checkHalo 520ms ease-out var(--pop-delay, 0ms);
     }
     @keyframes checkPop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
@@ -1092,14 +1102,79 @@ function showToast(text, isError) {
   setTimeout(() => t.className = 'toast', 2500);
 }
 
-// === Reset dos inputs de um dia (evita acúmulo de placeholder ao trocar tabs) ===
-function resetDayInputs(day) {
-  // No modo cíclico não temos div#day-X, buscamos cards por data-day
-  let dayEl = document.getElementById('day-' + day);
-  const rows = dayEl
+// Linhas de série de um dia. No modo cíclico não existe div#day-X (os cards
+// vivem soltos), então cai no seletor por data-day.
+function dayRows(day) {
+  const dayEl = document.getElementById('day-' + day);
+  return dayEl
     ? dayEl.querySelectorAll('.set-row:not(.set-header)')
     : document.querySelectorAll(`[data-day="${day}"] .set-row:not(.set-header)`);
-  rows.forEach(row => {
+}
+
+// === Medalha da bolinha ===
+// A bolinha cheia ganha a cor da comparação com a MESMA série na sessão
+// anterior: ouro subiu o volume, prata empatou, bronze caiu. A regra está em
+// setMedal (metrics.js); aqui só ficam a referência guardada na linha e a cor.
+const MEDALHAS = ['medal-ouro', 'medal-prata', 'medal-bronze'];
+const MEDAL_TITULO = {
+  ouro: 'Volume acima da última vez',
+  prata: 'Mesmo volume da última vez',
+  bronze: 'Volume abaixo da última vez'
+};
+
+// Referência da linha = o registro da sessão anterior daquela série. Fica no
+// dataset porque o placeholder some quando o aluno digita, e a cor precisa da
+// referência mesmo com a série já preenchida.
+function setRowRef(row, record) {
+  // String() explícito: o dataset já converteria, mas quem lê rowRef() merece
+  // ver de onde vem o texto que setMedal recebe.
+  row.dataset.refWeight = record.weight == null ? '' : String(record.weight);
+  row.dataset.refReps = record.reps == null ? '' : String(record.reps);
+  row.dataset.refMinutes = record.duration_minutes == null ? '' : String(record.duration_minutes);
+}
+
+function clearRowRef(row) {
+  delete row.dataset.refWeight;
+  delete row.dataset.refReps;
+  delete row.dataset.refMinutes;
+}
+
+function rowRef(row) {
+  const { refWeight, refReps, refMinutes } = row.dataset;
+  if (!refWeight && !refReps && !refMinutes) return null;
+  return { weight: refWeight, reps: refReps, duration_minutes: refMinutes };
+}
+
+// O que está na linha AGORA. Ler os inputs (e não o registro salvo) faz o
+// mesmo caminho servir para o clique no Salvar e para a abertura da tela.
+function rowValues(row) {
+  if (row.classList.contains('cardio-row')) {
+    return { weight: null, reps: null, duration_minutes: parseCardioMinutes(row.querySelector('.minutes-input')?.value) };
+  }
+  return {
+    weight: row.querySelector('.weight-input')?.value,
+    reps: row.querySelector('.reps-input')?.value,
+    duration_minutes: null
+  };
+}
+
+function applyMedal(row) {
+  const check = row.querySelector('.check-icon');
+  if (!check) return;
+  check.classList.remove(...MEDALHAS);
+  check.removeAttribute('title');
+  if (!check.classList.contains('done')) return; // série vazia não tem medalha
+  const ref = rowRef(row);
+  const medalha = setMedal(rowValues(row), ref);
+  check.classList.add('medal-' + medalha);
+  // Sem referência a bolinha é ouro, mas dizer "acima da última vez" seria
+  // mentira: não houve última vez.
+  check.title = ref ? MEDAL_TITULO[medalha] : 'Primeiro registro desta série';
+}
+
+// === Reset dos inputs de um dia (evita acúmulo de placeholder ao trocar tabs) ===
+function resetDayInputs(day) {
+  dayRows(day).forEach(row => {
     const wi = row.querySelector('.weight-input');
     const ri = row.querySelector('.reps-input');
     const mi = row.querySelector('.minutes-input');
@@ -1108,8 +1183,10 @@ function resetDayInputs(day) {
     if (ri) { ri.value = ''; ri.placeholder = ri.dataset.prescribed || ''; }
     if (mi) { mi.value = ''; mi.placeholder = mi.dataset.prescribed || 'minutos'; }
     // Tira também o resíduo da animação: sem isso, um Salvar depois da troca
-    // de dia não reanimaria a bolinha (a classe já estaria lá).
-    if (check) check.classList.remove('done', 'just-saved');
+    // de dia não reanimaria a bolinha (a classe já estaria lá). A referência
+    // vai junto — ela é do dia que está saindo.
+    if (check) { check.classList.remove('done', 'just-saved', ...MEDALHAS); check.removeAttribute('title'); }
+    clearRowRef(row);
   });
 }
 
@@ -1172,6 +1249,9 @@ async function loadTodayData(day) {
     // (por série, não por exercício inteiro — senão salvar a 1ª série apaga
     // a referência da semana passada nas séries seguintes ainda vazias)
     await loadLastWorkout(day, setsWithData);
+    // A cor sai da comparação com a sessão anterior, que só chega no
+    // loadLastWorkout — por isso a passada vem aqui, e não no applyRecordToRow.
+    dayRows(day).forEach(applyMedal);
   } catch (e) { console.log('Erro ao carregar dados do dia:', e); }
 }
 
@@ -1192,12 +1272,16 @@ async function loadLastWorkout(day, excludeSets) {
     const lastDate = data[0].session_date;
     const lastData = data.filter(r => r.session_date === lastDate);
     lastData.forEach(record => {
-      if (excludeSets && excludeSets.has(record.exercise_name + '|' + record.set_number)) return;
       const card = document.querySelector(`[data-exercise="${CSS.escape(record.exercise_name)}"][data-day="${day}"]`);
       if (!card) return;
       const rows = card.querySelectorAll('.set-row:not(.set-header)');
       const row = rows[record.set_number - 1];
       if (!row) return;
+      // A referência é gravada em TODAS as séries, inclusive nas que já têm
+      // log de hoje: é ela que decide a cor da bolinha. O placeholder é que
+      // continua valendo só para a série ainda vazia.
+      setRowRef(row, record);
+      if (excludeSets && excludeSets.has(record.exercise_name + '|' + record.set_number)) return;
       applyRecordToRow(row, record, false);
     });
   } catch (e) { console.log('Erro ao carregar último treino:', e); }
@@ -1250,6 +1334,7 @@ function markSaved(row, ordem) {
   const done = rowHasValue(row);
   check.classList.toggle('done', done);
   check.classList.remove('just-saved');
+  applyMedal(row);
   if (!done) return;
   check.style.setProperty('--pop-delay', Math.min(ordem || 0, 5) * 70 + 'ms');
   void check.offsetWidth; // reinicia a animação quando o aluno salva 2x seguidas
