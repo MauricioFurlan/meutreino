@@ -39,7 +39,7 @@
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #08090c; color: #f0f0f0; min-height: 100vh; padding-bottom: 40px;
+      background: #08090c; color: #f0f0f0; min-height: 100vh; padding-bottom: 96px;
     }
     .header {
       background: #101419; padding: 16px; text-align: center;
@@ -53,6 +53,67 @@
     }
     .logout-btn:active { opacity: 0.6; }
     .section { padding: 16px; overflow: hidden; }
+
+    /* ── Resumo do dia ───────────────────────────────────────────────
+       Primeira dobra do painel. Antes era o botão "Novo Aluno", uma ação
+       de uma vez por mês; quem abre o painel quer saber o estado do dia.
+       Cada bloco é um filtro da lista: tocar em "treinaram hoje" mostra
+       quem treinou, e não só o número. */
+    .summary-bar { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 14px 16px 0; }
+    .summary-tile {
+      background: #101419; border: 1px solid #232a33; border-radius: 12px;
+      padding: 10px 8px; text-align: center; cursor: pointer; min-height: 62px;
+      display: flex; flex-direction: column; justify-content: center; gap: 2px;
+    }
+    .summary-tile:active { opacity: 0.7; }
+    .summary-tile.on { border-color: #00d5ff; background: #0c1015; }
+    .summary-tile .n { font-size: var(--fs-2xl); font-weight: 700; color: #f0f0f0; line-height: 1.1; }
+    .summary-tile .lbl { font-size: var(--fs-2xs); color: #888; font-weight: 600; letter-spacing: 0.2px; }
+    .summary-tile.warn .n { color: #ff9800; }
+    .summary-tile.warn.zero .n { color: #f0f0f0; }
+
+    /* ── Busca e filtros da lista ────────────────────────────────── */
+    .list-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+    .sort-btn {
+      background: none; border: none; color: #888; font-size: var(--fs-2xs);
+      font-weight: 600; cursor: pointer; padding: 4px 0; white-space: nowrap;
+    }
+    .sort-btn:active { color: #00d5ff; }
+    .search-input {
+      width: 100%; background: #101419; border: 1px solid #232a33; border-radius: 10px;
+      color: #f0f0f0; padding: 11px 12px; font-size: var(--fs-base); margin-bottom: 10px;
+    }
+    .search-input:focus { outline: none; border-color: #00d5ff; }
+    .search-input::placeholder { color: #5a5a5a; }
+    .filter-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .filter-chip {
+      font-size: var(--fs-2xs); font-weight: 700; padding: 7px 12px; border-radius: 14px;
+      border: 1px solid #232a33; background: #101419; color: #999; cursor: pointer; white-space: nowrap;
+    }
+    .filter-chip.on { border-color: #00d5ff; color: #00d5ff; background: #0c1015; }
+
+    /* ── Novo aluno flutuante ────────────────────────────────────── */
+    .fab {
+      position: fixed; right: 16px; bottom: 20px; z-index: 900;
+      background: #00d5ff; color: #000; border: none; border-radius: 26px;
+      padding: 0 22px; min-height: 52px; font-size: var(--fs-md); font-weight: 700;
+      cursor: pointer; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+    }
+    .fab:active { opacity: 0.8; }
+
+    /* ── Esqueleto de carregamento ───────────────────────────────────
+       Substitui o overlay preto na abertura: o painel já aparece com a
+       forma da lista, em vez de cobrir a tela e revelar tudo de uma vez. */
+    .skel-card {
+      background: #101419; border: 1px solid #232a33; border-radius: 12px;
+      padding: 14px; margin-bottom: 10px;
+    }
+    .skel-line { height: 12px; border-radius: 6px; background: #1a2029; margin-bottom: 8px; animation: skelPulse 1.2s ease-in-out infinite; }
+    .skel-line.w60 { width: 60%; }
+    .skel-line.w40 { width: 40%; height: 10px; }
+    .skel-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 12px; }
+    .skel-btn { height: 44px; border-radius: 8px; background: #161b22; animation: skelPulse 1.2s ease-in-out infinite; }
+    @keyframes skelPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
     .section-title { font-size: var(--fs-md); color: #00d5ff; font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
 
     /* Alertas */
@@ -62,6 +123,10 @@
       border: 1px solid #1c3d47; background: #0c1015; color: #00d5ff; white-space: nowrap;
     }
     .alert-chip .n { opacity: 0.7; font-weight: 600; margin-left: 2px; }
+    /* O chip contava e parava por aí; agora filtra a lista de alunos abaixo. */
+    .alert-chip { cursor: pointer; }
+    .alert-chip.on { background: #00d5ff; color: #000; border-color: #00d5ff; }
+    .alert-chip.on .n { opacity: 0.75; }
     .alert-chip.today { border-color: #ff9800; color: #ff9800; background: #1a1a00; }
     .alert-chip.overdue { border-color: #f44336; color: #f44336; background: #2a0000; }
 
@@ -94,6 +159,14 @@
       background: #101419; border: 1px solid #232a33; border-radius: 12px;
       padding: 14px; margin-bottom: 10px; position: relative;
     }
+    /* Estado na borda esquerda: dá para varrer a coluna de cor sem ler nada.
+       (A pílula .student-status existia no CSS mas nunca chegou a ser usada
+       no card — a faixa ocupa o lugar dela.) */
+    .student-card { border-left: 3px solid #2a3540; }
+    .student-card.st-active { border-left-color: #4caf50; }
+    .student-card.st-expiring { border-left-color: #ff9800; }
+    .student-card.st-expired { border-left-color: #f44336; }
+    .student-card.st-suspended { border-left-color: #555; }
     .student-card.suspended { opacity: 0.5; }
     .student-card.pending {
       border: 1px dashed #00d5ff; background: #08090c; opacity: 0.85;
@@ -136,13 +209,12 @@
     .streak-chip.cold .flame { filter: grayscale(1) opacity(0.5); }
     .student-meta { font-size: var(--fs-xs); color: #999; margin-top: 2px; }
     .student-meta .gym { color: #888; }
-    .student-status { font-size: var(--fs-2xs); padding: 3px 8px; border-radius: 10px; font-weight: 600; flex-shrink: 0; }
-    .student-status.active { background: #1b3a1b; color: #4caf50; }
-    .student-status.expired { background: #3a1b1b; color: #f44336; }
-    .student-status.suspended { background: #161b22; color: #888; }
-
-    /* Botões de ação */
-    .actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    /* Botões de ação: grade de 2 colunas, não flex-wrap. Em fileira livre a
+       largura seguia o texto ("Renovar" curto, "📊 Resultados" comprido) e a
+       última linha ficava com um botão solto pela metade. Na grade todos têm
+       a mesma largura e o mesmo alvo de toque, e as 6 ações fecham 3 fileiras
+       certinhas (os cards de convite, com 4, fecham 2). */
+    .actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 10px; }
     /* Renovar / Resultados / Treinos / Anamnese / Anotações: são o caminho
        para todas as telas do aluno e ficavam com ~29px de altura, difícil de
        acertar em celular pequeno. min-height 44px é o alvo de toque mínimo do
@@ -195,6 +267,38 @@
     .modal-content { background: #101419; border-radius: 12px; padding: 20px; width: 100%; max-width: 360px; border: 1px solid #232a33; max-height: 90vh; overflow-y: auto; }
     .modal-content h3 { color: #00d5ff; font-size: var(--fs-lg); margin-bottom: 14px; }
     .modal-close { width: 100%; padding: 10px; border: none; border-radius: 8px; background: #161b22; color: #999; font-weight: 600; font-size: var(--fs-md); cursor: pointer; margin-top: 12px; }
+
+    /* ── Lembretes (modal) ───────────────────────────────────────────
+       Vieram das anotações, onde ficavam presos dentro do editor de texto.
+       O lembrete é sobre o aluno, não sobre a anotação — o lugar dele é o
+       card do aluno, ao lado das outras telas. */
+    .reminder-who { font-size: var(--fs-sm); color: #999; margin: -8px 0 12px; }
+    .reminder-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+    .reminder-item {
+      display: flex; align-items: center; justify-content: space-between; gap: 10px;
+      background: #161b22; border: 1px solid #232a33; border-radius: 8px; padding: 8px 10px;
+    }
+    .reminder-item.due { border-color: #00d5ff; }
+    .reminder-item.overdue { border-color: #f44336; }
+    .reminder-item-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+    .reminder-item-date { font-size: var(--fs-xs); color: #00d5ff; font-weight: 700; }
+    .reminder-item.overdue .reminder-item-date { color: #f44336; }
+    .reminder-item-msg { font-size: var(--fs-sm); color: #ccc; overflow-wrap: anywhere; }
+    .reminder-item-remove {
+      flex-shrink: 0; background: none; border: 1px solid #444; color: #999;
+      font-size: var(--fs-2xs); padding: 8px 12px; border-radius: 8px; cursor: pointer;
+      font-weight: 600; min-height: 36px;
+    }
+    .reminder-item-remove:active { border-color: #f44336; color: #f44336; }
+    .reminder-empty { font-size: var(--fs-sm); color: #666; margin-bottom: 14px; text-align: center; padding: 10px 0; }
+    .reminder-suggestions { display: flex; gap: 6px; flex-wrap: wrap; margin: -4px 0 12px; }
+    .suggestion-chip {
+      background: #161b22; border: 1px solid #232a33; color: #999;
+      font-size: var(--fs-2xs); padding: 7px 12px; border-radius: 20px;
+      cursor: pointer; font-weight: 600;
+    }
+    .suggestion-chip:active { background: #00d5ff; color: #000; border-color: #00d5ff; }
+    .reminder-hint { font-size: var(--fs-2xs); color: #666; margin-top: 10px; line-height: 1.5; }
 
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -284,7 +388,9 @@
   <link rel="stylesheet" href="brand.css">
 </head>
 <body>
-  <div class="loading-overlay" id="loadingOverlay">
+  <!-- Nasce escondido: a abertura mostra o esqueleto da lista. O overlay
+       continua para as ações pontuais (cadastrar, excluir, renovar). -->
+  <div class="loading-overlay hidden" id="loadingOverlay">
     <div class="loading-spinner"></div>
     <div class="loading-text">Carregando...</div>
   </div>
@@ -295,24 +401,50 @@
     <div class="subtitle" id="subtitle"></div>
   </div>
 
-  <!-- Novo aluno (sempre no topo) -->
-  <div class="section" style="padding-bottom:0;">
-    <button class="submit-btn" onclick="openCreateModal()">Novo Aluno</button>
-  </div>
+  <!-- Resumo do dia (primeira dobra) -->
+  <div class="summary-bar" id="summaryBar"></div>
 
   <!-- Alertas -->
   <div class="section" id="alertsSection" style="display:none;">
-    <div class="section-title">⚠️ Atenção</div>
+    <div class="section-title">Atenção</div>
     <div id="alertsList"></div>
   </div>
 
   <!-- Lista de alunos -->
   <div class="section">
-    <div class="section-title">Meus Alunos <span id="studentCountInfo" style="font-weight:400;color:#888;font-size: var(--fs-xs);"></span></div>
+    <div class="list-head">
+      <div class="section-title" style="margin-bottom:0;">Meus Alunos</div>
+      <button class="sort-btn" id="sortBtn" onclick="toggleSort()"></button>
+    </div>
+    <input type="text" class="search-input" id="searchInput" placeholder="Buscar aluno" autocomplete="off">
+    <div class="filter-chips" id="filterChips"></div>
     <div id="studentsList"></div>
   </div>
 
-  <!-- Link para acompanhamento (movido para dentro do card do aluno futuramente) -->
+  <button class="fab" onclick="openCreateModal()">Novo Aluno</button>
+
+  <!-- Modal de lembretes (abre pelo card do aluno) -->
+  <div class="modal" id="remindersModal">
+    <div class="modal-content">
+      <h3>Lembretes</h3>
+      <div class="reminder-who" id="remindersWho"></div>
+      <div class="reminder-list" id="reminderList"></div>
+
+      <div class="form-group">
+        <label>Data</label>
+        <input type="date" id="newReminderDate">
+      </div>
+      <div class="form-group">
+        <label>O que lembrar (opcional)</label>
+        <input type="text" id="newReminderMessage" placeholder="Renovar dieta" maxlength="140">
+      </div>
+      <div class="reminder-suggestions" id="reminderSuggestions"></div>
+
+      <button class="submit-btn" id="addReminderBtn" onclick="addReminder()">Adicionar lembrete</button>
+      <div class="reminder-hint">O aviso aparece no painel 5 dias antes da data, até o dia do lembrete. Para parar o aviso, remova o lembrete.</div>
+      <button class="modal-close" onclick="closeReminders()">Fechar</button>
+    </div>
+  </div>
 
   <!-- Modal de confirmação de saída -->
   <div class="modal" id="logoutModal">
@@ -430,10 +562,105 @@ function showToast(text, isError) {
   setTimeout(() => t.className = 'toast', 2500);
 }
 
-function updateStudentCount() {
-  const activeCount = students.filter(s => s.status === 'active').length;
-  const el = document.getElementById('studentCountInfo');
-  if (el) el.textContent = `${activeCount} / ${maxStudents} alunos`;
+// =====================================================================
+// Resumo, busca, filtro e ordem da lista
+// A lista chega a 20 alunos: rolar tudo para achar um aluno (ou para ver
+// quem treinou) era o gargalo da tela. O resumo do topo, os chips e a busca
+// são três entradas para o MESMO filtro, então o estado é um só.
+// =====================================================================
+let studentQuery = '';       // texto da busca
+let studentFilter = '';      // '' | 'atencao' | 'hoje' | chave de categoria de alerta
+let studentSort = 'atencao'; // 'atencao' (padrão) | 'nome'
+let attentionIds = new Set();          // alunos com algum alerta
+let catIds = {};                       // categoria de alerta -> Set de alunos
+const CAT_LABELS = { access: 'Acessos vencendo', plan: 'Treinos a renovar', note: 'Lembretes', birthday: 'Aniversários' };
+
+// Busca sem acento e sem caixa: "jose" acha "José".
+const norm = (t) => (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+function trainedTodayCount() { return students.filter(s => sessionsMap[s.id]).length; }
+
+// Renderiza alertas → lista → resumo, nessa ordem: a lista ordena por quem
+// tem alerta e o resumo conta os grupos, ambos calculados em renderAlerts().
+function refreshPanel() {
+  renderAlerts();
+  renderStudents();
+  renderSummary();
+}
+
+function renderSummary() {
+  const ativos = students.filter(s => s.status === 'active').length;
+  const hoje = trainedTodayCount();
+  const atencao = attentionIds.size;
+  const tile = (key, n, lbl, extra) =>
+    `<div class="summary-tile ${studentFilter === key ? 'on' : ''} ${extra || ''}" onclick="setFilter('${key}')">
+       <span class="n">${n}</span><span class="lbl">${lbl}</span>
+     </div>`;
+  document.getElementById('summaryBar').innerHTML =
+    tile('', `${ativos}<span style="font-size:var(--fs-sm);color:#666;">/${maxStudents}</span>`, 'alunos ativos') +
+    tile('hoje', hoje, 'treinos hoje') +
+    tile('atencao', atencao, 'pedem atenção', 'warn' + (atencao === 0 ? ' zero' : ''));
+
+  document.getElementById('sortBtn').textContent =
+    studentSort === 'atencao' ? 'Ordem: atenção' : 'Ordem: A-Z';
+  renderFilterChips();
+}
+
+function renderFilterChips() {
+  const chip = (key, label) =>
+    `<button class="filter-chip ${studentFilter === key ? 'on' : ''}" onclick="setFilter('${key}')">${label}</button>`;
+  let html = chip('', 'Todos') +
+    chip('atencao', `Atenção (${attentionIds.size})`) +
+    chip('hoje', `Treinou hoje (${trainedTodayCount()})`);
+  // Categoria só aparece quando veio de um chip de alerta — senão a fileira
+  // teria 7 chips, quase todos zerados.
+  if (CAT_LABELS[studentFilter]) html += chip(studentFilter, CAT_LABELS[studentFilter]);
+  document.getElementById('filterChips').innerHTML = html;
+}
+
+function setFilter(key) {
+  studentFilter = (studentFilter === key) ? '' : key;
+  renderStudents();
+  renderSummary();
+  renderAlerts();
+}
+
+function toggleSort() {
+  studentSort = studentSort === 'atencao' ? 'nome' : 'atencao';
+  renderStudents();
+  renderSummary();
+}
+
+function onSearch(value) {
+  studentQuery = value;
+  renderStudents();
+}
+
+// Quem precisa de atenção primeiro, depois quem já treinou hoje, depois o
+// alfabeto. A ordem alfabética pura continua a um toque de distância.
+function orderStudents(list) {
+  if (studentSort === 'nome') return list.slice().sort(byName);
+  const peso = (s) => attentionIds.has(s.id) ? 0 : (sessionsMap[s.id] ? 1 : 2);
+  return list.slice().sort((a, b) => peso(a) - peso(b) || byName(a, b));
+}
+
+function filteredStudents() {
+  let list = students;
+  if (studentFilter === 'atencao') list = list.filter(s => attentionIds.has(s.id));
+  else if (studentFilter === 'hoje') list = list.filter(s => sessionsMap[s.id]);
+  else if (catIds[studentFilter]) list = list.filter(s => catIds[studentFilter].has(s.id));
+  const q = norm(studentQuery).trim();
+  if (q) list = list.filter(s => norm(s.full_name).includes(q) || norm(s.gym_name).includes(q));
+  return orderStudents(list);
+}
+
+// Esqueleto da lista enquanto os alunos não chegam.
+function renderSkeleton() {
+  const card = `<div class="skel-card">
+      <div class="skel-line w60"></div><div class="skel-line w40"></div>
+      <div class="skel-actions"><div class="skel-btn"></div><div class="skel-btn"></div></div>
+    </div>`;
+  document.getElementById('studentsList').innerHTML = card + card + card;
 }
 
 // === Carregar convites pendentes ===
@@ -487,6 +714,157 @@ async function loadNoteAlerts() {
       if (!noteAlertMap[n.student_id]) noteAlertMap[n.student_id] = [];
       noteAlertMap[n.student_id].push(n);
     });
+  }
+}
+
+// =====================================================================
+// Lembretes — CRUD no modal do card do aluno
+// Saíram das anotações: lá o lembrete ficava dentro do editor de texto, então
+// para lembrar de renovar a dieta o professor tinha que abrir uma anotação
+// que nada tinha a ver. Aqui ele fica ao lado das outras telas do aluno, e o
+// mesmo modal atende aluno (student_id) e convite pendente (invite_id).
+// =====================================================================
+let reminderTarget = null;   // { kind: 'student'|'invite', id, name }
+let reminders = [];          // lembretes do alvo aberto
+
+const REMINDER_SUGGESTIONS = ['Renovar dieta', 'Renovar protocolo', 'Atendimento presencial', 'Dia de anamnese'];
+
+function reminderCount(studentId) {
+  return (noteAlertMap[studentId] || []).length;
+}
+
+function openReminders(kind, id) {
+  // O nome vem do array, não do onclick: um aluno chamado O'Brien ou com aspas
+  // no nome quebraria o atributo (esc() escapa < e >, não aspas).
+  const alvo = (kind === 'student' ? students : pendingInvites).find(x => x.id === id);
+  reminderTarget = { kind, id, name: (alvo && alvo.full_name) || '' };
+  document.getElementById('remindersWho').textContent = reminderTarget.name;
+  document.getElementById('newReminderDate').value = '';
+  document.getElementById('newReminderMessage').value = '';
+  document.getElementById('reminderList').innerHTML = '<div class="reminder-empty">Carregando...</div>';
+  renderReminderSuggestions();
+  document.getElementById('remindersModal').classList.add('show');
+  loadReminders();
+}
+
+function closeReminders() {
+  document.getElementById('remindersModal').classList.remove('show');
+  reminderTarget = null;
+}
+
+function renderReminderSuggestions() {
+  const box = document.getElementById('reminderSuggestions');
+  box.innerHTML = REMINDER_SUGGESTIONS.map(t =>
+    `<button type="button" class="suggestion-chip" data-text="${esc(t)}">${esc(t)}</button>`).join('');
+  box.querySelectorAll('.suggestion-chip').forEach(btn => {
+    btn.addEventListener('click', () => { document.getElementById('newReminderMessage').value = btn.dataset.text; });
+  });
+}
+
+function renderReminders() {
+  const list = document.getElementById('reminderList');
+  if (reminders.length === 0) {
+    list.innerHTML = '<div class="reminder-empty">Nenhum lembrete cadastrado.</div>';
+    return;
+  }
+  // Mesma régua dos alertas do painel: vencido em vermelho, os 5 dias que já
+  // estão aparecendo no painel em ciano, o resto neutro.
+  const hoje = new Date(); hoje.setHours(23, 59, 59, 999);
+  const em5 = new Date(hoje); em5.setDate(em5.getDate() + 5);
+
+  list.innerHTML = reminders.map(r => {
+    const dia = new Date(r.alert_date + 'T23:59:59');
+    const cls = dia < hoje ? 'overdue' : dia <= em5 ? 'due' : '';
+    const msg = r.message ? `<span class="reminder-item-msg">${esc(r.message)}</span>` : '';
+    return `
+      <div class="reminder-item ${cls}">
+        <div class="reminder-item-info">
+          <span class="reminder-item-date">${new Date(r.alert_date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
+          ${msg}
+        </div>
+        <button class="reminder-item-remove" data-id="${r.id}">Remover</button>
+      </div>`;
+  }).join('');
+
+  list.querySelectorAll('.reminder-item-remove').forEach(btn => {
+    btn.addEventListener('click', () => deleteReminder(btn.dataset.id));
+  });
+}
+
+async function loadReminders() {
+  if (!reminderTarget) return;
+  let query = _sb.from('trainer_reminders')
+    .select('id, alert_date, message')
+    .order('alert_date', { ascending: true });
+  query = reminderTarget.kind === 'student'
+    ? query.eq('student_id', reminderTarget.id)
+    : query.eq('invite_id', reminderTarget.id);
+
+  const { data, error } = await query;
+  if (error) {
+    console.error('Erro ao carregar lembretes:', error);
+    document.getElementById('reminderList').innerHTML = '<div class="reminder-empty">Erro ao carregar.</div>';
+    return;
+  }
+  reminders = data || [];
+  renderReminders();
+  syncReminderMap();
+}
+
+// O card mostra a contagem e o painel de alertas lê o mesmo mapa: depois de
+// mexer nos lembretes os dois precisam refletir a mudança sem recarregar tudo.
+function syncReminderMap() {
+  if (!reminderTarget || reminderTarget.kind !== 'student') return;
+  noteAlertMap[reminderTarget.id] = reminders.map(r =>
+    ({ id: r.id, student_id: reminderTarget.id, alert_date: r.alert_date, message: r.message }));
+  refreshPanel();
+}
+
+async function addReminder() {
+  if (!reminderTarget) return;
+  const alertDate = document.getElementById('newReminderDate').value || null;
+  const message = document.getElementById('newReminderMessage').value.trim() || null;
+  if (!alertDate) { showToast('Escolha uma data para o lembrete', true); return; }
+
+  const btn = document.getElementById('addReminderBtn');
+  btn.disabled = true;
+  const insertData = { coach_id: myId, alert_date: alertDate, message };
+  if (reminderTarget.kind === 'student') insertData.student_id = reminderTarget.id;
+  else insertData.invite_id = reminderTarget.id;
+
+  try {
+    const { data, error } = await _sb.from('trainer_reminders')
+      .insert(insertData)
+      .select('id, alert_date, message')
+      .single();
+    if (error) throw error;
+    reminders.push(data);
+    reminders.sort((a, b) => a.alert_date.localeCompare(b.alert_date));
+    renderReminders();
+    syncReminderMap();
+    document.getElementById('newReminderDate').value = '';
+    document.getElementById('newReminderMessage').value = '';
+    showToast('Lembrete adicionado');
+  } catch (e) {
+    console.error('Erro ao salvar lembrete:', e);
+    showToast('Erro ao salvar lembrete', true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function deleteReminder(id) {
+  if (!confirm('Remover este lembrete?')) return;
+  try {
+    const { error } = await _sb.from('trainer_reminders').delete().eq('id', id);
+    if (error) throw error;
+    reminders = reminders.filter(r => r.id !== id);
+    renderReminders();
+    syncReminderMap();
+    showToast('Lembrete removido');
+  } catch (e) {
+    console.error('Erro ao remover lembrete:', e);
+    showToast('Erro ao remover lembrete', true);
   }
 }
 
@@ -641,9 +1019,7 @@ async function loadStudents() {
   // acento/maiúscula fora de ordem ("Ávila" depois de "Zé", "ana" depois de "Bruno").
   students = (data || []).sort(byName);
   await Promise.all([loadTodaySessions(), loadStreaks(), loadNoteAlerts()]);
-  renderStudents();
-  renderAlerts();
-  updateStudentCount();
+  refreshPanel();
 }
 
 // === Aniversário ===
@@ -670,23 +1046,38 @@ function renderStudents() {
     return;
   }
 
+  const lista = filteredStudents();
+  // Convite pendente não tem treino nem alerta: some quando a lista está
+  // filtrada por um estado que ele não pode ter. A busca por nome vale.
+  const q = norm(studentQuery).trim();
+  const convites = studentFilter
+    ? []
+    : pendingInvites.filter(inv => !q || norm(inv.full_name).includes(q) || norm(inv.gym_name).includes(q));
+
+  if (lista.length === 0 && convites.length === 0) {
+    container.innerHTML = `<div class="empty-state">Nenhum aluno encontrado.<br>
+      <button class="filter-chip" style="margin-top:10px;" onclick="clearFilters()">Limpar busca e filtros</button></div>`;
+    return;
+  }
+
   // Cards de convites pendentes
-  let pendingHtml = pendingInvites.map(inv => {
+  let pendingHtml = convites.map(inv => {
     const createdDate = new Date(inv.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
     return `
       <div class="student-card pending">
         <button class="delete-x" onclick="cancelInvite('${inv.id}','${esc(inv.full_name).replace(/'/g,"\\'")}')" title="Cancelar convite">×</button>
         <div class="student-info">
-          <div class="student-name"><span class="student-name-text">${esc(inv.full_name)}</span> <span class="pending-badge">⏳ Pendente</span></div>
+          <div class="student-name"><span class="student-name-text">${esc(inv.full_name)}</span> <span class="pending-badge">Pendente</span></div>
           <div class="student-meta">
             ${inv.gym_name ? `<span class="gym">${esc(inv.gym_name)} · </span>` : ''}
             ${esc(inv.email)} · convidado em ${createdDate}
           </div>
           <div class="student-meta" style="color:#00d5ff; margin-top:4px; font-size: var(--fs-2xs);">Aguardando primeiro acesso do aluno</div>
           <div class="actions">
-            <button class="action-btn" onclick="location.href='treinos.html?invite=${inv.id}'">🏋️ Treinos</button>
-            <button class="action-btn" onclick="location.href='anamnese.html?invite=${inv.id}'">🩺 Anamnese</button>
-            <button class="action-btn" onclick="location.href='anotacoes.html?invite=${inv.id}'">📝 Anotações</button>
+            <button class="action-btn" onclick="location.href='treinos.html?invite=${inv.id}'">Treinos</button>
+            <button class="action-btn" onclick="location.href='anamnese.html?invite=${inv.id}'">Anamnese</button>
+            <button class="action-btn" onclick="location.href='anotacoes.html?invite=${inv.id}'">Anotações</button>
+            <button class="action-btn" onclick="openReminders('invite','${inv.id}')">Lembretes</button>
           </div>
         </div>
       </div>
@@ -694,7 +1085,7 @@ function renderStudents() {
   }).join('');
 
   // Cards de alunos ativos/suspensos
-  let studentsHtml = students.map(s => {
+  let studentsHtml = lista.map(s => {
     const status = getStatus(s);
     const isActive = s.status === 'active';
     const expiresText = s.access_expires_at
@@ -702,7 +1093,7 @@ function renderStudents() {
       : 'Sem prazo';
     const bday = getBirthdayInfo(s.birth_date);
     return `
-      <div class="student-card ${s.status === 'suspended' ? 'suspended' : ''}">
+      <div class="student-card st-${stripeOf(s, status)} ${s.status === 'suspended' ? 'suspended' : ''}">
         <div class="toggle-wrap">
           <label class="toggle" title="${isActive ? 'Desativar' : 'Reativar'}">
             <input type="checkbox" ${isActive ? 'checked' : ''} onchange="toggleStatus('${s.id}', this.checked ? 'active' : 'suspended')">
@@ -716,14 +1107,14 @@ function renderStudents() {
             ${s.gym_name ? `<span class="gym">${esc(s.gym_name)} · </span>` : ''}
             até ${expiresText}
           </div>
-          <div class="student-meta" style="color:#777; font-size: var(--fs-2xs);">📧 ${esc(s.email)}</div>
           ${getSessionHtml(s.id)}
           <div class="actions">
             <button class="action-btn" onclick="openEditModal('${s.id}')">Renovar</button>
-            <button class="action-btn" onclick="location.href='treinador.html?aluno=${s.id}'">📊 Resultados</button>
-            <button class="action-btn" onclick="location.href='treinos.html?aluno=${s.id}'">🏋️ Treinos</button>
-            <button class="action-btn" onclick="location.href='anamnese.html?aluno=${s.id}'">🩺 Anamnese</button>
-            <button class="action-btn" onclick="location.href='anotacoes.html?aluno=${s.id}'">📝 Anotações</button>
+            <button class="action-btn" onclick="location.href='treinador.html?aluno=${s.id}'">Resultados</button>
+            <button class="action-btn" onclick="location.href='treinos.html?aluno=${s.id}'">Treinos</button>
+            <button class="action-btn" onclick="location.href='anamnese.html?aluno=${s.id}'">Anamnese</button>
+            <button class="action-btn" onclick="location.href='anotacoes.html?aluno=${s.id}'">Anotações</button>
+            <button class="action-btn" onclick="openReminders('student','${s.id}')">Lembretes${reminderCount(s.id) ? ' (' + reminderCount(s.id) + ')' : ''}</button>
           </div>
         </div>
       </div>
@@ -731,6 +1122,27 @@ function renderStudents() {
   }).join('');
 
   container.innerHTML = pendingHtml + studentsHtml;
+}
+
+function clearFilters() {
+  studentFilter = '';
+  studentQuery = '';
+  const input = document.getElementById('searchInput');
+  if (input) input.value = '';
+  renderStudents();
+  renderSummary();
+  renderAlerts();
+}
+
+// Cor da faixa: vencido/suspenso são estados; "vencendo" é o aviso de 7 dias,
+// a mesma janela que o painel de alertas usa.
+function stripeOf(s, status) {
+  if (status !== 'active') return status === 'expired' ? 'expired' : 'suspended';
+  if (s.access_expires_at) {
+    const dias = (new Date(s.access_expires_at + 'T23:59:59') - new Date()) / 86400000;
+    if (dias <= 7) return 'expiring';
+  }
+  return 'active';
 }
 
 function getStatus(s) {
@@ -767,12 +1179,13 @@ function renderAlerts() {
 
   // Contadores por categoria (contam tudo, inclusive o que fica recolhido).
   const cat = {
-    access:   { label: 'Acessos vencendo', n: 0, rank: 3 },
-    plan:     { label: 'Treinos a renovar', n: 0, rank: 3 },
-    note:     { label: 'Lembretes', n: 0, rank: 3 },
-    birthday: { label: 'Aniversários', n: 0, rank: 3 },
+    access:   { label: CAT_LABELS.access,   n: 0, rank: 3, ids: new Set() },
+    plan:     { label: CAT_LABELS.plan,     n: 0, rank: 3, ids: new Set() },
+    note:     { label: CAT_LABELS.note,     n: 0, rank: 3, ids: new Set() },
+    birthday: { label: CAT_LABELS.birthday, n: 0, rank: 3, ids: new Set() },
   };
-  const bump = (key, rank) => { cat[key].n++; if (rank < cat[key].rank) cat[key].rank = rank; };
+  // O id entra junto do contador: é o que deixa o chip filtrar a lista abaixo.
+  const bump = (key, rank, sid) => { cat[key].n++; cat[key].ids.add(sid); if (rank < cat[key].rank) cat[key].rank = rank; };
 
   // Vencimento de acesso ao app
   students.forEach(s => {
@@ -785,7 +1198,7 @@ function renderAlerts() {
       : `Acesso vence em ${dl} dia${dl !== 1 ? 's' : ''}`;
     push(s, { rank, when: s.access_expires_at, text: `${label} · ${dfmt(s.access_expires_at)}`,
       onclick: `openEditModal('${s.id}')`, go: 'Ajustar prazo →' });
-    bump('access', rank);
+    bump('access', rank, s.id);
   });
 
   // Vencimento do treino (plano) ativo
@@ -801,7 +1214,7 @@ function renderAlerts() {
       : `Treino vence em ${dl} dia${dl !== 1 ? 's' : ''}`;
     push(s, { rank, when: endDate, text: `${label} · ${dfmt(endDate)}`,
       onclick: `location.href='treinos.html?aluno=${s.id}'`, go: 'Editar treino →' });
-    bump('plan', rank);
+    bump('plan', rank, s.id);
   });
 
   // Lembretes de anotações (alert_date <= 5 dias)
@@ -816,8 +1229,8 @@ function renderAlerts() {
       const label = rank === 0 ? 'Lembrete' : dl === 0 ? 'Lembrete hoje' : `Lembrete em ${dl} dia${dl !== 1 ? 's' : ''}`;
       const msg = n.message ? ` — ${esc(n.message)}` : '';
       push(s, { rank, when: n.alert_date, text: `${label} · ${dfmt(n.alert_date)}${msg}`,
-        onclick: `location.href='anotacoes.html?aluno=${s.id}'`, go: 'Ver anotações →' });
-      bump('note', rank);
+        onclick: `openReminders('student','${s.id}')`, go: 'Ver lembretes →' });
+      bump('note', rank, s.id);
     });
   });
 
@@ -829,8 +1242,13 @@ function renderAlerts() {
     if (d !== td || m !== tm) return;
     const age = now.getFullYear() - y;
     push(s, { rank: 1, when: '0000-00-00', text: `🎂 Aniversário hoje! Completa ${age} anos. Mande parabéns! 🎉` });
-    bump('birthday', 1);
+    bump('birthday', 1, s.id);
   });
+
+  // Publica o que a lista e o resumo consomem — inclusive quando não há
+  // alerta nenhum, senão o filtro anterior ficaria preso em memória.
+  attentionIds = new Set(groups.keys());
+  catIds = { access: cat.access.ids, plan: cat.plan.ids, note: cat.note.ids, birthday: cat.birthday.ids };
 
   const section = document.getElementById('alertsSection');
   const container = document.getElementById('alertsList');
@@ -844,8 +1262,8 @@ function renderAlerts() {
   const sevCls = (r) => r === 0 ? 'overdue' : r === 1 ? 'today' : '';
 
   // Chips: só categorias com ocorrência, coloridas pela pior gravidade do grupo.
-  const chips = Object.values(cat).filter(c => c.n > 0).map(c =>
-    `<span class="alert-chip ${sevCls(c.rank)}">${c.label} <span class="n">· ${c.n}</span></span>`
+  const chips = Object.entries(cat).filter(([, c]) => c.n > 0).map(([key, c]) =>
+    `<span class="alert-chip ${sevCls(c.rank)} ${studentFilter === key ? 'on' : ''}" onclick="setFilter('${key}')">${c.label} <span class="n">· ${c.n}</span></span>`
   ).join('');
 
   // Todos os urgentes (vencido/hoje) sempre visíveis; completa até ALERTS_VISIBLE com os "desta semana".
@@ -1059,9 +1477,14 @@ async function cancelInvite(inviteId, name) {
 }
 
 // === Inicialização ===
+// Fora do guard: o esqueleto precisa aparecer ANTES do login resolver, senão
+// a tela fica em branco durante a checagem de sessão (era o que o overlay
+// preto cobria).
+renderSkeleton();
+document.getElementById('searchInput').addEventListener('input', (e) => onSearch(e.target.value));
+
 guard('trainer', {
   onReady: async (session, profile) => {
-    showLoading();
     myId = profile.id;
     // Buscar max_students
     const { data: me } = await _sb.from('profiles').select('max_students').eq('id', myId).maybeSingle();

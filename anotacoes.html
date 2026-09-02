@@ -185,54 +185,6 @@
     }
     .preview-empty .icon { font-size: 2rem; margin-bottom: 8px; }
 
-    /* ── Lembretes de atualização ───────────────────────────────── */
-    .reminder-section {
-      margin: 12px 16px 14px; background: var(--bg-input); border: 1px solid var(--border);
-      border-radius: 10px; padding: 12px 14px;
-    }
-    .reminder-title {
-      font-size: var(--fs-sm); font-weight: 700; color: var(--text-muted2);
-      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
-    }
-    .reminder-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
-    .reminder-item {
-      display: flex; align-items: center; justify-content: space-between; gap: 10px;
-      background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px;
-      padding: 8px 10px;
-    }
-    .reminder-item-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-    .reminder-item-date { font-size: var(--fs-xs); color: var(--accent); font-weight: 700; }
-    .reminder-item-msg { font-size: var(--fs-sm); color: var(--text); overflow-wrap: anywhere; }
-    .reminder-item-remove {
-      flex-shrink: 0; background: none; border: 1px solid #444; color: var(--text-muted2);
-      font-size: var(--fs-2xs); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-weight: 600;
-    }
-    .reminder-item-remove:active { border-color: var(--error); color: var(--error); }
-    .reminder-empty { font-size: var(--fs-sm); color: var(--text-dim); margin-bottom: 10px; }
-    .reminder-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-    .reminder-row input[type="date"] {
-      background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 8px;
-      color: var(--text); padding: 8px 10px; font-size: var(--fs-sm);
-    }
-    .reminder-row input[type="text"] {
-      flex: 1; min-width: 140px; background: var(--bg-secondary); border: 1px solid var(--border);
-      border-radius: 8px; color: var(--text); padding: 8px 10px; font-size: var(--fs-sm);
-    }
-    .reminder-row input:focus { outline: none; border-color: var(--accent); }
-    .reminder-suggestions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
-    .suggestion-chip {
-      background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-muted2);
-      font-size: var(--fs-2xs); padding: 5px 10px; border-radius: 20px; cursor: pointer; font-weight: 600;
-    }
-    .suggestion-chip:active { background: var(--accent); color: var(--text-dark); border-color: var(--accent); }
-    .reminder-save-btn {
-      display: block; width: 100%; margin-top: 8px;
-      background: var(--bg-secondary); border: 1px solid #444; color: var(--text-muted);
-      font-size: var(--fs-xs); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600;
-    }
-    .reminder-save-btn:active { background: var(--accent); color: var(--text-dark); border-color: var(--accent); }
-    .reminder-hint { font-size: var(--fs-2xs); color: var(--text-dim); margin-top: 8px; }
-
     /* ── Botão importar ──────────────────────────────────────────── */
     .import-open-btn {
       display: block; width: calc(100% - 32px); margin: 10px 16px 0;
@@ -385,20 +337,6 @@
 
   <!-- ── Painel: Editor ──────────────────────────────────────────── -->
   <div class="panel active" id="panelEditor">
-    <!-- Lembretes de atualização -->
-    <div class="reminder-section">
-      <div class="reminder-title">Lembretes</div>
-      <div class="reminder-list" id="reminderList"></div>
-
-      <div class="reminder-row">
-        <input type="date" id="newReminderDate">
-        <input type="text" id="newReminderMessage" placeholder="O que lembrar? (opcional)" maxlength="140">
-      </div>
-      <div class="reminder-suggestions" id="reminderSuggestions"></div>
-      <button class="reminder-save-btn" onclick="addReminder()">Adicionar lembrete</button>
-
-      <div class="reminder-hint">Você é avisado 5 dias antes da data escolhida, até o dia do lembrete. Para parar o aviso, remova o lembrete.</div>
-    </div>
     <!-- Atalhos de inserção rápida -->
     <div class="toolbar">
       <button class="tb-btn" onclick="insertSnippet('section')">+ Seção</button>
@@ -667,105 +605,6 @@ function updateLastSaved() {
 }
 
 // =====================================================================
-// Lembretes de atualização
-// =====================================================================
-let reminders = []; // [{ id, alert_date, message }]
-
-const REMINDER_SUGGESTIONS = ['Renovar dieta', 'Renovar protocolo', 'Atendimento presencial', 'Dia de anamnese'];
-
-function renderReminderSuggestions() {
-  const box = document.getElementById('reminderSuggestions');
-  box.innerHTML = REMINDER_SUGGESTIONS.map(s => `<button type="button" class="suggestion-chip" data-text="${esc(s)}">${esc(s)}</button>`).join('');
-  box.querySelectorAll('.suggestion-chip').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.getElementById('newReminderMessage').value = btn.dataset.text;
-    });
-  });
-}
-
-function renderReminders() {
-  const list = document.getElementById('reminderList');
-  if (reminders.length === 0) {
-    list.innerHTML = '<div class="reminder-empty">Nenhum lembrete cadastrado.</div>';
-    return;
-  }
-
-  list.innerHTML = reminders.map(r => {
-    const dateStr = new Date(r.alert_date + 'T00:00:00').toLocaleDateString('pt-BR');
-    const msg = r.message ? `<span class="reminder-item-msg">${esc(r.message)}</span>` : '';
-    return `
-      <div class="reminder-item">
-        <div class="reminder-item-info">
-          <span class="reminder-item-date">${dateStr}</span>
-          ${msg}
-        </div>
-        <button class="reminder-item-remove" data-id="${r.id}">Remover</button>
-      </div>`;
-  }).join('');
-
-  list.querySelectorAll('.reminder-item-remove').forEach(btn => {
-    btn.addEventListener('click', () => deleteReminder(btn.dataset.id));
-  });
-}
-
-async function loadReminders() {
-  let query = _sb.from('trainer_reminders').select('id, alert_date, message').order('alert_date', { ascending: true });
-  query = studentId ? query.eq('student_id', studentId) : query.eq('invite_id', inviteId);
-
-  const { data, error } = await query;
-  if (error) { console.error('Erro ao carregar lembretes:', error); return; }
-  reminders = data || [];
-  renderReminders();
-}
-
-async function addReminder() {
-  const alertDate = document.getElementById('newReminderDate').value || null;
-  const message    = document.getElementById('newReminderMessage').value.trim() || null;
-
-  if (!alertDate) {
-    showToast('Escolha uma data para o lembrete', true);
-    return;
-  }
-
-  const insertData = { coach_id: myId, alert_date: alertDate, message };
-  if (studentId) insertData.student_id = studentId;
-  else if (inviteId) insertData.invite_id = inviteId;
-
-  try {
-    const { data, error } = await _sb.from('trainer_reminders')
-      .insert(insertData)
-      .select('id, alert_date, message')
-      .single();
-    if (error) throw error;
-
-    reminders.push(data);
-    reminders.sort((a, b) => a.alert_date.localeCompare(b.alert_date));
-    renderReminders();
-
-    document.getElementById('newReminderDate').value = '';
-    document.getElementById('newReminderMessage').value = '';
-    showToast('Lembrete adicionado ✓');
-  } catch (e) {
-    console.error('Erro ao salvar lembrete:', e);
-    showToast('Erro ao salvar lembrete', true);
-  }
-}
-
-async function deleteReminder(id) {
-  if (!confirm('Remover este lembrete?')) return;
-  try {
-    const { error } = await _sb.from('trainer_reminders').delete().eq('id', id);
-    if (error) throw error;
-    reminders = reminders.filter(r => r.id !== id);
-    renderReminders();
-    showToast('Lembrete removido ✓');
-  } catch (e) {
-    console.error('Erro ao remover lembrete:', e);
-    showToast('Erro ao remover lembrete', true);
-  }
-}
-
-// =====================================================================
 // Limpar
 // =====================================================================
 function confirmClear() {
@@ -962,12 +801,10 @@ function confirmImport() {
 // =====================================================================
 // Init
 // =====================================================================
-renderReminderSuggestions();
-
 guard('trainer', {
   onReady: async (session, profile) => {
     myId = profile.id;
-    await Promise.all([loadStudentName(), loadNote(), loadReminders()]);
+    await Promise.all([loadStudentName(), loadNote()]);
     hideLoading();
   }
 });
