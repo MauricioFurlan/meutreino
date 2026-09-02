@@ -20,18 +20,22 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body::-webkit-scrollbar, *::-webkit-scrollbar { display: none; }
     body, * { scrollbar-width: none; }
-    /* Mesma escala tipográfica do index.html (tela do aluno) — mantém os
-       dois lados do app com a mesma hierarquia de tamanhos de texto. */
+    /* Escala tipográfica das telas do PROFESSOR: um degrau acima da escala do
+       aluno (index.html). O aluno usa o app de pé na academia, olhando uma
+       série por vez; o professor lê listas densas de aluno no mesmo celular e
+       reclamava do texto pequeno. O editor de treino (editor.html) ficou na
+       escala menor de propósito: a linha de série tem colunas de 54px/50px
+       calibradas na unha e texto maior estoura a grade. */
     :root {
-      --fs-2xs: 0.65rem;
-      --fs-xs: 0.7rem;
-      --fs-sm: 0.75rem;
-      --fs-base: 0.8rem;
-      --fs-md: 0.85rem;
-      --fs-lg: 0.9rem;
-      --fs-xl: 1rem;
-      --fs-2xl: 1.1rem;
-      --fs-3xl: 1.3rem;
+      --fs-2xs: 0.72rem;
+      --fs-xs: 0.78rem;
+      --fs-sm: 0.82rem;
+      --fs-base: 0.88rem;
+      --fs-md: 0.92rem;
+      --fs-lg: 0.96rem;
+      --fs-xl: 1.05rem;
+      --fs-2xl: 1.15rem;
+      --fs-3xl: 1.35rem;
     }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -139,9 +143,16 @@
 
     /* Botões de ação */
     .actions { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+    /* Renovar / Resultados / Treinos / Anamnese / Anotações: são o caminho
+       para todas as telas do aluno e ficavam com ~29px de altura, difícil de
+       acertar em celular pequeno. min-height 44px é o alvo de toque mínimo do
+       iOS; inline-flex centra o texto dentro dessa altura. Eles já quebram
+       linha (.actions tem flex-wrap), então crescer só ocupa mais uma fileira. */
     .action-btn {
-      padding: 6px 12px; border: 1px solid #555; border-radius: 8px; background: none;
-      color: #ccc; font-size: var(--fs-xs); cursor: pointer; font-weight: 500;
+      padding: 10px 14px; border: 1px solid #555; border-radius: 8px; background: none;
+      color: #ccc; font-size: var(--fs-sm); cursor: pointer; font-weight: 500;
+      min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+      line-height: 1.1;
     }
     .action-btn:active { opacity: 0.6; }
     .action-btn.danger { border-color: #f44336; color: #f44336; }
