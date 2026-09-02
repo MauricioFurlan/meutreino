@@ -117,5 +117,38 @@ dentro('planEndMap = {}; noteAlertMap = {}; students = students.map(s => Object.
 dentro('refreshPanel()');
 ok('sem alertas, atenção zera', dentro('attentionIds').size === 0 && els.alertsSection.style.display === 'none');
 
+// --- Janela do aniversário: 5 dias antes, o dia, 3 dias depois ---
+const dataDe = (offsetDias) => {
+  const d = new Date(); d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + offsetDias);
+  return `1990-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+const selo = (offsetDias) => dentro(`getBirthdayInfo(${JSON.stringify(dataDe(offsetDias))}).badge`);
+
+ok('aniversário hoje: selo "Hoje!"', selo(0).includes('Hoje!') && selo(0).includes('today'));
+ok('amanhã', selo(1).includes('amanhã'));
+ok('5 dias antes ainda aparece', selo(5).includes('em 5 dias'));
+ok('6 dias antes não aparece', selo(6) === '');
+ok('ontem', selo(-1).includes('ontem'));
+ok('3 dias depois ainda aparece', selo(-3).includes('há 3 dias'));
+ok('4 dias depois some', selo(-4) === '');
+ok('mês inteiro não vale mais', selo(20) === '' && selo(-20) === '');
+ok('sem data de nascimento não tem selo', dentro('getBirthdayInfo(null).badge') === '');
+
+// Viradas de mês e de ano: 31/12 visto de 02/01 é "há 2 dias", não "em 363"
+ok('vira o ano sem se perder', dentro('daysToBirthday(12, 31, new Date(2027, 0, 2))') === -2);
+ok('vira o mês sem se perder', dentro('daysToBirthday(12, 3, new Date(2026, 10, 30))') === 3);
+
+// O alerta de aniversário segue só no dia
+const soAniversario = (offset) => {
+  dentro('students = students.map((s, i) => Object.assign({}, s, { birth_date: i === 0 ? '
+    + JSON.stringify(dataDe(offset)) + ' : null }))');
+  dentro('refreshPanel()');
+};
+soAniversario(2);
+ok('aniversário em 2 dias não entra em "pedem atenção"', dentro('attentionIds').size === 0);
+soAniversario(0);
+ok('aniversário hoje entra em "pedem atenção"', dentro('attentionIds').has('a1'));
+
 console.log(`\n${falhas === 0 ? 'tudo certo' : falhas + ' falha(s)'}`);
 process.exit(falhas ? 1 : 0);

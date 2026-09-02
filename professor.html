@@ -1023,19 +1023,43 @@ async function loadStudents() {
 }
 
 // === Aniversário ===
-function getBirthdayInfo(birthDate) {
-  if (!birthDate) return { badge: '', isToday: false, isBirthdayMonth: false };
-  const today = new Date();
-  const [y, m, d] = birthDate.split('-').map(Number);
-  const isToday = today.getDate() === d && (today.getMonth() + 1) === m;
-  const isBirthdayMonth = (today.getMonth() + 1) === m && !isToday;
-  let badge = '';
-  if (isToday) {
-    badge = `<span class="birthday-badge today">🎂 Hoje!</span>`;
-  } else if (isBirthdayMonth) {
-    badge = `<span class="birthday-badge">🎂 ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}</span>`;
+// Janela do selo: 5 dias antes, o dia, e 3 dias depois (para o "atrasado, mas
+// de coração"). Antes era o MÊS inteiro — com 20 alunos quase sempre havia um
+// bolo aceso na lista, e o selo parava de chamar atenção para alguma coisa.
+const BDAY_ANTES = 5;
+const BDAY_DEPOIS = 3;
+
+// Distância em dias até o aniversário, com sinal (negativo = já passou).
+// Comparar dia/mês soltos erra as viradas: 30/nov não enxergaria 03/dez, e
+// 28/dez não enxergaria 02/jan. Por isso testa o aniversário no ano passado,
+// neste e no que vem, e fica com o mais próximo de hoje.
+// (29/02 em ano comum: o Date rola para 01/03 — o selo aparece um dia depois,
+// que é o comportamento aceito por quem comemora nessa data.)
+function daysToBirthday(m, d, hoje) {
+  let melhor = null;
+  for (const ano of [hoje.getFullYear() - 1, hoje.getFullYear(), hoje.getFullYear() + 1]) {
+    const data = new Date(ano, m - 1, d);
+    data.setHours(0, 0, 0, 0);
+    const dias = Math.round((data - hoje) / 86400000);
+    if (melhor === null || Math.abs(dias) < Math.abs(melhor)) melhor = dias;
   }
-  return { badge, isToday, isBirthdayMonth };
+  return melhor;
+}
+
+function getBirthdayInfo(birthDate) {
+  if (!birthDate) return { badge: '', isToday: false, days: null };
+  const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+  const [, m, d] = birthDate.split('-').map(Number);
+  const dias = daysToBirthday(m, d, hoje);
+
+  if (dias > BDAY_ANTES || dias < -BDAY_DEPOIS) return { badge: '', isToday: false, days: dias };
+  if (dias === 0) return { badge: `<span class="birthday-badge today">🎂 Hoje!</span>`, isToday: true, days: 0 };
+
+  const texto = dias === 1 ? 'amanhã'
+    : dias > 1 ? `em ${dias} dias`
+    : dias === -1 ? 'ontem'
+    : `há ${-dias} dias`;
+  return { badge: `<span class="birthday-badge">🎂 ${texto}</span>`, isToday: false, days: dias };
 }
 
 // === Renderizar lista ===
@@ -1234,13 +1258,13 @@ function renderAlerts() {
     });
   });
 
-  // Aniversário do dia
-  const td = now.getDate(), tm = now.getMonth() + 1;
+  // Aniversário do dia. O alerta continua só no dia: o selo do card avisa a
+  // semana toda, mas 9 dias de aniversário na seção Atenção empurrariam para
+  // baixo o que de fato vence.
   students.forEach(s => {
     if (!s.birth_date) return;
-    const [y, m, d] = s.birth_date.split('-').map(Number);
-    if (d !== td || m !== tm) return;
-    const age = now.getFullYear() - y;
+    if (!getBirthdayInfo(s.birth_date).isToday) return;
+    const age = now.getFullYear() - Number(s.birth_date.split('-')[0]);
     push(s, { rank: 1, when: '0000-00-00', text: `🎂 Aniversário hoje! Completa ${age} anos. Mande parabéns! 🎉` });
     bump('birthday', 1, s.id);
   });
