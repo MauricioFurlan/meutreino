@@ -709,7 +709,6 @@
       padding: 13px 12px; cursor: pointer; text-align: left; color: var(--text);
     }
     .drawer-item:active { background: var(--bg-secondary); }
-    .drawer-item .di-icon { font-size: var(--fs-2xl); width: 24px; text-align: center; flex-shrink: 0; }
     .drawer-item .di-text { flex: 1; min-width: 0; }
     /* label e desc são <span>: sem display:block ficariam na mesma linha */
     .drawer-item .di-label { display: block; font-size: var(--fs-lg); font-weight: 600; }
@@ -719,6 +718,12 @@
       flex-shrink: 0; display: none;
     }
     .drawer-item.has-news .di-dot { display: block; }
+    /* Bloco do plano: a mesma caixa dos itens, mas não é botão — só diz até
+       quando o acompanhamento está contratado. */
+    .drawer-plan { padding: 13px 12px; }
+    .drawer-plan .dp-label { display: block; font-size: var(--fs-lg); font-weight: 600; }
+    .drawer-plan .dp-desc { display: block; font-size: var(--fs-2xs); color: var(--text-dim); margin-top: 2px; }
+    .drawer-plan.ending .dp-desc { color: var(--warning); }
     .drawer-footer { padding: 8px; border-top: 1px solid var(--bg-secondary); flex-shrink: 0; }
     .drawer-item-logout .di-label { color: var(--text-bright); }
     .drawer-section {
@@ -849,7 +854,6 @@
     <div class="drawer-items">
       <div class="drawer-section">Do seu professor</div>
       <button class="drawer-item" id="drawerNoteItem" onclick="drawerGo('notes')">
-        <span class="di-icon">📋</span>
         <span class="di-text">
           <span class="di-label">Orientações</span>
           <span class="di-desc" id="drawerNoteDesc">Nenhuma orientação no momento</span>
@@ -857,7 +861,6 @@
         <span class="di-dot"></span>
       </button>
       <button class="drawer-item" onclick="drawerGo('anamnese')">
-        <span class="di-icon">📊</span>
         <span class="di-text">
           <span class="di-label">Resultado da anamnese</span>
           <span class="di-desc">Suas medidas e a evolução delas</span>
@@ -865,7 +868,6 @@
       </button>
       <div class="drawer-section">Sua evolução</div>
       <button class="drawer-item" onclick="drawerGo('weekly')">
-        <span class="di-icon">📈</span>
         <span class="di-text">
           <span class="di-label">Evoluções</span>
           <span class="di-desc">Presença, volume, tempo e cardio</span>
@@ -873,12 +875,16 @@
       </button>
       <div class="drawer-section">Preferências</div>
       <button class="drawer-item" onclick="location.href='config.html'">
-        <span class="di-icon">⚙</span>
         <span class="di-text">
           <span class="di-label">Configurações</span>
           <span class="di-desc">Temas e personalização</span>
         </span>
       </button>
+      <div class="drawer-section" id="drawerPlanSection" style="display:none;">Seu plano</div>
+      <div class="drawer-plan" id="drawerPlan" style="display:none;">
+        <span class="dp-label" id="drawerPlanLabel"></span>
+        <span class="dp-desc" id="drawerPlanDesc"></span>
+      </div>
     </div>
     <div class="drawer-footer">
       <button class="drawer-item drawer-item-logout" onclick="openLogoutModal()">
@@ -3083,6 +3089,39 @@ function doLogout() {
   location.href = 'login.html?logout';
 }
 
+// === Até quando o acompanhamento está contratado ===
+// O professor grava a duração no cadastro do aluno (meses no convite, ou a data
+// direto na edição) e isso vira profiles.access_expires_at. Aqui o menu diz a
+// data em português e quanto ainda falta, para o fim do plano não pegar
+// ninguém de surpresa. Devolve null quando não há prazo — aí não há o que
+// mostrar.
+function planValidity(expires, hoje) {
+  if (!expires) return null;
+  const fim = new Date(expires + 'T00:00:00');
+  if (isNaN(fim.getTime())) return null;
+  const hj = new Date((hoje || getTodayDate()) + 'T00:00:00');
+  // O acesso vale até o fim do dia do vencimento: 0 dia restante = último dia.
+  const dias = Math.round((fim - hj) / 86400000);
+  const data = fim.toLocaleDateString('pt-BR');
+  if (dias < 0)   return { label: 'Encerrado em ' + data, desc: 'Fale com seu professor para renovar.', ending: true };
+  if (dias === 0) return { label: 'Contratado até ' + data, desc: 'Último dia do plano.', ending: true };
+  if (dias === 1) return { label: 'Contratado até ' + data, desc: 'Falta 1 dia.', ending: true };
+  return { label: 'Contratado até ' + data, desc: 'Faltam ' + dias + ' dias.', ending: dias <= 7 };
+}
+
+function renderPlanValidity(expires) {
+  const info = planValidity(expires);
+  const sec = document.getElementById('drawerPlanSection');
+  const box = document.getElementById('drawerPlan');
+  if (!sec || !box) return;
+  sec.style.display = info ? '' : 'none';
+  box.style.display = info ? '' : 'none';
+  if (!info) return;
+  box.classList.toggle('ending', info.ending);
+  document.getElementById('drawerPlanLabel').textContent = info.label;
+  document.getElementById('drawerPlanDesc').textContent = info.desc;
+}
+
 function drawerGo(destino) {
   closeDrawer();
   if (destino === 'notes')    { openNotesModal(); return; }
@@ -3250,6 +3289,7 @@ guard('student', {
     if (profile.gym_name) document.getElementById('gymName').textContent = profile.gym_name;
     document.getElementById('drawerName').textContent = profile.full_name || 'Menu';
     document.getElementById('drawerSub').textContent = profile.gym_name || '';
+    renderPlanValidity(profile.access_expires_at);
 
     // Orientações e anamnese existem mesmo sem treino cadastrado, então o menu
     // é carregado antes de decidir o que mostrar no corpo da tela.
