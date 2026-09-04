@@ -1351,8 +1351,6 @@ async function saveExercise(day, exerciseName, cardId) {
   const btn = card.querySelector('.save-btn');
   // Evita cliques duplicados
   if (btn.disabled) return;
-  btn.disabled = true;
-  btn.innerHTML = SAVING_LABEL;
 
   const rows = card.querySelectorAll('.set-row:not(.set-header)');
   const records = [];
@@ -1366,7 +1364,13 @@ async function saveExercise(day, exerciseName, cardId) {
     }, planStamp()));
     if (rec) records.push(rec);
   });
-  if (records.length === 0) { showToast('Preencha ao menos um set', true); btn.disabled = false; btn.textContent = 'Salvar'; return; }
+  if (records.length === 0) { showToast('Preencha ao menos um set', true); return; }
+
+  // Pergunta antes de gravar; o exercício é salvo com qualquer resposta.
+  await offerStartWorkout(day);
+
+  btn.disabled = true;
+  btn.innerHTML = SAVING_LABEL;
   try {
     // Deleta registros de hoje deste exercício
     const { error: delErr } = await _sb.from('workout_logs')
@@ -1390,8 +1394,6 @@ async function saveGroup(day, cardIds) {
   const wrapper = document.getElementById(cardIds[0]).closest('.biset-wrapper');
   const btn = wrapper.querySelector('.save-btn');
   if (btn.disabled) return;
-  btn.disabled = true;
-  btn.innerHTML = SAVING_LABEL;
 
   const sessionDate = getDateForDay(day);
   const allRecords = [];
@@ -1413,8 +1415,13 @@ async function saveGroup(day, cardIds) {
     });
   }
 
-  if (allRecords.length === 0) { showToast('Preencha ao menos um set', true); btn.disabled = false; btn.textContent = 'Salvar'; return; }
+  if (allRecords.length === 0) { showToast('Preencha ao menos um set', true); return; }
 
+  // Pergunta antes de gravar; o grupo é salvo com qualquer resposta.
+  await offerStartWorkout(day);
+
+  btn.disabled = true;
+  btn.innerHTML = SAVING_LABEL;
   try {
     // Deleta registros de hoje de todos os exercícios do grupo
     for (const name of exerciseNames) {
@@ -2664,6 +2671,38 @@ function updateTimerDisplay() {
 function isCurrentTabToday() {
   if (planMode === 'cyclic') return !!currentTabDay; // no cíclico, treino é sempre "hoje"
   return currentTabDay === getToday();
+}
+
+function isDayToday(day) {
+  if (planMode === 'cyclic') return !!day && day === currentTabDay; // no cíclico, o treino aberto é o de hoje
+  return day === getToday();
+}
+
+// O aluno recusou iniciar nesta visita. Não insiste a cada exercício salvo —
+// o botão "Iniciar Treino" continua ali se ele mudar de ideia.
+let startWorkoutDeclined = false;
+
+// Só vale oferecer quando o botão "Iniciar Treino" está realmente disponível:
+// dia de hoje, com exercícios, sem sessão em andamento, encerrada ou expirada.
+function canOfferStartWorkout() {
+  const row = document.getElementById('startWorkoutRow');
+  const btn = document.getElementById('timerStartBtn');
+  if (!row || !btn) return false;
+  if (row.style.display === 'none') return false;
+  return btn.style.display !== 'none' && !btn.disabled;
+}
+
+// Salvar sem ter iniciado o cronômetro é comum: o aluno abre o treino e já
+// registra a primeira série. Aqui só se pergunta — quem chama salva de
+// qualquer forma, com "sim" ou com "não".
+async function offerStartWorkout(day) {
+  if (startWorkoutDeclined) return;
+  if (!isDayToday(day) || !canOfferStartWorkout()) return;
+  if (!confirm('Você ainda não começou o treino. Deseja começar agora?')) {
+    startWorkoutDeclined = true;
+    return;
+  }
+  await startWorkoutSession();
 }
 
 function updateTimerVisibility() {
