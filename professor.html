@@ -254,6 +254,17 @@
     }
     .form-group input[type="date"] { min-width: 0; }
     .form-group input:focus, .form-group select:focus { outline: none; border-color: #00d5ff; }
+    /* Renovar por meses: o professor vende período ("mais 3 meses"), não data.
+       O botão só calcula e escreve a data no campo acima — quem grava é o
+       Salvar do modal, então dá para conferir (ou desistir) antes. */
+    .renew-row { display: flex; gap: 8px; margin-top: 8px; }
+    .renew-row input { flex: 0 0 88px; }
+    .renew-btn {
+      flex: 1; border: 1px solid #555; border-radius: 8px; background: none;
+      color: #ccc; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; min-height: 44px;
+    }
+    .renew-btn:active { opacity: 0.6; }
+    .renew-hint { font-size: var(--fs-xs); color: #00d5ff; margin-top: 6px; }
     .submit-btn {
       width: 100%; padding: 14px; border: none; border-radius: 10px;
       background: #00d5ff; color: #000; font-weight: 700; font-size: var(--fs-lg); cursor: pointer;
@@ -508,6 +519,11 @@
       <div class="form-group">
         <label>Vencimento do plano</label>
         <input type="date" id="editExpires">
+        <div class="renew-row">
+          <input type="number" id="editRenewMonths" inputmode="numeric" value="3" min="1" max="24" aria-label="Meses de renovação">
+          <button type="button" class="renew-btn" onclick="renewPlanMonths()">Renovar por meses</button>
+        </div>
+        <div class="renew-hint" id="editRenewHint"></div>
       </div>
       <div class="form-group">
         <label>Academia</label>
@@ -1351,8 +1367,7 @@ async function createStudent() {
 
   if (existing && existing.is_deleted && existing.coach_id === myId) {
     // Reativar aluno deletado
-    const newExp = new Date();
-    newExp.setMonth(newExp.getMonth() + months);
+    const hoje = hojeISO();
     const { error } = await _sb.from('profiles').update({
       is_deleted: false,
       status: 'active',
@@ -1360,8 +1375,8 @@ async function createStudent() {
       gym_name: gym || null,
       birth_date: birthDate,
       sex,
-      access_starts_at: new Date().toISOString().split('T')[0],
-      access_expires_at: newExp.toISOString().split('T')[0]
+      access_starts_at: hoje,
+      access_expires_at: addMonthsISO(hoje, months)
     }).eq('id', existing.id);
     btn.disabled = false;
     if (error) { showToast('Erro: ' + error.message, true); return; }
@@ -1433,6 +1448,34 @@ function doLogout() {
 // === Editar dados do aluno ===
 let editStudentId = null;
 
+const isoDe = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const hojeISO = () => isoDe(new Date());
+
+// Soma meses a uma data ISO sem escorregar para o mês seguinte: 31/01 + 1 mês
+// é 28/02 (29 em ano bissexto), não 03/03 como sairia de um setMonth cru.
+function addMonthsISO(iso, meses) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const alvo = new Date(y, m - 1 + meses, 1);
+  const ultimoDia = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate();
+  alvo.setDate(Math.min(d, ultimoDia));
+  return isoDe(alvo);
+}
+
+// Renovar o plano em meses. Quem renova antes de vencer não perde os dias que
+// sobraram (conta a partir do vencimento atual); quem já venceu recomeça hoje.
+// Só preenche o campo de data — o Salvar do modal é que grava.
+function renewPlanMonths() {
+  const meses = parseInt(document.getElementById('editRenewMonths').value) || 0;
+  if (meses < 1) { showToast('Informe quantos meses.', true); return; }
+  const hoje = hojeISO();
+  const atual = document.getElementById('editExpires').value;
+  const base = atual && atual > hoje ? atual : hoje;
+  const novo = addMonthsISO(base, meses);
+  document.getElementById('editExpires').value = novo;
+  document.getElementById('editRenewHint').textContent =
+    'Novo vencimento: ' + new Date(novo + 'T00:00:00').toLocaleDateString('pt-BR') + ' — confirme em Salvar.';
+}
+
 function openEditModal(studentId) {
   const s = students.find(x => x.id === studentId);
   if (!s) return;
@@ -1443,6 +1486,8 @@ function openEditModal(studentId) {
   document.getElementById('editGym').value = s.gym_name || '';
   document.getElementById('editBirth').value = s.birth_date || '';
   document.getElementById('editSex').value = s.sex || '';
+  document.getElementById('editRenewMonths').value = '3';
+  document.getElementById('editRenewHint').textContent = '';
   document.getElementById('editModal').classList.add('show');
 }
 

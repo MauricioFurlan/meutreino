@@ -84,6 +84,17 @@
     .plan-badge.free   { background: #222; color: #888; border: 1px solid #444; }
     .plan-badge.basic  { background: #141a21; color: #64b5f6; border: 1px solid #1e4a7a; }
     .plan-badge.pro    { background: #0c1015; color: #00d5ff; border: 1px solid #0091b3; }
+    /* Renovar por meses: a mensalidade é vendida em período, não em data. O
+       botão só calcula e escreve no campo de vencimento — quem grava é o
+       Salvar do modal. Renovação com pagamento continua em Registrar Pagamento. */
+    .renew-row { display: flex; gap: 8px; margin-top: 8px; }
+    .renew-row input { flex: 0 0 88px; }
+    .renew-btn {
+      flex: 1; border: 1px solid #555; border-radius: 8px; background: none;
+      color: #ccc; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; min-height: 44px;
+    }
+    .renew-btn:active { opacity: 0.6; }
+    .renew-hint { font-size: var(--fs-xs); color: #00d5ff; margin-top: 6px; }
     .submit-btn { width: 100%; padding: 14px; border: none; border-radius: 10px; background: #00d5ff; color: #000; font-weight: 700; font-size: var(--fs-lg); cursor: pointer; }
     .submit-btn:disabled { opacity: 0.5; }
     .submit-btn:active { opacity: 0.7; }
@@ -222,6 +233,15 @@
       <div class="form-row">
         <div class="form-group"><label>Limite de alunos</label><input type="number" id="editStudentLimit" inputmode="numeric" min="1"></div>
         <div class="form-group"><label>URL da foto</label><input type="url" id="editAvatarUrl" placeholder="https://..."></div>
+      </div>
+      <div class="form-group">
+        <label>Vencimento da mensalidade</label>
+        <input type="date" id="editExpires">
+        <div class="renew-row">
+          <input type="number" id="editRenewMonths" inputmode="numeric" value="1" min="1" max="24" aria-label="Meses de renovação">
+          <button type="button" class="renew-btn" onclick="renewPlanMonths()">Renovar por meses</button>
+        </div>
+        <div class="renew-hint" id="editRenewHint">Estender sem registrar pagamento. Com pagamento, use Registrar Pagamento.</div>
       </div>
       <div class="form-group"><label>Especialidades</label><input type="text" id="editSpecialties" placeholder="musculação, corrida, crossfit..."></div>
       <div class="form-group"><label>Bio</label><textarea id="editBio" rows="3" placeholder="Apresentação curta do professor"></textarea></div>
@@ -421,17 +441,17 @@ async function confirmPayment() {
   const trainer = trainers.find(t => t.id === payTrainerId);
   if (!trainer) { closePayModal(); return; }
 
-  const now = new Date();
-  const currentExp = trainer.access_expires_at ? new Date(trainer.access_expires_at + 'T00:00:00') : now;
-  const base = currentExp > now ? currentExp : now;
-  const newExp = new Date(base);
-  newExp.setMonth(newExp.getMonth() + months);
-  const periodStart = base.toISOString().split('T')[0];
-  const periodEnd = newExp.toISOString().split('T')[0];
+  // Mesma conta do "Renovar por meses" do modal de edição: quem paga antes de
+  // vencer não perde os dias que sobraram. Datas montadas no fuso local — o
+  // toISOString() virava o dia depois das 21h no Brasil.
+  const hoje = hojeISO();
+  const atual = trainer.access_expires_at;
+  const periodStart = atual && atual > hoje ? atual : hoje;
+  const periodEnd = addMonthsISO(periodStart, months);
 
   // Registrar pagamento
   const { error: payErr } = await _sb.from('trainer_payments').insert({
-    trainer_id: payTrainerId, amount, paid_at: now.toISOString().split('T')[0],
+    trainer_id: payTrainerId, amount, paid_at: hoje,
     period_start: periodStart, period_end: periodEnd, method, created_by: myId
   });
   if (payErr) { showToast('Erro ao registrar: ' + payErr.message, true); return; }
@@ -442,7 +462,7 @@ async function confirmPayment() {
     .eq('id', payTrainerId);
   if (upErr) { showToast('Pagamento registrado mas erro ao estender prazo.', true); closePayModal(); return; }
 
-  showToast(`Pagamento registrado! Prazo até ${newExp.toLocaleDateString('pt-BR')}.`);
+  showToast(`Pagamento registrado! Prazo até ${new Date(periodEnd + 'T00:00:00').toLocaleDateString('pt-BR')}.`);
   closePayModal();
   await loadTrainers();
 }
@@ -479,6 +499,35 @@ async function viewPayments(trainerId, name) {
 // === Editar professor ===
 let editTrainerId = null;
 
+const isoDe = (d) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+const hojeISO = () => isoDe(new Date());
+
+// Soma meses a uma data ISO sem escorregar para o mês seguinte: 31/01 + 1 mês
+// é 28/02 (29 em ano bissexto), não 03/03 como sairia de um setMonth cru.
+function addMonthsISO(iso, meses) {
+  const [y, m, d] = iso.split('-').map(Number);
+  const alvo = new Date(y, m - 1 + meses, 1);
+  const ultimoDia = new Date(alvo.getFullYear(), alvo.getMonth() + 1, 0).getDate();
+  alvo.setDate(Math.min(d, ultimoDia));
+  return isoDe(alvo);
+}
+
+// Renovar a mensalidade em meses. Quem renova antes de vencer não perde os dias
+// que sobraram (conta do vencimento atual); quem já venceu recomeça hoje.
+// Só preenche o campo de data — o Salvar do modal é que grava, e nenhum
+// pagamento é lançado por aqui.
+function renewPlanMonths() {
+  const meses = parseInt(document.getElementById('editRenewMonths').value) || 0;
+  if (meses < 1) { showToast('Informe quantos meses.', true); return; }
+  const hoje = hojeISO();
+  const atual = document.getElementById('editExpires').value;
+  const base = atual && atual > hoje ? atual : hoje;
+  const novo = addMonthsISO(base, meses);
+  document.getElementById('editExpires').value = novo;
+  document.getElementById('editRenewHint').textContent =
+    'Novo vencimento: ' + new Date(novo + 'T00:00:00').toLocaleDateString('pt-BR') + ' — confirme em Salvar.';
+}
+
 function openEditModal(trainerId) {
   const t = trainers.find(x => x.id === trainerId);
   if (!t) return;
@@ -492,6 +541,9 @@ function openEditModal(trainerId) {
   document.getElementById('editAvatarUrl').value    = t.avatar_url || '';
   document.getElementById('editSpecialties').value  = (t.specialties || []).join(', ');
   document.getElementById('editBio').value          = t.bio || '';
+  document.getElementById('editExpires').value      = t.access_expires_at || '';
+  document.getElementById('editRenewMonths').value  = '1';
+  document.getElementById('editRenewHint').textContent = 'Estender sem registrar pagamento. Com pagamento, use Registrar Pagamento.';
   document.getElementById('editModal').classList.add('show');
 }
 
@@ -515,7 +567,15 @@ async function confirmEdit() {
     avatar_url:    document.getElementById('editAvatarUrl').value.trim() || null,
     bio:           document.getElementById('editBio').value.trim() || null,
     specialties,
+    access_expires_at: document.getElementById('editExpires').value || null,
   };
+
+  // Vencimento no futuro devolve o acesso — a suspensão manual continua valendo.
+  const trainer = trainers.find(t => t.id === editTrainerId);
+  if (updates.access_expires_at && trainer && trainer.status !== 'suspended'
+      && updates.access_expires_at >= hojeISO()) {
+    updates.status = 'active';
+  }
 
   const { error } = await _sb.from('profiles').update(updates).eq('id', editTrainerId);
   if (error) { showToast('Erro: ' + error.message, true); return; }
