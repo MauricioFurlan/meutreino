@@ -698,33 +698,46 @@
     }
     .drawer-header .drawer-title { font-size: var(--fs-xl); font-weight: 700; color: var(--accent); }
     .drawer-header .drawer-sub { font-size: var(--fs-xs); color: var(--text-dim); margin-top: 3px; }
+    /* Academia e prazo do plano dividem a linha; em nome comprido o selo cai
+       para a linha de baixo em vez de espremer o texto. */
+    .drawer-sub-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 3px; }
+    .drawer-sub-row .drawer-sub { margin-top: 0; }
+    /* Selo do plano: recado curto, não é botão — fica na testeira do menu,
+       longe dos itens, para ninguém tentar tocar nele. */
+    .drawer-plan-chip {
+      font-size: var(--fs-2xs); color: var(--text-muted3);
+      border: 1px solid var(--border-light); border-radius: 999px;
+      padding: 2px 8px; white-space: nowrap;
+    }
+    .drawer-plan-chip.ending { color: var(--warning); border-color: var(--warning); }
     .drawer-close {
       background: var(--bg-secondary); border: none; color: var(--text-muted); font-size: var(--fs-xl);
       width: 28px; height: 28px; border-radius: 50%; cursor: pointer; flex-shrink: 0;
     }
     .drawer-items { padding: 8px; overflow-y: auto; flex: 1; }
+    /* Sem os ícones, texto solto no escuro não parecia clicável. Cada item
+       ganha superfície e borda próprias: lê-se como botão, e o selo do plano
+       (sem caixa, lá em cima) não se confunde mais com um deles. */
     .drawer-item {
       width: 100%; display: flex; align-items: center; gap: 12px;
-      background: none; border: none; border-radius: 10px;
-      padding: 13px 12px; cursor: pointer; text-align: left; color: var(--text);
+      background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px;
+      padding: 13px 12px; margin-bottom: 8px; cursor: pointer; text-align: left; color: var(--text);
     }
-    .drawer-item:active { background: var(--bg-secondary); }
+    /* --bg-secondary é o único degrau acima de --bg-header em todos os temas
+       (no claro, #ebebeb sobre #ffffff); --bg-card empata com o fundo do menu
+       em quase todos e o item sumiria. */
+    .drawer-item:active { border-color: var(--accent); opacity: 0.75; }
     .drawer-item .di-text { flex: 1; min-width: 0; }
     /* label e desc são <span>: sem display:block ficariam na mesma linha */
-    .drawer-item .di-label { display: block; font-size: var(--fs-lg); font-weight: 600; }
+    .drawer-item .di-label { display: block; font-size: var(--fs-lg); font-weight: 600; color: var(--text-bright); }
     .drawer-item .di-desc { display: block; font-size: var(--fs-2xs); color: var(--text-dim); margin-top: 2px; }
     .drawer-item .di-dot {
       width: 8px; height: 8px; border-radius: 50%; background: var(--error);
       flex-shrink: 0; display: none;
     }
     .drawer-item.has-news .di-dot { display: block; }
-    /* Bloco do plano: a mesma caixa dos itens, mas não é botão — só diz até
-       quando o acompanhamento está contratado. */
-    .drawer-plan { padding: 13px 12px; }
-    .drawer-plan .dp-label { display: block; font-size: var(--fs-lg); font-weight: 600; }
-    .drawer-plan .dp-desc { display: block; font-size: var(--fs-2xs); color: var(--text-dim); margin-top: 2px; }
-    .drawer-plan.ending .dp-desc { color: var(--warning); }
     .drawer-footer { padding: 8px; border-top: 1px solid var(--bg-secondary); flex-shrink: 0; }
+    .drawer-footer .drawer-item { margin-bottom: 0; }
     .drawer-item-logout .di-label { color: var(--text-bright); }
     .drawer-section {
       font-size: var(--fs-2xs); color: var(--text-muted3); text-transform: uppercase;
@@ -847,7 +860,10 @@
     <div class="drawer-header">
       <div>
         <div class="drawer-title" id="drawerName">Menu</div>
-        <div class="drawer-sub" id="drawerSub"></div>
+        <div class="drawer-sub-row">
+          <span class="drawer-sub" id="drawerSub"></span>
+          <span class="drawer-plan-chip" id="drawerPlanChip" style="display:none;"></span>
+        </div>
       </div>
       <button class="drawer-close" onclick="closeDrawer()" aria-label="Fechar menu">✕</button>
     </div>
@@ -880,11 +896,6 @@
           <span class="di-desc">Temas e personalização</span>
         </span>
       </button>
-      <div class="drawer-section" id="drawerPlanSection" style="display:none;">Seu plano</div>
-      <div class="drawer-plan" id="drawerPlan" style="display:none;">
-        <span class="dp-label" id="drawerPlanLabel"></span>
-        <span class="dp-desc" id="drawerPlanDesc"></span>
-      </div>
     </div>
     <div class="drawer-footer">
       <button class="drawer-item drawer-item-logout" onclick="openLogoutModal()">
@@ -3091,10 +3102,10 @@ function doLogout() {
 
 // === Até quando o acompanhamento está contratado ===
 // O professor grava a duração no cadastro do aluno (meses no convite, ou a data
-// direto na edição) e isso vira profiles.access_expires_at. Aqui o menu diz a
-// data em português e quanto ainda falta, para o fim do plano não pegar
-// ninguém de surpresa. Devolve null quando não há prazo — aí não há o que
-// mostrar.
+// direto na edição) e isso vira profiles.access_expires_at. No menu isso é um
+// selo curto na testeira, ao lado da academia — recado, não item de menu.
+// Perto do fim a data importa menos que o aperto, então o texto vira contagem.
+// Devolve null quando não há prazo: aí o selo nem aparece.
 function planValidity(expires, hoje) {
   if (!expires) return null;
   const fim = new Date(expires + 'T00:00:00');
@@ -3102,24 +3113,22 @@ function planValidity(expires, hoje) {
   const hj = new Date((hoje || getTodayDate()) + 'T00:00:00');
   // O acesso vale até o fim do dia do vencimento: 0 dia restante = último dia.
   const dias = Math.round((fim - hj) / 86400000);
-  const data = fim.toLocaleDateString('pt-BR');
-  if (dias < 0)   return { label: 'Encerrado em ' + data, desc: 'Fale com seu professor para renovar.', ending: true };
-  if (dias === 0) return { label: 'Contratado até ' + data, desc: 'Último dia do plano.', ending: true };
-  if (dias === 1) return { label: 'Contratado até ' + data, desc: 'Falta 1 dia.', ending: true };
-  return { label: 'Contratado até ' + data, desc: 'Faltam ' + dias + ' dias.', ending: dias <= 7 };
+  if (dias < 0)   return { text: 'Plano vencido', ending: true };
+  if (dias === 0) return { text: 'Último dia do plano', ending: true };
+  if (dias === 1) return { text: 'Plano acaba amanhã', ending: true };
+  if (dias <= 7)  return { text: 'Plano acaba em ' + dias + ' dias', ending: true };
+  const data = fim.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  return { text: 'Plano até ' + data, ending: false };
 }
 
 function renderPlanValidity(expires) {
+  const chip = document.getElementById('drawerPlanChip');
+  if (!chip) return;
   const info = planValidity(expires);
-  const sec = document.getElementById('drawerPlanSection');
-  const box = document.getElementById('drawerPlan');
-  if (!sec || !box) return;
-  sec.style.display = info ? '' : 'none';
-  box.style.display = info ? '' : 'none';
+  chip.style.display = info ? '' : 'none';
   if (!info) return;
-  box.classList.toggle('ending', info.ending);
-  document.getElementById('drawerPlanLabel').textContent = info.label;
-  document.getElementById('drawerPlanDesc').textContent = info.desc;
+  chip.textContent = info.text;
+  chip.classList.toggle('ending', info.ending);
 }
 
 function drawerGo(destino) {
