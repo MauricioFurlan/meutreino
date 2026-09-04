@@ -547,6 +547,23 @@
       max-width: 400px; max-height: 80vh; overflow-y: auto; border: 1px solid var(--border);
     }
     .history-modal-content h3 { color: var(--accent); font-size: var(--fs-lg); margin-bottom: 12px; }
+    /* Cabeçalho do histórico: gruda no topo enquanto a lista rola. Em quatro
+       semanas de registro o X sairia de vista logo no primeiro arrasto, e o
+       aluno teria de rolar até o fim atrás do botão Fechar — que continua lá.
+       As margens negativas cancelam o padding do content (é ele que rola), e
+       o top negativo encosta a faixa na borda de cima. */
+    .history-modal-header {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      position: sticky; top: -16px; z-index: 1; background: var(--bg-card);
+      margin: -16px -16px 12px; padding: 16px 16px 12px;
+    }
+    .history-modal-header h3 { margin-bottom: 0; }
+    .history-modal-x {
+      background: var(--bg-secondary); border: none; color: var(--text-muted); font-size: var(--fs-xl);
+      width: 28px; height: 28px; border-radius: 50%; cursor: pointer; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .history-modal-x:active { opacity: 0.6; }
     .history-modal-close {
       width: 100%; padding: 10px; border: none; border-radius: 8px;
       background: var(--bg-secondary); color: var(--text-muted); font-weight: 600; font-size: var(--fs-md);
@@ -955,7 +972,10 @@
   </div>
   <div class="history-modal" id="historyModal">
     <div class="history-modal-content">
-      <h3 id="historyModalTitle">Histórico</h3>
+      <div class="history-modal-header">
+        <h3 id="historyModalTitle">Histórico</h3>
+        <button class="history-modal-x" onclick="closeHistoryModal()" aria-label="Fechar histórico">✕</button>
+      </div>
       <div id="historyModalBody"></div>
       <!-- Gráfico de evolução do exercício. O Chart.js só é baixado quando o
            aluno toca no botão: no caminho crítico desta tela ele custaria
