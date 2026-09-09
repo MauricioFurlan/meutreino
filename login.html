@@ -133,6 +133,7 @@
       <label for="email">E-mail</label>
       <input type="email" id="email" inputmode="email" autocomplete="email" placeholder="voce@email.com" required>
       <button type="submit" id="sendBtn">Enviar código</button>
+      <button type="button" class="link" id="haveCodeBtn">Já tenho um código</button>
     </form>
 
     <!-- Etapa 2: código -->
@@ -170,10 +171,46 @@
 
     function showMsg(text, kind) { msg.textContent = text || ''; msg.className = 'msg' + (kind ? ' ' + kind : ''); }
 
+    // --- Etapa pendente ---------------------------------------------------
+    // O Android descarta a aba/PWA em segundo plano quando falta memória. Se o
+    // aluno minimiza o app para buscar o código no e-mail, ao voltar a página
+    // recarrega do zero: sem isto ele cairia de novo na etapa do e-mail e, ao
+    // pedir outro código, o Supabase sobrescreveria o token — invalidando
+    // justamente o código que ele acabou de copiar. Guardamos o e-mail para
+    // devolvê-lo direto à etapa do código.
+    const PENDING_KEY = 'mt_pending_otp';
+    const PENDING_TTL = 30 * 60 * 1000; // 30 min
+
+    function savePending(email) {
+      try { localStorage.setItem(PENDING_KEY, JSON.stringify({ email, ts: Date.now() })); } catch (e) { /* storage bloqueado */ }
+    }
+    function readPending() {
+      try {
+        const raw = localStorage.getItem(PENDING_KEY);
+        if (!raw) return null;
+        const p = JSON.parse(raw);
+        if (!p || !p.email || Date.now() - p.ts > PENDING_TTL) { clearPending(); return null; }
+        return p;
+      } catch (e) { return null; }
+    }
+    function clearPending() {
+      try { localStorage.removeItem(PENDING_KEY); } catch (e) { /* storage bloqueado */ }
+    }
+
+    // Leva à etapa do código sem disparar um novo envio.
+    function goToCodeStep(text, focus) {
+      emailStep.classList.add('hidden');
+      codeStep.classList.remove('hidden');
+      el('sub').textContent = 'Enviamos um código para ' + currentEmail;
+      showMsg(text || '', 'ok');
+      if (focus) el('code').focus();
+    }
+
     // Se já houver sessão, roteia direto (exceto se ?logout na URL)
     (async function boot() {
       if (new URLSearchParams(location.search).has('logout')) {
         await sb.auth.signOut();
+        clearPending();
         history.replaceState(null, '', 'login.html');
         showLogin();
         return;
@@ -183,6 +220,15 @@
         route();
       } else {
         showLogin();
+        const pending = readPending();
+        if (pending) {
+          currentEmail = pending.email;
+          el('email').value = pending.email;
+          // Sem focus(): abrir o teclado sozinho ao restaurar assusta mais do
+          // que ajuda — o aluno normalmente volta com o código na área de
+          // transferência e toca no campo.
+          goToCodeStep('Digite o código que enviamos.', false);
+        }
       }
     })();
 
@@ -201,11 +247,19 @@
       const { error } = await sb.auth.signInWithOtp({ email: currentEmail, options: { shouldCreateUser: true } });
       el('sendBtn').disabled = false;
       if (error) { showMsg('Erro ao enviar: ' + error.message, 'err'); return; }
-      emailStep.classList.add('hidden');
-      codeStep.classList.remove('hidden');
-      el('sub').textContent = 'Enviamos um código para ' + currentEmail;
-      showMsg('Confira seu e-mail (e a pasta de spam).', 'ok');
-      el('code').focus();
+      savePending(currentEmail);
+      goToCodeStep('Confira seu e-mail (e a pasta de spam).', true);
+    });
+
+    // Atalho para quem já recebeu o código mas perdeu a etapa (app descartado
+    // pelo Android depois do prazo, outro dispositivo, etc). Pedir um código
+    // novo invalidaria o que está no e-mail — então aqui só avançamos a tela.
+    el('haveCodeBtn').addEventListener('click', () => {
+      const email = el('email').value.trim().toLowerCase();
+      if (!email) { showMsg('Digite seu e-mail para usar o código que já recebeu.', 'err'); el('email').focus(); return; }
+      currentEmail = email;
+      savePending(currentEmail);
+      goToCodeStep('Digite o código que você recebeu por e-mail.', true);
     });
 
     // Etapa 2 — verifica OTP
@@ -218,11 +272,14 @@
       const { error } = await sb.auth.verifyOtp({ email: currentEmail, token, type: 'email' });
       el('verifyBtn').disabled = false;
       if (error) { showMsg('Código inválido ou expirado.', 'err'); return; }
+      clearPending();
       showMsg('', '');
       route();
     });
 
     el('backBtn').addEventListener('click', () => {
+      clearPending();
+      currentEmail = '';
       codeStep.classList.add('hidden');
       emailStep.classList.remove('hidden');
       el('sub').textContent = 'Acesse com seu e-mail';
@@ -231,6 +288,7 @@
 
     el('logoutBtn').addEventListener('click', async () => {
       await sb.auth.signOut();
+      clearPending();
       location.reload();
     });
 
