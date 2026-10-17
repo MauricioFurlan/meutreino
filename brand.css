@@ -84,7 +84,6 @@ body::before {
 .header .history-btn { z-index: 2; }
 /* O logo é inline (não posicionado): precisa de position para subir acima
    da faixa diagonal. */
-.header .app-logo { position: relative; z-index: 2; }
 
 /* ── Títulos de seção: barra ciano à esquerda + caixa alta ───────────── */
 .section-title {
