@@ -288,6 +288,13 @@
   <div class="pref-list">
     <div class="pref-row">
       <div class="pref-text">
+        <div class="pref-name">Começar ao marcar a série</div>
+        <div class="pref-desc">Ao tocar na bolinha da série, o descanso prescrito começa a contar sozinho.</div>
+      </div>
+      <div class="pref-switch" id="prefAuto" onclick="togglePref('auto')"></div>
+    </div>
+    <div class="pref-row">
+      <div class="pref-text">
         <div class="pref-name">Apito ao terminar</div>
         <div class="pref-desc">Toca um apito quando o descanso zera. Não toca com o celular no silencioso.</div>
       </div>
@@ -351,7 +358,8 @@ function selectTheme(theme) {
 const REST_PREFS = {
   sound: { key: 'rest-timer-sound', el: 'prefSound' },
   vibrate: { key: 'rest-timer-vibrate', el: 'prefVibrate' },
-  screen: { key: 'rest-timer-screen', el: 'prefScreen' }
+  screen: { key: 'rest-timer-screen', el: 'prefScreen' },
+  auto: { key: 'rest-timer-auto', el: 'prefAuto' }
 };
 
 function restPrefOn(name) { // padrão ligado: só o valor '0' desliga

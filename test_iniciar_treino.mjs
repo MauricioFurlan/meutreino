@@ -133,7 +133,7 @@ eq('início já em curso (botão travado) → não pergunta',
 // ====================================================================
 // 4. Salvar não depende da resposta
 // ====================================================================
-for (const fn of ['saveExercise', 'saveGroup']) {
+for (const fn of ['persistExercise']) {
   const src = grabFrom(ALUNO, fn);
   const i = src.indexOf('offerStartWorkout(day)');
   eq(`${fn} pergunta antes de gravar`, i > 0, true);

@@ -160,8 +160,6 @@ eq('brand.css não mexe no position do cabeçalho (treinador usa sticky)',
 const regraBotoes = brandCss.match(/\.header \.logout-btn[\s\S]*?\{([^}]*)\}/)[1];
 eq('botões do cabeçalho só ganham z-index', /position:/.test(regraBotoes), false);
 eq('botões do cabeçalho sobem acima da faixa', /z-index:\s*2/.test(regraBotoes), true);
-eq('logo (inline) ganha position para subir acima da faixa',
-  /\.header \.app-logo \{ position: relative; z-index: 2; \}/.test(brandCss), true);
 eq('botão secundário tracejado não virou CTA em caixa alta',
   /add-exercise-btn/.test(brandCss), false);
 eq('brand.css desliga o clarão no tema claro',

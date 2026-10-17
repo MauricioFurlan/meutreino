@@ -184,8 +184,7 @@
       margin-bottom: 8px;
       border: 1px solid var(--border);
     }
-    .biset-wrapper .exercise-card:last-of-type { margin-bottom: 10px; }
-    .biset-wrapper .save-btn { margin-top: 4px; }
+    .biset-wrapper .exercise-card:last-of-type { margin-bottom: 0; }
     .exercise-name {
       font-size: var(--fs-3xl);
       font-weight: 700;
@@ -205,6 +204,13 @@
        proprio — com 'auto' a linha sem botao dava coluna de 0px e
        desalinhava KG/REPS entre as series do mesmo exercicio. */
     .set-row.has-rest { grid-template-columns: auto 1fr 1fr 52px 40px; }
+    /* Próxima série a fazer no treino de hoje. A margem negativa compensa o
+       padding para o fundo sair das bordas sem desalinhar a grade. */
+    .set-row.next-set {
+      margin-left: -8px; margin-right: -8px; padding-left: 8px; padding-right: 8px;
+      border-radius: 8px; background: var(--bg-input);
+      box-shadow: inset 3px 0 0 var(--accent);
+    }
     .set-label {
       font-size: var(--fs-sm);
       color: var(--text);
@@ -264,14 +270,6 @@
     }
     .save-btn:active:not(:disabled) { opacity: 0.7; }
     .save-btn:disabled { opacity: 0.6; cursor: not-allowed; }
-    .save-btn.saved { background: var(--save-done); color: var(--text-bright); }
-    /* "Salvando" com os três pontos pulsando em sequência: o botão fica
-       desabilitado durante o POST e, parado, parecia travado. Só a opacidade
-       muda — os pontos ocupam o mesmo espaço o tempo todo, sem pulo de layout. */
-    .saving-dots i { font-style: normal; animation: savingDot 1s infinite; }
-    .saving-dots i:nth-child(2) { animation-delay: 0.16s; }
-    .saving-dots i:nth-child(3) { animation-delay: 0.32s; }
-    @keyframes savingDot { 0%, 60%, 100% { opacity: 0.25; } 30% { opacity: 1; } }
     .history-btn {
       background: none; border: none; color: var(--accent); font-size: var(--fs-sm);
       cursor: pointer; padding: 4px 0; margin-bottom: 8px; text-decoration: underline;
@@ -283,6 +281,10 @@
       position: relative;
       /* Vazia, a bolinha é um encaixe fundo esperando o ✓. */
       box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.18);
+      /* É um botão: tocar marca a série. Zera o visual nativo do <button>. */
+      appearance: none; -webkit-appearance: none; background: transparent;
+      padding: 0; margin: 0; cursor: pointer; touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
     /* Medalha: a bolinha cheia diz como a série foi contra a MESMA série da
        sessão anterior (ouro subiu o volume, prata empatou, bronze caiu; sem
@@ -896,7 +898,7 @@
       <button class="drawer-item" onclick="location.href='config.html'">
         <span class="di-text">
           <span class="di-label">Configurações</span>
-          <span class="di-desc">Temas e personalização</span>
+          <span class="di-desc">Temas e cronômetro de descanso</span>
         </span>
       </button>
     </div>
@@ -1210,6 +1212,9 @@ function resetDayInputs(day) {
     // vai junto — ela é do dia que está saindo.
     if (check) { check.classList.remove('done', 'just-saved', ...MEDALHAS); check.removeAttribute('title'); }
     clearRowRef(row);
+    delete row.dataset.copyWeight;
+    if (wi) delete wi.dataset.basePh;
+    row.classList.remove('next-set');
   });
 }
 
@@ -1247,6 +1252,9 @@ function applyRecordToRow(row, record, isToday) {
 // === Carregamento de dados do dia ===
 async function loadTodayData(day) {
   try {
+    // O reset zera os campos: gravação pendente deste dia precisa ir antes,
+    // senão o salvamento automático leria a linha vazia e apagaria a série.
+    await flushAutosaves(day, { quiet: true });
     resetDayInputs(day);
     const sessionDate = getDateForDay(day);
     const { data, error } = await scopeToPlan(_sb.from('workout_logs')
@@ -1256,7 +1264,7 @@ async function loadTodayData(day) {
       .eq('session_date', sessionDate))
       .order('set_number', { ascending: true });
     if (error) throw error;
-    if (!data || data.length === 0) { await loadLastWorkout(day); return; }
+    if (!data || data.length === 0) { await loadLastWorkout(day); updateNextSet(day); return; }
     const isToday = (sessionDate === getTodayDate());
     const setsWithData = new Set();
     data.forEach(record => {
@@ -1275,6 +1283,10 @@ async function loadTodayData(day) {
     // A cor sai da comparação com a sessão anterior, que só chega no
     // loadLastWorkout — por isso a passada vem aqui, e não no applyRecordToRow.
     dayRows(day).forEach(applyMedal);
+    // Peso já registrado hoje vira sugestão das séries seguintes ainda vazias.
+    const dayEl = document.getElementById('day-' + day);
+    if (dayEl) dayEl.querySelectorAll('.exercise-card').forEach(refreshWeightSuggestions);
+    updateNextSet(day);
   } catch (e) { console.log('Erro ao carregar dados do dia:', e); }
 }
 
@@ -1311,8 +1323,7 @@ async function loadLastWorkout(day, excludeSets) {
 }
 
 // === Leitura de uma linha de set (musculação ou cardio) ===
-// Devolve o registro a inserir ou null quando a linha está vazia.
-// Centralizado porque saveExercise e saveGroup precisam da MESMA regra —
+// Centralizado porque todo fluxo que grava séries precisa da MESMA regra —
 // duplicar isso é como cardio entraria em um fluxo e não no outro.
 function readSetRow(row, setNumber, base) {
   if (row.classList.contains('cardio-row')) {
@@ -1351,6 +1362,7 @@ function rowHasValue(row) {
 // Marca o ✓ da linha depois de salvar, com a animação da bolinha.
 // `ordem` escalona as séries do exercício (a 1ª anima primeiro), limitado a 5
 // para um exercício comprido não terminar de confirmar meio segundo depois.
+// ordem null = atualiza a bolinha sem animar (série que já estava feita).
 function markSaved(row, ordem) {
   const check = row.querySelector('.check-icon');
   if (!check) return;
@@ -1358,26 +1370,79 @@ function markSaved(row, ordem) {
   check.classList.toggle('done', done);
   check.classList.remove('just-saved');
   applyMedal(row);
-  if (!done) return;
+  if (!done || ordem == null) return;
   check.style.setProperty('--pop-delay', Math.min(ordem || 0, 5) * 70 + 'ms');
   void check.offsetWidth; // reinicia a animação quando o aluno salva 2x seguidas
   check.classList.add('just-saved');
 }
 
-// O botão desabilita enquanto o POST corre; os pontos animados são o sinal de
-// que ainda está indo. innerHTML (não textContent) porque cada ponto é um <i>.
-const SAVING_LABEL = 'Salvando<span class="saving-dots"><i>.</i><i>.</i><i>.</i></span>';
+// === Salvamento automático ===
+// Não existe botão Salvar: cada exercício se grava sozinho quando o aluno
+// para de digitar, sai do campo ou toca na bolinha. Com o botão, esquecer de
+// apertar e fechar o app perdia o que foi digitado.
+// A unidade gravada continua sendo o EXERCÍCIO (apaga o de hoje e reinsere
+// todas as séries); só o gatilho mudou.
+const AUTOSAVE_DELAY = 1500; // ms parado depois de digitar
+const autosaveState = {};    // cardId -> { timer, running, again, dirty }
 
-// === Salvar ===
-async function saveExercise(day, exerciseName, cardId) {
+function autosaveEntry(cardId) {
+  return autosaveState[cardId] || (autosaveState[cardId] = { timer: null, running: null, again: false, dirty: false });
+}
+
+function scheduleAutosave(cardId) {
+  const st = autosaveEntry(cardId);
+  st.dirty = true;
+  clearTimeout(st.timer);
+  st.timer = setTimeout(() => runAutosave(cardId), AUTOSAVE_DELAY);
+}
+
+// Uma gravação por exercício de cada vez: dois apaga-e-insere cruzados
+// duplicavam séries. Pedido no meio de outra vira mais uma volta do laço.
+// As linhas são lidas de forma síncrona no início de persistExercise — quem
+// vai destruir o DOM logo depois (voltar ao menu do cíclico) não perde nada.
+function runAutosave(cardId, opts) {
+  const st = autosaveEntry(cardId);
+  clearTimeout(st.timer);
+  st.timer = null;
+  if (st.running) { st.again = true; return st.running; }
+  st.running = (async () => {
+    try {
+      do {
+        st.again = false;
+        st.dirty = false;
+        await persistExercise(cardId, opts);
+      } while (st.again);
+    } catch (e) {
+      // Fica pendente: vai de novo na próxima mudança ou quando a rede voltar.
+      st.dirty = true;
+      showToast('Não foi possível salvar: ' + (e && e.message ? e.message : 'sem conexão'), true);
+    } finally {
+      st.running = null;
+    }
+  })();
+  return st.running;
+}
+
+// Grava o que estiver pendente (de um dia ou de todos) e espera terminar.
+function flushAutosaves(day, opts) {
+  const pend = Object.keys(autosaveState).filter(id => {
+    const st = autosaveState[id];
+    if (!st.dirty && !st.running) return false;
+    if (!day) return true;
+    const card = document.getElementById(id);
+    return !!card && card.dataset.day === day;
+  });
+  return Promise.all(pend.map(id => autosaveState[id].dirty ? runAutosave(id, opts) : autosaveState[id].running));
+}
+
+async function persistExercise(cardId, opts) {
   const card = document.getElementById(cardId);
-  const btn = card.querySelector('.save-btn');
-  // Evita cliques duplicados
-  if (btn.disabled) return;
-
+  if (!card) return;
+  const day = card.dataset.day;
+  const exerciseName = card.dataset.exercise;
+  const sessionDate = getDateForDay(day);
   const rows = card.querySelectorAll('.set-row:not(.set-header)');
   const records = [];
-  const sessionDate = getDateForDay(day);
   rows.forEach((row, i) => {
     const rec = readSetRow(row, i + 1, Object.assign({
       student_id: studentId,
@@ -1387,90 +1452,181 @@ async function saveExercise(day, exerciseName, cardId) {
     }, planStamp()));
     if (rec) records.push(rec);
   });
-  if (records.length === 0) { showToast('Preencha ao menos um set', true); return; }
 
   // Pergunta antes de gravar; o exercício é salvo com qualquer resposta.
-  await offerStartWorkout(day);
-
-  btn.disabled = true;
-  btn.innerHTML = SAVING_LABEL;
-  try {
-    // Deleta registros de hoje deste exercício
-    const { error: delErr } = await _sb.from('workout_logs')
-      .delete()
-      .eq('student_id', studentId)
-      .eq('session_date', sessionDate)
-      .eq('exercise_name', exerciseName);
-    if (delErr) throw delErr;
-    // Insere novos
-    const { error: insErr } = await _sb.from('workout_logs').insert(records);
-    if (insErr) throw insErr;
-    btn.textContent = '✓ Salvo!'; btn.classList.add('saved');
-    rows.forEach((row, i) => markSaved(row, i));
-    setTimeout(() => { btn.textContent = 'Salvar'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
-    showToast('Salvo com sucesso!');
-  } catch (e) { showToast('Erro ao salvar: ' + e.message, true); btn.disabled = false; btn.textContent = 'Salvar'; }
-}
-
-// === Salvar grupo (biset/triset) ===
-async function saveGroup(day, cardIds) {
-  const wrapper = document.getElementById(cardIds[0]).closest('.biset-wrapper');
-  const btn = wrapper.querySelector('.save-btn');
-  if (btn.disabled) return;
-
-  const sessionDate = getDateForDay(day);
-  const allRecords = [];
-  const exerciseNames = [];
-
-  for (const cardId of cardIds) {
-    const card = document.getElementById(cardId);
-    const exerciseName = card.dataset.exercise;
-    exerciseNames.push(exerciseName);
-    const rows = card.querySelectorAll('.set-row:not(.set-header)');
-    rows.forEach((row, i) => {
-      const rec = readSetRow(row, i + 1, Object.assign({
-        student_id: studentId,
-        session_date: sessionDate,
-        weekday: day,
-        exercise_name: exerciseName
-      }, planStamp()));
-      if (rec) allRecords.push(rec);
-    });
+  // Gravação de quem está saindo do app (quiet) não abre confirm.
+  if (records.length > 0 && !(opts && opts.quiet)) {
+    await offerStartWorkout(day);
   }
 
-  if (allRecords.length === 0) { showToast('Preencha ao menos um set', true); return; }
-
-  // Pergunta antes de gravar; o grupo é salvo com qualquer resposta.
-  await offerStartWorkout(day);
-
-  btn.disabled = true;
-  btn.innerHTML = SAVING_LABEL;
-  try {
-    // Deleta registros de hoje de todos os exercícios do grupo
-    for (const name of exerciseNames) {
-      const { error: delErr } = await _sb.from('workout_logs')
-        .delete()
-        .eq('student_id', studentId)
-        .eq('session_date', sessionDate)
-        .eq('exercise_name', name);
-      if (delErr) throw delErr;
-    }
-    // Insere todos
-    const { error: insErr } = await _sb.from('workout_logs').insert(allRecords);
+  // Deleta registros de hoje deste exercício. Sem séries preenchidas, só
+  // apaga: é assim que o aluno desfaz uma série marcada por engano.
+  const { error: delErr } = await _sb.from('workout_logs')
+    .delete()
+    .eq('student_id', studentId)
+    .eq('session_date', sessionDate)
+    .eq('exercise_name', exerciseName);
+  if (delErr) throw delErr;
+  if (records.length > 0) {
+    const { error: insErr } = await _sb.from('workout_logs').insert(records);
     if (insErr) throw insErr;
-
-    btn.textContent = '✓ Salvo!'; btn.classList.add('saved');
-    // Marca checks. No biset/triset a ordem da animação segue a execução:
-    // todas as séries do 1º exercício, depois as do 2º.
-    let ordem = 0;
-    for (const cardId of cardIds) {
-      const card = document.getElementById(cardId);
-      card.querySelectorAll('.set-row:not(.set-header)').forEach(row => markSaved(row, ordem++));
-    }
-    setTimeout(() => { btn.textContent = 'Salvar'; btn.classList.remove('saved'); btn.disabled = false; }, 2000);
-    showToast('Salvo com sucesso!');
-  } catch (e) { showToast('Erro ao salvar: ' + e.message, true); btn.disabled = false; btn.textContent = 'Salvar'; }
+  }
+  // Só anima a bolinha da série que acabou de virar feita — as que já
+  // estavam cheias não piscam a cada gravação.
+  let ordem = 0;
+  rows.forEach(row => {
+    const jaFeita = row.querySelector('.check-icon')?.classList.contains('done');
+    markSaved(row, jaFeita ? null : ordem++);
+  });
+  updateNextSet(day);
 }
+
+window.addEventListener('online', () => flushAutosaves());
+// Celular troca de app sem aviso: o que estiver pendente vai antes.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushAutosaves(null, { quiet: true });
+});
+
+document.addEventListener('input', (e) => {
+  const input = e.target.closest && e.target.closest('.set-row input');
+  const card = input && input.closest('.exercise-card');
+  if (!card) return;
+  if (input.classList.contains('weight-input')) refreshWeightSuggestions(card);
+  scheduleAutosave(card.id);
+});
+
+// No number input o change chega ao sair do campo: não espera o atraso.
+document.addEventListener('change', (e) => {
+  const input = e.target.closest && e.target.closest('.set-row input');
+  const card = input && input.closest('.exercise-card');
+  if (card && autosaveEntry(card.id).dirty) runAutosave(card.id);
+});
+
+// === Sugestão de peso ===
+// O peso digitado numa série vira sugestão das séries seguintes do MESMO tipo
+// (o aquecimento não empurra a carga para a série válida). Fica no
+// placeholder, não no valor: série com valor conta como feita e seria gravada
+// sem ter acontecido. O toque na bolinha é que transforma a sugestão em valor.
+function refreshWeightSuggestions(card) {
+  const ultimo = {};
+  card.querySelectorAll('.set-row:not(.set-header)').forEach(row => {
+    const wi = row.querySelector('.weight-input');
+    if (!wi) return;
+    const tipo = row.dataset.setType || '';
+    if (wi.value !== '') {
+      ultimo[tipo] = wi.value;
+      delete row.dataset.copyWeight;
+    } else if (ultimo[tipo]) {
+      row.dataset.copyWeight = ultimo[tipo];
+    } else {
+      delete row.dataset.copyWeight;
+    }
+    // basePh guarda o placeholder de antes (referência da última vez) para
+    // voltar a ele quando a sugestão some.
+    if (row.dataset.copyWeight) {
+      if (!('basePh' in wi.dataset)) wi.dataset.basePh = wi.placeholder;
+      wi.placeholder = row.dataset.copyWeight + ' kg';
+    } else if ('basePh' in wi.dataset) {
+      wi.placeholder = wi.dataset.basePh;
+      delete wi.dataset.basePh;
+    }
+  });
+}
+
+// === Toque na bolinha: "fiz esta série" ===
+// Preenche a linha vazia com o que está sugerido nela e devolve o campo que
+// ainda falta (null quando a linha ficou completa). Sem treino anterior nem
+// peso sugerido não inventa nada: só aponta o primeiro campo.
+function fillRowFromSuggestion(row) {
+  const ref = rowRef(row);
+  const minutes = row.querySelector('.minutes-input');
+  if (minutes) {
+    if (!ref || !ref.duration_minutes) return minutes;
+    minutes.value = ref.duration_minutes;
+    return null;
+  }
+  const wi = row.querySelector('.weight-input');
+  const ri = row.querySelector('.reps-input');
+  const peso = row.dataset.copyWeight || (ref && ref.weight) || '';
+  const reps = (ref && ref.reps) || '';
+  if (!peso && !reps) return wi;
+  if (peso) wi.value = peso;
+  if (!reps) return ri;
+  ri.value = reps;
+  return null;
+}
+
+function confirmSet(check) {
+  const row = check.closest('.set-row');
+  const card = row && row.closest('.exercise-card');
+  if (!card) return;
+  const st = autosaveEntry(card.id);
+  if (!rowHasValue(row)) {
+    const falta = fillRowFromSuggestion(row);
+    refreshWeightSuggestions(card);
+    if (falta) {
+      if (rowHasValue(row)) scheduleAutosave(card.id);
+      falta.focus();
+      return;
+    }
+    st.dirty = true;
+  }
+  if (st.dirty || !check.classList.contains('done')) runAutosave(card.id);
+  if (restPref('auto')) {
+    const restBtn = row.querySelector('.rest-timer-btn');
+    if (restBtn) restBtn.click();
+  }
+}
+
+// === Ordem de execução e próxima série ===
+// No biset/triset as séries alternam entre os exercícios (A1, B1, A2, B2...);
+// fora dele é a ordem da tela.
+function executionRows(day) {
+  const dayEl = document.getElementById('day-' + day);
+  if (!dayEl) return [...dayRows(day)];
+  const rowsOf = (card) => [...card.querySelectorAll('.set-row:not(.set-header)')];
+  const out = [];
+  dayEl.querySelectorAll('.biset-wrapper, .exercise-card').forEach(el => {
+    if (el.classList.contains('exercise-card')) {
+      if (!el.closest('.biset-wrapper')) out.push(...rowsOf(el));
+      return;
+    }
+    const listas = [...el.querySelectorAll('.exercise-card')].map(rowsOf);
+    const max = Math.max(0, ...listas.map(l => l.length));
+    for (let i = 0; i < max; i++) listas.forEach(l => { if (l[i]) out.push(l[i]); });
+  });
+  return out;
+}
+
+// Destaca a série depois da última feita (e não a primeira vazia: uma série
+// pulada no começo prenderia o destaque lá em cima o treino inteiro).
+function updateNextSet(day) {
+  const rows = executionRows(day);
+  rows.forEach(r => r.classList.remove('next-set'));
+  if (!isDayToday(day)) return;
+  let ultima = -1;
+  rows.forEach((r, i) => { if (r.querySelector('.check-icon')?.classList.contains('done')) ultima = i; });
+  const prox = rows[ultima + 1];
+  if (prox) prox.classList.add('next-set');
+}
+
+// Enter / "próximo" do teclado: kg → reps → kg da próxima série.
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  const input = e.target.closest && e.target.closest('.set-row input');
+  const card = input && input.closest('.exercise-card');
+  if (!card) return;
+  e.preventDefault();
+  const row = input.closest('.set-row');
+  const daLinha = [...row.querySelectorAll('input')];
+  let next = daLinha[daLinha.indexOf(input) + 1];
+  if (!next) {
+    const rows = executionRows(card.dataset.day);
+    const proxRow = rows[rows.indexOf(row) + 1];
+    next = proxRow && proxRow.querySelector('input');
+  }
+  if (next) next.focus(); else input.blur();
+});
 
 // === Histórico ===
 async function loadHistory(exerciseName) {
@@ -2085,9 +2241,9 @@ function formatRestClock(seconds) {
   return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
 }
 
-// Preferências (som, vibração, tela ligada) — ficam em config.html.
-// Padrão ligado: só o valor '0' desliga.
-const REST_PREF_KEYS = { sound: 'rest-timer-sound', vibrate: 'rest-timer-vibrate', screen: 'rest-timer-screen' };
+// Preferências (som, vibração, tela ligada, começar sozinho) — ficam em
+// config.html. Padrão ligado: só o valor '0' desliga.
+const REST_PREF_KEYS = { sound: 'rest-timer-sound', vibrate: 'rest-timer-vibrate', screen: 'rest-timer-screen', auto: 'rest-timer-auto' };
 function restPref(key) {
   try { return localStorage.getItem(REST_PREF_KEYS[key]) !== '0'; } catch (e) { return true; }
 }
@@ -2453,6 +2609,8 @@ function openCyclicWorkout(letter) {
 }
 
 function backToCyclicMenu() {
+  // Os cards somem no render do menu: o pendente é lido agora, antes disso.
+  flushAutosaves(currentTabDay, { quiet: true });
   document.getElementById('tabs').style.display = '';
   renderCyclicView();
   currentTabDay = null;
@@ -2483,9 +2641,6 @@ function renderDay(day) {
       grouped.forEach(({ ex: gex, idx: gIdx }) => {
         html += renderExerciseCard(day, gIdx, gex);
       });
-      // Botão salvar único para o grupo
-      const groupCardIds = grouped.map(({ idx: gIdx }) => `card-${day}-${gIdx}`);
-      html += `<button class="save-btn" onclick="saveGroup('${day}', [${groupCardIds.map(id => `'${id}'`).join(',')}])">Salvar ${label}</button>`;
       html += `</div>`;
     } else {
       html += renderExerciseCard(day, i, ex);
@@ -2630,15 +2785,15 @@ function renderExerciseCard(day, exIdx, ex) {
     const setNote = set.note || '';
     const repsText = set.reps || '';
     const notes = repsText.includes('+') ? repsText.split('+')[1].trim() : '';
-    const checkHtml = `<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`;
+    const checkHtml = `<button type="button" class="check-icon" onclick="confirmSet(this)" aria-label="Marcar série como feita"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></button>`;
     html += `<div class="set-row${cardio ? ' cardio-row' : ''}${restClass}" data-set-type="${esc(set.type)}" data-notes="${esc(notes)}">`;
     html += `<span class="set-label ${typeClass}">${typeLabel}${cardio && sets.length === 1 ? '' : ' ' + (setIdx+1)} <button class="note-icon ${setNote ? 'visible' : ''}" onclick="toggleNote('nb-${day}-${exIdx}-${setIdx}')">!</button></span>`;
     if (cardio) {
       // Um campo só: minutos feitos. O placeholder mostra o que foi prescrito (ex: 40min).
-      html += `<input type="number" class="minutes-input" placeholder="${esc(repsText || 'minutos')}" data-prescribed="${esc(repsText)}" inputmode="numeric">`;
+      html += `<input type="number" class="minutes-input" enterkeyhint="next" placeholder="${esc(repsText || 'minutos')}" data-prescribed="${esc(repsText)}" inputmode="numeric">`;
     } else {
-      html += `<input type="number" class="weight-input" placeholder="-" inputmode="decimal">`;
-      html += `<input type="number" class="reps-input" placeholder="${esc(repsText)}" data-prescribed="${esc(repsText)}" inputmode="numeric">`;
+      html += `<input type="number" class="weight-input" enterkeyhint="next" placeholder="-" inputmode="decimal">`;
+      html += `<input type="number" class="reps-input" enterkeyhint="next" placeholder="${esc(repsText)}" data-prescribed="${esc(repsText)}" inputmode="numeric">`;
     }
     // Descanso desta serie: o valor prescrito e o proprio botao do cronometro.
     // Serie sem tempo (ou com texto livre, 'ate recuperar') fica com a celula
@@ -2660,10 +2815,6 @@ function renderExerciseCard(day, exIdx, ex) {
     // Nota do set
     html += `<div class="note-bubble" id="nb-${day}-${exIdx}-${setIdx}"><div class="note-bubble-label">📋 Observação do treinador:</div><span>${esc(setNote)}</span></div>`;
   });
-  // Salvar individual (só para exercícios soltos, dentro de grupo o wrapper tem o botão)
-  if (!ex.group) {
-    html += `<button class="save-btn" onclick="saveExercise('${day}','${exName.replace(/'/g,"\\'")}','${cardId}')">Salvar</button>`;
-  }
   html += `</div>`;
   return html;
 }
