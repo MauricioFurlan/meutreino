@@ -61,24 +61,23 @@
     .header .plan-dates.expiring { color: var(--warning); border-color: var(--warning); }
     .header .plan-dates.expired { color: var(--error); border-color: var(--error); }
     /* Sequência: mesma conta da tela do professor (metrics.js). Fica colada
-       no botão do menu, com a mesma altura dele. */
+       no botão do menu, com a mesma altura dele. Só a chama e o número, como
+       no Duolingo: cinza até o aluno treinar no dia, acesa depois. */
     .header-streak {
       position: absolute; top: 12px; left: 56px; height: 30px;
-      display: inline-flex; align-items: center; gap: 4px;
-      font-size: var(--fs-2xs); color: var(--text-muted2);
-      background: var(--bg-secondary); padding: 0 10px;
-      border-radius: 10px; border: 1px solid var(--border);
-      white-space: nowrap; cursor: pointer; font-family: inherit;
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 0 4px; font-size: var(--fs-lg); font-weight: 700;
+      color: var(--text-dim); white-space: nowrap;
     }
     .header-streak.hidden { display: none; }
+    .header-streak svg { width: 22px; height: 22px; display: block; }
+    .header-streak .flame-body { fill: #8a8a8a; stroke: #6b6b6b; }
+    .header-streak.lit { color: #ff9800; }
+    .header-streak.lit .flame-body { fill: #e53935; stroke: #ff9800; }
     /* O título é centralizado na mesma linha: com o selo visível ele ganha
        recuo dos dois lados (medido no JS) para continuar no centro sem
        passar por baixo do selo — nome comprido quebra linha. */
     .header.has-streak .plan-title { padding: 0 var(--streak-reserve, 0px); }
-    .header-streak strong { color: var(--text-muted); }
-    .header-streak.on { color: var(--text); border-color: var(--accent); }
-    .header-streak.on strong { color: var(--accent); }
-    .header-streak:active { opacity: 0.7; }
     .block-logout-btn {
       margin-top: 18px; background: none; border: 1px solid var(--text-dim);
       color: var(--text-muted); font-size: var(--fs-sm); padding: 6px 16px; border-radius: 14px; cursor: pointer;
@@ -876,7 +875,7 @@
     <div class="subtitle" id="gymName" style="display:none;"></div>
     <div class="plan-title" id="planTitle"></div>
     <div class="plan-dates hidden" id="planDates"></div>
-    <button class="header-streak hidden" id="streakChip" onclick="location.href='evolucao.html#weekly'"></button>
+    <span class="header-streak hidden" id="streakChip" role="img"></span>
   </div>
 
   <!-- Menu lateral do aluno -->
@@ -3314,7 +3313,7 @@ function renderPlanValidity(expires) {
 // === Sequência no cabeçalho ===
 // Mesma regra da tela do professor e de evolucao.html (computeStreak /
 // computeStreakCyclic em metrics.js). Aqui só a versão curta; o detalhe
-// (recorde, "hoje ainda conta") fica em Evoluções, para onde o selo leva.
+// (recorde, "hoje ainda conta") fica em Evoluções. Não é clicável.
 let streakPrescribed = new Set();  // dias com treino no plano (modo semanal)
 let streakDaysPerWeek = null;      // meta semanal (modo cíclico)
 let streakTrainedToday = false;    // evita recalcular a cada série salva
@@ -3345,25 +3344,29 @@ async function loadStreak() {
   const trained = new Set((data || []).map(r => r.session_date));
   streakTrainedToday = trained.has(toLocalISO(today));
 
-  // Texto curto: o selo divide a linha com o título do treino. A frase
-  // completa vai no aria-label e no title.
-  let current, html, full;
+  // Na tela, só a chama e o número. A frase completa vai no aria-label e no
+  // title, para leitor de tela e para quem segurar o dedo.
+  let current, label, full;
   if (planMode === 'cyclic') {
     const r = computeStreakCyclic(trained, streakDaysPerWeek, today);
     current = r.current;
-    html = `<strong>${current}</strong> semana${current === 1 ? '' : 's'}`;
+    label = String(current);
     full = `${current} semana${current === 1 ? '' : 's'} seguida${current === 1 ? '' : 's'} na meta · ` +
       `esta semana ${r.thisWeekCount}/${r.daysPerWeek}`;
   } else {
     const r = computeStreak(trained, streakPrescribed, today);
     current = r.current;
-    html = `<strong>${current}${r.hitWindowEdge ? '+' : ''}</strong> seguido${current === 1 ? '' : 's'}`;
+    label = current + (r.hitWindowEdge ? '+' : '');
     full = `${current} treino${current === 1 ? '' : 's'} seguido${current === 1 ? '' : 's'} sem falhar`;
   }
-  chip.innerHTML = html;
-  chip.title = full;
-  chip.setAttribute('aria-label', 'Sequência: ' + full);
-  chip.classList.toggle('on', current > 0);
+  chip.innerHTML =
+    '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="flame-body" stroke-width="1.6" stroke-linejoin="round" ' +
+    'd="M12 2.5c.6 3.2-1.2 5-2.8 6.9C7.6 11.3 6 13.2 6 16a6 6 0 0 0 12 0c0-2.8-1.4-4.9-2.9-6.4-.1 1.6-.9 2.7-2 3 .7-3.6-.2-7.2-1.1-10.1z"/></svg>' +
+    `<span>${label}</span>`;
+  chip.title = full + (streakTrainedToday ? '' : ' · ainda não treinou hoje');
+  chip.setAttribute('aria-label', 'Sequência: ' + chip.title);
+  // Como no Duolingo: a chama acende quando o aluno treina NO DIA.
+  chip.classList.toggle('lit', streakTrainedToday);
   chip.classList.remove('hidden');
 
   // Recuo simétrico do título = até onde o selo vai, mais um respiro.
