@@ -485,7 +485,54 @@
     .rating-modal-content {
       background: var(--bg-card); border-radius: 18px 18px 0 0;
       width: 100%; max-width: 480px; padding: 20px 20px 24px;
+      max-height: 92vh; overflow-y: auto; position: relative;
     }
+    /* Resumo do treino: fica em cima da avaliação, na mesma folha. */
+    .summary-close {
+      position: absolute; top: 12px; right: 12px;
+      background: var(--bg-secondary); border: none; color: var(--text-muted); font-size: var(--fs-xl);
+      width: 30px; height: 30px; border-radius: 50%; cursor: pointer;
+    }
+    .summary-head { text-align: center; margin-bottom: 16px; padding: 0 30px; }
+    .summary-head h3 { font-size: var(--fs-2xl); color: var(--accent); margin-bottom: 4px; }
+    .summary-head .summary-sub { font-size: var(--fs-sm); color: var(--text-muted); }
+    .summary-loading { text-align: center; color: var(--text-muted3); font-size: var(--fs-sm); padding: 16px 0; }
+    .summary-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .summary-stat {
+      background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px;
+      padding: 10px 6px; text-align: center; min-width: 0;
+    }
+    .summary-stat .v { font-size: var(--fs-lg); font-weight: 700; color: var(--text-bright); white-space: nowrap; }
+    .summary-stat .l { font-size: var(--fs-2xs); color: var(--text-dim); margin-top: 2px; }
+    .summary-stat .d { font-size: var(--fs-2xs); color: var(--text-muted2); margin-top: 4px; font-weight: 600; }
+    .summary-stat .d.up { color: var(--success-light); }
+    .summary-stat .d.down { color: var(--error); }
+    .summary-ref { font-size: var(--fs-2xs); color: var(--text-muted3); text-align: center; margin-top: 6px; }
+    .summary-section { margin-top: 18px; }
+    .summary-section-title {
+      font-size: var(--fs-2xs); color: var(--text-muted3); text-transform: uppercase;
+      letter-spacing: 0.6px; margin-bottom: 6px;
+    }
+    .summary-pr {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+      padding: 8px 0; border-bottom: 1px solid var(--border-light); font-size: var(--fs-sm);
+    }
+    .summary-pr:last-child { border-bottom: none; }
+    .summary-pr .ex { color: var(--text); font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+    .summary-pr .val { text-align: right; white-space: nowrap; color: var(--success-light); font-weight: 700; }
+    .summary-pr .was { display: block; font-size: var(--fs-2xs); color: var(--text-dim); font-weight: 400; }
+    .summary-medals { display: flex; gap: 14px; flex-wrap: wrap; font-size: var(--fs-sm); color: var(--text); }
+    .summary-medals span { display: inline-flex; align-items: center; gap: 6px; }
+    .summary-medals i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .summary-line { font-size: var(--fs-sm); color: var(--text); }
+    .summary-line .d { color: var(--text-muted2); }
+    .summary-line .d.up { color: var(--success-light); }
+    .summary-line .d.down { color: var(--error); }
+    .summary-divider { border: none; border-top: 1px solid var(--border-light); margin: 20px 0 16px; }
+    .summary-given { font-size: var(--fs-sm); color: var(--text-muted); margin-bottom: 16px; }
+    .summary-given strong { color: var(--accent); font-size: var(--fs-lg); }
+    .summary-given p { margin-top: 6px; color: var(--text); white-space: pre-wrap; }
+    .see-summary-row { display: flex; padding: 0 16px; margin-top: 4px; }
     .rating-modal-content h3 { font-size: var(--fs-xl); color: var(--text); margin-bottom: 4px; }
     .rating-modal-sub { font-size: var(--fs-sm); color: var(--text-muted3); margin-bottom: 16px; }
     .rating-scale { display: flex; gap: 8px; margin-bottom: 16px; }
@@ -943,9 +990,18 @@
   <div id="content"></div>
   <div class="toast" id="toast"></div>
 
-  <!-- Modal: nota do treino ao encerrar -->
+  <!-- Modal: resumo + nota do treino ao encerrar -->
   <div class="rating-modal" id="ratingModal">
     <div class="rating-modal-content">
+      <button class="summary-close" onclick="closeRatingModal()" aria-label="Fechar">✕</button>
+      <div class="summary-head">
+        <h3>Treino concluído</h3>
+        <div class="summary-sub" id="summarySub"></div>
+      </div>
+      <div id="summaryBody"></div>
+      <hr class="summary-divider">
+      <div class="summary-given" id="summaryGiven" style="display:none;"></div>
+      <div id="ratingForm">
       <h3>Como foi o treino?</h3>
       <div class="rating-modal-sub">Dê uma nota de 0 a 5 (opcional)</div>
       <div class="rating-scale" id="ratingScale">
@@ -957,9 +1013,9 @@
         <div class="rating-option" data-value="5" onclick="selectRating(5)">5</div>
       </div>
       <textarea id="ratingFeedback" placeholder="Quer contar algo sobre o treino? (opcional)" maxlength="500"></textarea>
+      </div>
       <div class="rating-actions">
-        <button class="rating-skip-btn" onclick="closeRatingModal()">Pular</button>
-        <button class="rating-save-btn" onclick="submitRating()">Salvar</button>
+        <button class="rating-save-btn" id="summaryDoneBtn" onclick="submitRating()">Concluir</button>
       </div>
     </div>
   </div>
@@ -2907,6 +2963,7 @@ function updateTimerVisibility() {
   document.querySelectorAll('.end-workout-row').forEach(el => el.remove());
   document.querySelectorAll('.workout-done-msg').forEach(el => el.remove());
   document.querySelectorAll('.restart-workout-row').forEach(el => el.remove());
+  document.querySelectorAll('.see-summary-row').forEach(el => el.remove());
 
   if (!isCurrentTabToday()) {
     row.style.display = 'none';
@@ -2977,6 +3034,12 @@ function appendDoneMessage() {
   div.className = 'workout-done-msg';
   div.textContent = 'Treino concluído · ' + formatDuration(elapsed);
   dayEl.appendChild(div);
+  if (todaySessionId) {
+    const sumRow = document.createElement('div');
+    sumRow.className = 'see-summary-row';
+    sumRow.innerHTML = `<button class="end-workout-btn" onclick="openRatingModal('${todaySessionId}')">Ver resumo</button>`;
+    dayEl.appendChild(sumRow);
+  }
   const restartRow = document.createElement('div');
   restartRow.className = 'restart-workout-row';
   restartRow.innerHTML = '<button class="restart-workout-btn" onclick="restartWorkout()">Reiniciar Treino</button>';
@@ -3185,7 +3248,10 @@ async function stopWorkoutSession() {
   openRatingModal(endedSessionId);
 }
 
-// === Nota do treino ao encerrar ===
+// === Resumo + nota do treino ao encerrar ===
+// O resumo não é guardado: é montado na hora a partir da sessão e das séries
+// do dia, por isso pode ser reaberto ("Ver resumo") enquanto o dia não acaba.
+// A conta mora em workoutSummary (metrics.js); aqui só busca e desenha.
 let ratingSessionId = null;
 let selectedRating = null;
 
@@ -3194,7 +3260,124 @@ function openRatingModal(sessionId) {
   selectedRating = null;
   document.querySelectorAll('#ratingScale .rating-option').forEach(el => el.classList.remove('selected'));
   document.getElementById('ratingFeedback').value = '';
+  document.getElementById('summarySub').textContent = '';
+  document.getElementById('summaryBody').innerHTML = '<div class="summary-loading">Montando o resumo...</div>';
+  document.getElementById('summaryGiven').style.display = 'none';
+  document.getElementById('ratingForm').style.display = '';
+  document.getElementById('summaryDoneBtn').textContent = 'Concluir';
   document.getElementById('ratingModal').classList.add('show');
+  loadWorkoutSummary(sessionId);
+}
+
+const fmtNum = (n) => Number(n).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+const fmtDM = (iso) => { const [, m, d] = iso.split('-'); return `${d}/${m}`; };
+
+// Nome do treino como o aluno o conhece: "Treino A" no cíclico, o dia no semanal.
+function workoutLabel(key) {
+  const base = planMode === 'cyclic' ? 'Treino ' + key : 'Treino de ' + key;
+  return base + (planSubtitles[key] ? ' · ' + planSubtitles[key] : '');
+}
+
+// Seta + diferença. `good` diz se subir é bom (verde) ou só informação (neutro).
+function deltaHtml(diff, text, good) {
+  if (!diff) return '<div class="d">= igual</div>';
+  const cls = good ? (diff > 0 ? ' up' : ' down') : '';
+  return `<div class="d${cls}">${diff > 0 ? '↑' : '↓'} ${text}</div>`;
+}
+
+async function loadWorkoutSummary(sessionId) {
+  const body = document.getElementById('summaryBody');
+  try {
+    // A última série marcada pode ainda estar no autosave: grava antes de contar.
+    await flushAutosaves(null, { quiet: true });
+    const { data: session, error } = await _sb.from('workout_sessions')
+      .select('weekday, started_at, duration_seconds, rating, feedback_text')
+      .eq('id', sessionId)
+      .single();
+    if (error) throw error;
+    if (ratingSessionId !== sessionId) return; // modal fechado/reaberto no meio
+
+    const key = session.weekday;
+    const date = toLocalISO(new Date(session.started_at));
+    const hora = new Date(session.started_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    document.getElementById('summarySub').textContent = `${workoutLabel(key)} · ${fmtDM(date)} às ${hora}`;
+
+    // Hoje, a última vez do mesmo treino (séries) e a duração dessa vez.
+    const [todayRes, prevRes, prevSessRes] = await Promise.all([
+      scopeToPlan(_sb.from('workout_logs').select('exercise_name, set_number, set_type, weight, reps, duration_minutes')
+        .eq('student_id', studentId).eq('weekday', key).eq('session_date', date)),
+      scopeToPlan(_sb.from('workout_logs').select('exercise_name, set_number, set_type, weight, reps, duration_minutes, session_date')
+        .eq('student_id', studentId).eq('weekday', key).lt('session_date', date))
+        .order('session_date', { ascending: false }).limit(200),
+      scopeToPlan(_sb.from('workout_sessions').select('duration_seconds')
+        .eq('student_id', studentId).eq('weekday', key).lt('started_at', date + 'T00:00:00' + TZ)
+        .not('duration_seconds', 'is', null))
+        .order('started_at', { ascending: false }).limit(1)
+    ]);
+    if (todayRes.error) throw todayRes.error;
+    if (ratingSessionId !== sessionId) return;
+
+    const prevAll = prevRes.data || [];
+    const prevDate = prevAll.length ? prevAll[0].session_date : null;
+    const prevRows = prevAll.filter(r => r.session_date === prevDate);
+    const prevDur = prevSessRes.data && prevSessRes.data[0] ? prevSessRes.data[0].duration_seconds : null;
+    const r = workoutSummary(todayRes.data || [], prevRows);
+    const dur = session.duration_seconds || 0;
+
+    let html = '<div class="summary-stats">';
+    html += `<div class="summary-stat"><div class="v">${formatDurationHM(dur)}</div><div class="l">tempo</div>` +
+      (prevDur != null ? deltaHtml(Math.round((dur - prevDur) / 60), Math.abs(Math.round((dur - prevDur) / 60)) + ' min', false) : '') + '</div>';
+    const volPct = r.prevVolume > 0 ? Math.round((r.volume - r.prevVolume) / r.prevVolume * 100) : 0;
+    html += `<div class="summary-stat"><div class="v">${fmtNum(Math.round(r.volume))} kg</div><div class="l">volume</div>` +
+      (r.hasPrev && r.prevVolume > 0 ? deltaHtml(volPct, Math.abs(volPct) + '%', true) : '') + '</div>';
+    html += `<div class="summary-stat"><div class="v">${r.sets}</div><div class="l">séries feitas</div>` +
+      (r.hasPrev ? deltaHtml(r.sets - r.prevSets, String(Math.abs(r.sets - r.prevSets)), false) : '') + '</div>';
+    html += '</div>';
+    html += r.hasPrev
+      ? `<div class="summary-ref">comparado com a última vez, em ${fmtDM(prevDate)}</div>`
+      : '<div class="summary-ref">primeira vez deste treino: a comparação começa na próxima</div>';
+
+    if (r.improved.length) {
+      html += '<div class="summary-section"><div class="summary-section-title">Superou a última vez</div>';
+      r.improved.forEach(p => {
+        html += `<div class="summary-pr"><span class="ex">${esc(p.exercise)}</span>` +
+          `<span class="val">${fmtNum(p.weight)} kg × ${p.reps}<span class="was">antes: ${fmtNum(p.prevWeight)} × ${p.prevReps}</span></span></div>`;
+      });
+      html += '</div>';
+    }
+
+    if (r.hasPrev && r.sets > 0) {
+      html += '<div class="summary-section"><div class="summary-section-title">Séries</div><div class="summary-medals">' +
+        `<span><i style="background:#dfa616"></i>${r.medals.ouro} ouro</span>` +
+        `<span><i style="background:#9aa3af"></i>${r.medals.prata} prata</span>` +
+        `<span><i style="background:#a86a34"></i>${r.medals.bronze} bronze</span>` +
+        '</div></div>';
+    }
+
+    if (r.cardio > 0) {
+      const diff = Math.round(r.cardio - r.prevCardio);
+      const d = r.hasPrev && r.prevCardio > 0 && diff
+        ? ` <span class="d ${diff > 0 ? 'up' : 'down'}">(${diff > 0 ? '↑' : '↓'} ${Math.abs(diff)} min)</span>` : '';
+      html += `<div class="summary-section"><div class="summary-section-title">Cardio</div>` +
+        `<div class="summary-line">${formatMinutes(r.cardio)}${d}</div></div>`;
+    }
+
+    if (r.sets === 0) html = '<div class="summary-loading">Nenhuma série registrada neste treino.</div>';
+    body.innerHTML = html;
+
+    // Já avaliado (resumo reaberto): mostra o que foi dado, sem formulário.
+    if (session.rating != null || session.feedback_text) {
+      const given = document.getElementById('summaryGiven');
+      given.innerHTML = (session.rating != null ? `Sua nota: <strong>${session.rating}</strong>` : 'Seu comentário:') +
+        (session.feedback_text ? `<p>${esc(session.feedback_text)}</p>` : '');
+      given.style.display = '';
+      document.getElementById('ratingForm').style.display = 'none';
+      document.getElementById('summaryDoneBtn').textContent = 'Fechar';
+    }
+  } catch (e) {
+    console.log('Erro ao montar resumo:', e);
+    if (ratingSessionId === sessionId) body.innerHTML = '<div class="summary-loading">Não foi possível carregar o resumo agora.</div>';
+  }
 }
 
 function closeRatingModal() {

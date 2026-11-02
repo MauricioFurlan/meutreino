@@ -405,6 +405,60 @@ function computeStreak(trained, prescribed, today, windowDays) {
   return { current, best, hitWindowEdge: current >= window - 1 };
 }
 
+// === Resumo do treino ===
+// Compara o treino de hoje com a ÚLTIMA VEZ que o aluno fez o MESMO treino
+// (mesmo dia no semanal, mesma letra no cíclico) — comparar peito com perna
+// não diz nada. As duas listas são linhas de workout_logs.
+//   today: séries de hoje · prev: séries da sessão anterior (pode ser vazia)
+// Devolve números prontos para a tela; quem desenha decide o que esconder
+// (sem prev não há comparação, medalha nem "superou").
+function workoutSummary(today, prev) {
+  today = today || [];
+  prev = prev || [];
+  const hasPrev = prev.length > 0;
+
+  // Melhor série de força de cada exercício, pela carga estimada (e1rm):
+  // 42,5×8 e 40×12 ficam comparáveis.
+  const bestByExercise = (rows) => {
+    const out = {};
+    rows.forEach(r => {
+      if (!isEffectiveSet(r.set_type)) return;
+      const score = e1rm(r.weight, r.reps);
+      if (score <= 0) return;
+      const cur = out[r.exercise_name];
+      if (!cur || score > cur.score) out[r.exercise_name] = { score, weight: Number(r.weight), reps: Number(r.reps) };
+    });
+    return out;
+  };
+  const bestNow = bestByExercise(today);
+  const bestPrev = bestByExercise(prev);
+  const improved = [];
+  Object.keys(bestNow).forEach(name => {
+    const a = bestNow[name], b = bestPrev[name];
+    if (b && a.score > b.score + 1e-9) {
+      improved.push({ exercise: name, weight: a.weight, reps: a.reps, prevWeight: b.weight, prevReps: b.reps });
+    }
+  });
+
+  // Medalhas: a mesma comparação da bolinha (série N contra série N).
+  const prevBySet = {};
+  prev.forEach(r => { prevBySet[r.exercise_name + '|' + r.set_number] = r; });
+  const medals = { ouro: 0, prata: 0, bronze: 0 };
+  today.forEach(r => { medals[setMedal(r, prevBySet[r.exercise_name + '|' + r.set_number])]++; });
+
+  return {
+    hasPrev,
+    sets: today.length,
+    prevSets: prev.length,
+    volume: hardVolume(today),
+    prevVolume: hardVolume(prev),
+    cardio: sumCardioMinutes(today),
+    prevCardio: sumCardioMinutes(prev),
+    improved,
+    medals
+  };
+}
+
 // Exposto para os testes em Node (que avaliam este arquivo com um `window` falso).
 // No browser as declarações acima já são globais e as páginas as usam direto.
 if (typeof window !== 'undefined') {
@@ -416,6 +470,7 @@ if (typeof window !== 'undefined') {
     isCardio, isEffectiveSet, sumCardioMinutes, cardioByDate, previousCardioSession,
     cardioComparison, cardioChartInfo,
     e1rm, hardVolume, setMedal,
-    prescribedDaySet, isTrainingDate, computeStreak, computeStreakCyclic
+    prescribedDaySet, isTrainingDate, computeStreak, computeStreakCyclic,
+    workoutSummary
   };
 }
