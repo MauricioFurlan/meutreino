@@ -900,6 +900,33 @@
         margin-right: auto;
       }
     }
+
+    /* Modo foco: toque duplo num card de exercício faz ele ocupar a tela
+       inteira. Fica abaixo dos modais (z-index >= 1000), então vídeo,
+       cronômetro de descanso e histórico continuam abrindo por cima.
+       Vem depois das regras de celular/biset para ganhar delas. */
+    html.focus-lock body { overflow: hidden; }
+    .exercise-card.focus-mode,
+    .biset-wrapper .exercise-card.focus-mode {
+      position: fixed; inset: 0; z-index: 900;
+      margin: 0; border: none; border-radius: 0; box-shadow: none;
+      overflow-y: auto; overscroll-behavior: contain;
+      padding-top: max(16px, env(safe-area-inset-top));
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+      /* no desktop o conteúdo continua numa coluna de celular, centralizada */
+      padding-left: max(16px, calc((100vw - 480px) / 2));
+      padding-right: max(16px, calc((100vw - 480px) / 2));
+      animation: focusIn 0.18s ease-out;
+    }
+    @keyframes focusIn { from { opacity: 0; } to { opacity: 1; } }
+    .focus-exit-btn { display: none; }
+    .focus-mode .focus-exit-btn {
+      display: block; margin: 0 0 14px auto;
+      background: none; border: 1px solid var(--border); color: var(--text-muted);
+      font-size: var(--fs-xs); font-weight: 600; padding: 6px 12px;
+      border-radius: 8px; cursor: pointer;
+    }
+    .focus-mode .focus-exit-btn:active { opacity: 0.6; }
   </style>
   <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->
   <link rel="stylesheet" href="brand.css">
@@ -2821,6 +2848,8 @@ function renderExerciseCard(day, exIdx, ex) {
 
   let html = '';
   html += `<div class="exercise-card" id="${cardId}" data-exercise="${exName}" data-day="${day}">`;
+  // Só aparece em modo foco (toque duplo no card)
+  html += `<button type="button" class="focus-exit-btn" onclick="exitCardFocus()">Sair do modo foco</button>`;
   // Header
   html += `<div class="exercise-header">`;
   html += `<div class="exercise-name">${exName}</div>`;
@@ -3569,6 +3598,78 @@ function drawerGo(destino) {
 // Fecha o menu com ESC (teclado físico / iPad)
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeDrawer();
+});
+
+// === Modo foco do card de exercício ===
+// Toque duplo num card faz só ele ocupar a tela. O toque duplo é detectado
+// à mão (dois clicks no mesmo card em até 350ms) porque o evento dblclick
+// não é confiável no Safari do iPhone. Toques em campo, botão ou link não
+// contam: digitar o peso ou marcar a série duas vezes seguidas não pode
+// abrir o foco sem querer.
+const FOCUS_TAP_MS = 350;
+let focusLastTap = { card: null, at: 0 };
+
+function focusedCard() {
+  return document.querySelector('.exercise-card.focus-mode');
+}
+
+function enterCardFocus(card) {
+  const atual = focusedCard();
+  if (atual && atual !== card) atual.classList.remove('focus-mode');
+  card.classList.add('focus-mode');
+  card.scrollTop = 0;
+  document.documentElement.classList.add('focus-lock');
+  // Tela cheia de verdade onde o navegador deixa (Android/desktop). No
+  // iPhone a API não existe, e o card fixo cobrindo a tela já resolve.
+  const root = document.documentElement;
+  const req = root.requestFullscreen || root.webkitRequestFullscreen;
+  if (req && !(document.fullscreenElement || document.webkitFullscreenElement)) {
+    try {
+      const p = req.call(root);
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* sem tela cheia: segue só com o card fixo */ }
+  }
+}
+
+function exitCardFocus() {
+  document.querySelectorAll('.exercise-card.focus-mode').forEach(c => c.classList.remove('focus-mode'));
+  document.documentElement.classList.remove('focus-lock');
+  if (document.fullscreenElement || document.webkitFullscreenElement) {
+    const exit = document.exitFullscreen || document.webkitExitFullscreen;
+    try {
+      const p = exit && exit.call(document);
+      if (p && p.catch) p.catch(() => {});
+    } catch (e) { /* já saiu */ }
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const card = e.target.closest && e.target.closest('.exercise-card');
+  if (!card || e.target.closest('input, textarea, select, button, a, iframe')) {
+    focusLastTap = { card: null, at: 0 };
+    return;
+  }
+  const agora = Date.now();
+  if (focusLastTap.card === card && agora - focusLastTap.at <= FOCUS_TAP_MS) {
+    focusLastTap = { card: null, at: 0 };
+    if (card.classList.contains('focus-mode')) exitCardFocus();
+    else enterCardFocus(card);
+    return;
+  }
+  focusLastTap = { card, at: agora };
+});
+
+// Saiu da tela cheia pelo navegador (voltar do Android, ESC no desktop):
+// o modo foco sai junto, senão o card ficaria preso cobrindo a tela.
+function onFullscreenChange() {
+  if (!(document.fullscreenElement || document.webkitFullscreenElement) && focusedCard()) exitCardFocus();
+}
+document.addEventListener('fullscreenchange', onFullscreenChange);
+document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
+// ESC sem tela cheia (iPad com teclado físico)
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && focusedCard()) exitCardFocus();
 });
 
 // === Anotações do professor ===
