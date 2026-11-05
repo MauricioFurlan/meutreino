@@ -1011,13 +1011,13 @@
     .exercise-card.focus-mode .set-list > .set-row.next-set {
       margin: 0; box-shadow: inset 0 0 0 2px var(--accent);
     }
-    .exercise-card.focus-mode .set-row .set-label {
+    .exercise-card.focus-mode .set-row:not(.set-header) .set-label {
       grid-area: label; align-self: end; min-width: 0;
       font-size: 0.85rem; line-height: 1.2;
     }
     /* Série sem cronômetro: o rótulo fica no meio da altura */
-    .exercise-card.focus-mode .set-row:not(.has-rest) .set-label,
-    .exercise-card.focus-mode .set-row:has(.rest-cell:empty) .set-label {
+    .exercise-card.focus-mode .set-row:not(.has-rest):not(.set-header) .set-label,
+    .exercise-card.focus-mode .set-row:not(.set-header):has(.rest-cell:empty) .set-label {
       grid-row: 1 / 3; align-self: center;
     }
     .exercise-card.focus-mode .set-row .set-label .note-icon { width: 22px; height: 22px; }
@@ -1043,8 +1043,15 @@
       grid-template-columns: 74px 1fr 1fr 52px; column-gap: 10px;
       margin: 0; padding: 0 10px;
     }
+    /* Coluna de cada filho fixada à mão: na ordem automática, qualquer regra
+       de linha que vazasse para o cabeçalho deslocava os títulos. */
+    .exercise-card.focus-mode .set-list > .set-header > * { grid-row: 1; grid-column: auto; }
+    .exercise-card.focus-mode .set-list > .set-header > .set-label     { grid-column: 1; min-width: 0; }
+    .exercise-card.focus-mode .set-list > .set-header > :nth-child(2)  { grid-column: 2; }
+    .exercise-card.focus-mode .set-list > .set-header > :nth-child(3)  { grid-column: 3; }
+    .exercise-card.focus-mode .set-list > .set-header > :last-child    { grid-column: 4; }
     .exercise-card.focus-mode .set-header > .col-rest { display: none; }
-    .exercise-card.focus-mode .set-header.cardio-row > .col-title:not(.col-rest) { grid-column: 2 / 4; }
+    .exercise-card.focus-mode .set-list > .set-header.cardio-row > :nth-child(2) { grid-column: 2 / 4; }
     .exercise-card.focus-mode .set-header .col-title { font-size: 0.8rem; }
   </style>
   <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->
