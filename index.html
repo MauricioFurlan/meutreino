@@ -926,6 +926,17 @@
       animation: focusIn 0.18s ease-out;
     }
     @keyframes focusIn { from { opacity: 0; } to { opacity: 1; } }
+    /* Troca de exercício: o novo entra deslizando um pouco do lado de onde
+       veio (Próximo pela direita, Anterior pela esquerda). */
+    .exercise-card.focus-mode.focus-from-next { animation: focusFromNext 0.22s ease-out; }
+    .exercise-card.focus-mode.focus-from-prev { animation: focusFromPrev 0.22s ease-out; }
+    @keyframes focusFromNext { from { opacity: 0; transform: translateX(28px); } to { opacity: 1; transform: none; } }
+    @keyframes focusFromPrev { from { opacity: 0; transform: translateX(-28px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .exercise-card.focus-mode,
+      .exercise-card.focus-mode.focus-from-next,
+      .exercise-card.focus-mode.focus-from-prev { animation: none; }
+    }
 
     /* Topo: sair à esquerda, posição (3 / 8) à direita */
     .exercise-card.focus-mode > .focus-top {
@@ -3792,7 +3803,12 @@ function moveCardFocus(passo) {
   const destino = lista[lista.indexOf(atual) + passo];
   if (!destino) return;
   if (document.activeElement && atual.contains(document.activeElement)) document.activeElement.blur();
+  const anim = passo > 0 ? 'focus-from-next' : 'focus-from-prev';
+  atual.classList.remove('focus-from-next', 'focus-from-prev');
+  destino.classList.remove('focus-from-next', 'focus-from-prev');
   enterCardFocus(destino);
+  destino.classList.add(anim);
+  destino.addEventListener('animationend', () => destino.classList.remove(anim), { once: true });
 }
 
 // Setas do teclado (iPad/desktop) — fora de campo, onde elas movem o cursor.
