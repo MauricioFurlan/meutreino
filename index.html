@@ -941,7 +941,26 @@
       display: flex; flex-direction: column;
     }
     .exercise-card.focus-mode > .exercise-header { margin-top: auto; }
-    .exercise-card.focus-mode::after { content: ''; margin-top: auto; }
+    /* Navegação entre exercícios do dia: rodapé que gruda embaixo enquanto o
+       card rola. Vem logo depois do botão de sair no HTML (o card tem dois
+       pontos de retorno antecipado) e o order joga ela para o fim. A margem
+       auto dela e a do cabeçalho centralizam o conteúdo entre as duas. */
+    .focus-nav { display: none; }
+    .exercise-card.focus-mode > .focus-nav {
+      display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 10px;
+      order: 99; margin-top: auto;
+      position: sticky; bottom: calc(-24px - env(safe-area-inset-bottom));
+      padding: 12px 0 calc(24px + env(safe-area-inset-bottom));
+      background: var(--bg-card); border-top: 1px solid var(--border);
+    }
+    .focus-nav-btn {
+      background: var(--bg-input); border: 1px solid var(--border); color: var(--accent);
+      font-size: var(--fs-md); font-weight: 700; padding: 14px 10px;
+      border-radius: 12px; cursor: pointer; touch-action: manipulation;
+    }
+    .focus-nav-btn:active { opacity: 0.6; }
+    .focus-nav-btn[hidden] { display: block; visibility: hidden; }
+    .focus-nav-pos { font-size: var(--fs-sm); color: var(--text-muted2); font-weight: 600; }
     .exercise-card.focus-mode > .history-btn,
     .exercise-card.focus-mode > .rest-line { align-self: flex-start; }
     .exercise-card.focus-mode .exercise-name { margin-bottom: 14px; }
@@ -2906,6 +2925,11 @@ function renderExerciseCard(day, exIdx, ex) {
   html += `<div class="exercise-card" id="${cardId}" data-exercise="${exName}" data-day="${day}">`;
   // Só aparece em modo foco (toque duplo no card)
   html += `<button type="button" class="focus-exit-btn" onclick="exitCardFocus()">Sair do modo foco</button>`;
+  html += `<div class="focus-nav">`
+    + `<button type="button" class="focus-nav-btn focus-prev" onclick="moveCardFocus(-1)">&lt; Anterior</button>`
+    + `<span class="focus-nav-pos"></span>`
+    + `<button type="button" class="focus-nav-btn focus-next" onclick="moveCardFocus(1)">Próximo &gt;</button>`
+    + `</div>`;
   // Header
   html += `<div class="exercise-header">`;
   html += `<div class="exercise-name">${exName}</div>`;
@@ -3675,6 +3699,7 @@ function enterCardFocus(card) {
   card.classList.add('focus-mode');
   card.scrollTop = 0;
   document.documentElement.classList.add('focus-lock');
+  updateFocusNav(card);
   // Tela cheia de verdade onde o navegador deixa (Android/desktop). No
   // iPhone a API não existe, e o card fixo cobrindo a tela já resolve.
   const root = document.documentElement;
@@ -3698,6 +3723,46 @@ function exitCardFocus() {
     } catch (e) { /* já saiu */ }
   }
 }
+
+// Exercícios do mesmo dia, na ordem da tela (biset entra card a card).
+function focusSiblings(card) {
+  const escopo = card.closest('.day-content') || document;
+  return [...escopo.querySelectorAll('.exercise-card')]
+    .filter(c => c.dataset.day === card.dataset.day);
+}
+
+function updateFocusNav(card) {
+  const nav = card.querySelector('.focus-nav');
+  if (!nav) return;
+  const lista = focusSiblings(card);
+  const i = lista.indexOf(card);
+  // Exercício único no dia: nada para navegar. A barra some, mas guarda o
+  // lugar — é a margem dela que mantém o conteúdo centralizado.
+  nav.style.visibility = lista.length > 1 ? '' : 'hidden';
+  nav.querySelector('.focus-prev').hidden = i <= 0;
+  nav.querySelector('.focus-next').hidden = i >= lista.length - 1;
+  nav.querySelector('.focus-nav-pos').textContent = `${i + 1} / ${lista.length}`;
+}
+
+// Troca de exercício sem sair do foco nem da tela cheia. O blur fecha o
+// teclado do campo que estava aberto no card anterior.
+function moveCardFocus(passo) {
+  const atual = focusedCard();
+  if (!atual) return;
+  const lista = focusSiblings(atual);
+  const destino = lista[lista.indexOf(atual) + passo];
+  if (!destino) return;
+  if (document.activeElement && atual.contains(document.activeElement)) document.activeElement.blur();
+  enterCardFocus(destino);
+}
+
+// Setas do teclado (iPad/desktop) — fora de campo, onde elas movem o cursor.
+document.addEventListener('keydown', (e) => {
+  if (!focusedCard() || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+  if (e.target.closest && e.target.closest('input, textarea, select')) return;
+  e.preventDefault();
+  moveCardFocus(e.key === 'ArrowRight' ? 1 : -1);
+});
 
 document.addEventListener('click', (e) => {
   const card = e.target.closest && e.target.closest('.exercise-card');
