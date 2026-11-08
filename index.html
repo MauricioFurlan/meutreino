@@ -466,14 +466,20 @@
       border-radius: 8px; cursor: pointer; transition: opacity 0.2s;
     }
     .end-workout-btn:active, .pause-workout-btn:active, .restart-workout-btn:active { opacity: 0.6; }
-    .restart-workout-btn { border-color: var(--text-muted); color: var(--text-muted); }
+    /* Reiniciar apaga o tempo do dia: não pode ter o peso nem a posição de
+       um botão principal. Vira um link pequeno, em vermelho, bem abaixo. */
+    .restart-workout-btn {
+      flex: 0 0 auto; margin: 0 auto; border: none; padding: 8px 12px;
+      font-size: var(--fs-sm); font-weight: 600; color: var(--error-light);
+      text-decoration: underline;
+    }
     .workout-timer-inline.paused { opacity: 0.7; }
     .workout-done-msg {
       font-size: var(--fs-lg); color: var(--accent); font-weight: 700;
       text-align: center; padding: 12px 16px;
     }
     .restart-workout-row {
-      display: flex; padding: 0 16px 12px; margin-top: 8px;
+      display: flex; padding: 0 16px 16px; margin-top: 32px;
     }
 
     /* ── Modal: nota do treino ao encerrar ────────────────────────── */
@@ -982,7 +988,8 @@
     .exercise-card.focus-mode .exercise-header > .note-icon { width: 30px; height: 30px; font-size: 0.9rem; margin-left: 0; }
     .exercise-card.focus-mode > .rest-line { flex: 0 0 auto; margin: 8px 0 0; }
     .exercise-card.focus-mode > .note-bubble { flex: 0 0 auto; }
-    .exercise-card.focus-mode > .history-btn { display: none; }
+    .exercise-card.focus-mode > .card-links { display: none; }
+    .exercise-card.focus-mode > .last-line { flex: 0 0 auto; margin: 10px 0 0; }
     .exercise-card.focus-mode > .no-sets { margin-top: 20px; text-align: center; font-size: 1rem; }
 
     /* Séries: logo abaixo do título, todas com a MESMA altura fixa — com 1
@@ -1053,6 +1060,42 @@
     .exercise-card.focus-mode .set-header > .col-rest { display: none; }
     .exercise-card.focus-mode .set-list > .set-header.cardio-row > :nth-child(2) { grid-column: 2 / 4; }
     .exercise-card.focus-mode .set-header .col-title { font-size: 0.8rem; }
+
+    /* Links do card: histórico à esquerda, modo foco à direita. O toque
+       duplo continua abrindo o foco; o botão é para quem não sabe disso. */
+    .card-links {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      margin-bottom: 8px;
+    }
+    .card-links .history-btn { margin-bottom: 0; }
+    .focus-open-btn {
+      background: none; border: none; color: var(--accent); font-size: var(--fs-sm);
+      cursor: pointer; padding: 4px 0; text-decoration: underline;
+    }
+    .focus-open-btn:active { opacity: 0.6; }
+
+    /* Última vez: o placeholder some quando o aluno digita, esta linha não. */
+    .last-line {
+      font-size: var(--fs-xs); color: var(--text-muted2); margin: 0 0 8px;
+      line-height: 1.4; word-break: break-word;
+    }
+    .last-line[hidden] { display: none; }
+    .last-line .ll-key { font-weight: 700; }
+    .last-line .ll-sets { color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+    /* Progresso do treino em andamento, embaixo do cronômetro no topo fixo */
+    .workout-progress { display: flex; align-items: center; gap: 10px; }
+    .workout-progress[hidden] { display: none; }
+    .wp-bar {
+      flex: 1; height: 6px; border-radius: 3px; overflow: hidden;
+      background: var(--bg-input); border: 1px solid var(--border-light);
+    }
+    .wp-fill { height: 100%; width: 0; background: var(--accent); border-radius: 3px; transition: width 0.3s ease-out; }
+    .wp-text {
+      font-size: var(--fs-xs); color: var(--text-muted2); font-weight: 700;
+      font-variant-numeric: tabular-nums; white-space: nowrap;
+    }
+    @media (prefers-reduced-motion: reduce) { .wp-fill { transition: none; } }
   </style>
   <!-- Camada de identidade visual (precisa vir DEPOIS do <style> inline) -->
   <link rel="stylesheet" href="brand.css">
@@ -1137,6 +1180,10 @@
     <div class="start-workout-row" id="startWorkoutRow" style="display:none;">
       <button class="start-workout-btn" id="timerStartBtn" onclick="confirmStartWorkout()">Iniciar Treino</button>
       <span class="workout-timer-inline" id="timerInline" style="display:none;">⏱ <span id="timerDisplay">00:00:00</span><span id="timerLabel" style="margin-left:8px;font-weight:500;font-size: var(--fs-base);opacity:0.8;"></span></span>
+      <div class="workout-progress" id="workoutProgress" hidden>
+        <div class="wp-bar" role="progressbar" aria-label="Séries feitas" aria-valuemin="0" id="workoutProgressBar"><div class="wp-fill" id="workoutProgressFill"></div></div>
+        <span class="wp-text" id="workoutProgressText"></span>
+      </div>
     </div>
   </div>
 
@@ -1444,6 +1491,42 @@ function resetDayInputs(day) {
     if (wi) delete wi.dataset.basePh;
     row.classList.remove('next-set');
   });
+  const dayEl = document.getElementById('day-' + day);
+  (dayEl || document).querySelectorAll(`.exercise-card[data-day="${day}"]`).forEach(card => {
+    delete card.dataset.refDate;
+    const ll = card.querySelector('.last-line');
+    if (ll) { ll.hidden = true; ll.innerHTML = ''; }
+  });
+}
+
+// === Linha "Última vez" do card ===
+// Repete a referência da sessão anterior (que está no dataset de cada linha)
+// num texto fixo, porque o placeholder some assim que o aluno digita e aí ele
+// perde com o que está comparando. Só no treino de hoje: nos outros dias o
+// placeholder já é a própria referência, e a linha seria repetição.
+function lastSetText(ref, cardio) {
+  if (!ref) return '–';
+  if (cardio) return ref.duration_minutes ? ref.duration_minutes + 'min' : '–';
+  const w = ref.weight, r = ref.reps;
+  if (w && r) return w + '×' + r;
+  if (w) return w + 'kg';
+  if (r) return r + ' reps';
+  return '–';
+}
+
+function renderLastLine(card) {
+  const ll = card.querySelector('.last-line');
+  if (!ll) return;
+  const rows = [...card.querySelectorAll('.set-row:not(.set-header)')];
+  const refs = rows.map(rowRef);
+  if (!isDayToday(card.dataset.day) || !refs.some(Boolean)) {
+    ll.hidden = true; ll.innerHTML = '';
+    return;
+  }
+  const textos = rows.map((row, i) => lastSetText(refs[i], row.classList.contains('cardio-row')));
+  const data = card.dataset.refDate ? ' (' + formatDayMonth(card.dataset.refDate) + ')' : '';
+  ll.innerHTML = `<span class="ll-key">Última vez${esc(data)}:</span> <span class="ll-sets">${esc(textos.join(' · '))}</span>`;
+  ll.hidden = false;
 }
 
 // Preenche uma linha com o que foi registrado.
@@ -1544,9 +1627,12 @@ async function loadLastWorkout(day, excludeSets) {
       // log de hoje: é ela que decide a cor da bolinha. O placeholder é que
       // continua valendo só para a série ainda vazia.
       setRowRef(row, record);
+      card.dataset.refDate = lastDate;
       if (excludeSets && excludeSets.has(record.exercise_name + '|' + record.set_number)) return;
       applyRecordToRow(row, record, false);
     });
+    const dayEl = document.getElementById('day-' + day);
+    (dayEl || document).querySelectorAll(`.exercise-card[data-day="${day}"]`).forEach(renderLastLine);
   } catch (e) { console.log('Erro ao carregar último treino:', e); }
 }
 
@@ -1832,6 +1918,7 @@ function executionRows(day) {
 // Destaca a série depois da última feita (e não a primeira vazia: uma série
 // pulada no começo prenderia o destaque lá em cima o treino inteiro).
 function updateNextSet(day) {
+  updateWorkoutProgress();
   const rows = executionRows(day);
   rows.forEach(r => r.classList.remove('next-set'));
   if (!isDayToday(day)) return;
@@ -1839,6 +1926,28 @@ function updateNextSet(day) {
   rows.forEach((r, i) => { if (r.querySelector('.check-icon')?.classList.contains('done')) ultima = i; });
   const prox = rows[ultima + 1];
   if (prox) prox.classList.add('next-set');
+}
+
+// === Progresso do treino ===
+// "8 de 20 séries" com uma barra, embaixo do cronômetro. Só com a sessão em
+// andamento: antes de iniciar o topo é do botão Iniciar, e depois de encerrar
+// o resumo já conta o que foi feito.
+function updateWorkoutProgress() {
+  const box = document.getElementById('workoutProgress');
+  if (!box) return;
+  const dayKey = planMode === 'cyclic' ? currentTabDay : getToday();
+  const emAndamento = !!currentSessionId && !document.querySelector('.session-ended')
+    && isCurrentTabToday() && !!dayKey;
+  const rows = emAndamento ? executionRows(dayKey) : [];
+  if (rows.length === 0) { box.hidden = true; return; }
+  const feitas = rows.filter(r => r.querySelector('.check-icon')?.classList.contains('done')).length;
+  const bar = document.getElementById('workoutProgressBar');
+  bar.setAttribute('aria-valuemax', rows.length);
+  bar.setAttribute('aria-valuenow', feitas);
+  document.getElementById('workoutProgressFill').style.width = Math.round(feitas / rows.length * 100) + '%';
+  document.getElementById('workoutProgressText').textContent =
+    feitas + ' de ' + rows.length + (rows.length === 1 ? ' série' : ' séries');
+  box.hidden = false;
 }
 
 // Enter / "próximo" do teclado: kg → reps → kg da próxima série.
@@ -2999,8 +3108,14 @@ function renderExerciseCard(day, exIdx, ex) {
     const chave = descanso.text.includes(' / ') ? 'Descansos' : 'Descanso';
     html += `<div class="rest-line"><span class="rest-pill">⏱ <span class="rest-key">${chave}:</span> <span class="rest-value">${esc(descanso.text)}</span></span></div>`;
   }
-  // Histórico (o modal também abre o gráfico de evolução deste exercício)
-  html += `<button class="history-btn" onclick="toggleHistory('${exName.replace(/'/g,"\\'")}', ${allCardio})">Ver histórico</button>`;
+  // O que foi feito da última vez, série a série (preenchido por renderLastLine)
+  html += `<div class="last-line" hidden></div>`;
+  // Histórico (o modal também abre o gráfico de evolução deste exercício) e
+  // a entrada do modo foco — o toque duplo segue valendo, mas ninguém o acha.
+  html += `<div class="card-links">`
+    + `<button class="history-btn" onclick="toggleHistory('${exName.replace(/'/g,"\\'")}', ${allCardio})">Ver histórico</button>`
+    + `<button type="button" class="focus-open-btn" onclick="enterCardFocus(this.closest('.exercise-card'))">Modo foco</button>`
+    + `</div>`;
   // Exercício sem série: não há o que registrar. Aviso honesto em vez de card vazio.
   if (sets.length === 0) {
     html += `<div class="no-sets">Sem séries definidas — fale com seu personal.</div>`;
@@ -3125,6 +3240,7 @@ async function offerStartWorkout(day) {
 }
 
 function updateTimerVisibility() {
+  updateWorkoutProgress();
   const row = document.getElementById('startWorkoutRow');
   // Remove botão encerrar antigo de todos os dias
   document.querySelectorAll('.end-workout-row').forEach(el => el.remove());
@@ -3727,16 +3843,86 @@ async function loadStreak() {
 
 function drawerGo(destino) {
   closeDrawer();
+  if (destino !== 'notes') leavingPage = true;
   if (destino === 'notes')    { openNotesModal(); return; }
   if (destino === 'anamnese') { location.href = 'anamnese.html'; return; }
   if (destino === 'weekly')   { location.href = 'evolucao.html#weekly'; return; }
   if (destino === 'monthly')  { location.href = 'evolucao.html#monthly'; return; }
 }
 
-// Fecha o menu com ESC (teclado físico / iPad)
+// === Fechar janelas: X, toque fora, ESC e o voltar do celular ===
+// Cada janela por cima da tela, da mais alta para a mais baixa. O voltar do
+// Android (e o ESC) fecha só a de cima, em vez de sair do app no meio do
+// treino. O cronômetro de descanso fica de fora do toque fora de propósito
+// (um toque sem querer zeraria a contagem), mas o voltar fecha ele também.
+const OVERLAYS = [
+  { el: () => document.getElementById('logoutModal'),  close: () => closeLogoutModal(),  tapOut: true },
+  { el: () => document.getElementById('restModal'),    close: () => closeRestTimer(),    tapOut: false },
+  { el: () => document.getElementById('videoModal'),   close: () => closeVideoModal(),   tapOut: true },
+  { el: () => document.getElementById('historyModal'), close: () => closeHistoryModal(), tapOut: true },
+  { el: () => document.getElementById('notesModal'),   close: () => closeNotesModal(),   tapOut: false }, // já tem o seu
+  { el: () => document.getElementById('ratingModal'),  close: () => closeRatingModal(),  tapOut: false },
+  { el: () => document.getElementById('drawer'),       close: () => closeDrawer(),       tapOut: false }, // backdrop próprio
+];
+const overlayOpen = (o) => { const el = o.el(); return !!el && el.classList.contains('show'); };
+function topOverlay() { return OVERLAYS.find(overlayOpen) || null; }
+
+function closeTopLayer() {
+  const o = topOverlay();
+  if (o) { o.close(); return true; }
+  if (focusedCard()) { exitCardFocus(); return true; }
+  return false;
+}
+
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeDrawer();
+  if (e.key === 'Escape') closeTopLayer();
 });
+
+OVERLAYS.filter(o => o.tapOut).forEach(o => {
+  const el = o.el();
+  if (el) el.addEventListener('click', (e) => { if (e.target === el) o.close(); });
+});
+
+// Uma entrada a mais no histórico enquanto houver janela aberta: o voltar
+// consome ela e fecha a janela de cima. Fechando pelo X, a entrada é tirada
+// com history.back() — senão o próximo voltar não faria nada.
+let backGuard = false;      // existe a entrada extra no histórico
+let ignoreNextPop = false;  // o popstate que vem é do nosso history.back()
+let leavingPage = false;    // indo para outra página: não mexer no histórico
+function anyLayerOpen() { return !!topOverlay() || !!focusedCard(); }
+
+function syncBackGuard() {
+  if (leavingPage) return;
+  if (anyLayerOpen()) {
+    if (!backGuard) { history.pushState({ layerGuard: true }, ''); backGuard = true; }
+  } else if (backGuard) {
+    backGuard = false;
+    if (history.state && history.state.layerGuard) { ignoreNextPop = true; history.back(); }
+  }
+}
+
+window.addEventListener('popstate', () => {
+  if (ignoreNextPop) { ignoreNextPop = false; return; }
+  if (!backGuard) return;
+  backGuard = false;   // o voltar já tirou a entrada
+  closeTopLayer();     // se outra janela continuar aberta, o observer repõe
+});
+
+// Voltou de outra página pelo cache do navegador: a tela volta a valer.
+window.addEventListener('pageshow', (e) => { if (e.persisted) leavingPage = false; });
+
+// Observa as classes em vez de mexer em cada abrir/fechar: qualquer caminho
+// que abra uma janela entra na regra. O callback roda em microtask, então o
+// fecha-menu-e-abre-orientações do drawerGo chega aqui de uma vez só, sem
+// tirar e repor a entrada no meio.
+(() => {
+  const obs = new MutationObserver(syncBackGuard);
+  const opts = { attributes: true, attributeFilter: ['class'] };
+  OVERLAYS.forEach(o => { const el = o.el(); if (el) obs.observe(el, opts); });
+  // Modo foco: os cards são recriados a cada render, então quem se observa é
+  // a raiz, que recebe focus-lock junto com o card.
+  obs.observe(document.documentElement, opts);
+})();
 
 // === Modo foco do card de exercício ===
 // Toque duplo num card faz só ele ocupar a tela. O toque duplo é detectado
@@ -3850,10 +4036,8 @@ function onFullscreenChange() {
 document.addEventListener('fullscreenchange', onFullscreenChange);
 document.addEventListener('webkitfullscreenchange', onFullscreenChange);
 
-// ESC sem tela cheia (iPad com teclado físico)
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && focusedCard()) exitCardFocus();
-});
+// ESC sem tela cheia (iPad com teclado físico): tratado em closeTopLayer,
+// que fecha antes a janela que estiver por cima do card.
 
 // === Anotações do professor ===
 let trainerNoteContent  = '';

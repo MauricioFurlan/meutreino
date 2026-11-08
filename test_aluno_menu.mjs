@@ -58,7 +58,8 @@ eq('anamnese vai para a tela do aluno', /location\.href = 'anamnese\.html'/.test
 eq('semanal abre evolucao#weekly',  /evolucao\.html#weekly/.test(drawerGo), true);
 eq('mensal abre evolucao#monthly',  /evolucao\.html#monthly/.test(drawerGo), true);
 eq('menu fecha antes de navegar',   /^function drawerGo\(destino\) \{\s*closeDrawer\(\);/m.test(drawerGo), true);
-eq('ESC fecha o menu', /e\.key === 'Escape'\) closeDrawer\(\)/.test(idxJs), true);
+eq('ESC fecha a janela de cima', /e\.key === 'Escape'\) closeTopLayer\(\)/.test(idxJs), true);
+eq('o menu está entre as janelas que ESC/voltar fecham', /close: \(\) => closeDrawer\(\)/.test(idxJs), true);
 eq('acesso bloqueado esconde o menu', /menuBtn'\)\.style\.display = 'none'/.test(idxJs), true);
 
 // Aviso de orientação nova: sem isso, esconder as Orientações dentro do menu
