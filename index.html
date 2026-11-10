@@ -975,6 +975,10 @@
     }
     .focus-exit-btn:active, .focus-nav-btn:active { opacity: 0.6; }
     .focus-nav-btn[hidden] { display: block; visibility: hidden; }
+    /* Último exercício com tudo feito: o "Próximo" vira "Finalizar treino" */
+    .focus-nav-btn.focus-finish {
+      border: 2px solid var(--accent); background: rgba(var(--accent-rgb), 0.15);
+    }
 
     /* Título numa linha: nome à esquerda, vídeo à direita */
     .exercise-card.focus-mode > .exercise-header {
@@ -1933,6 +1937,9 @@ function updateNextSet(day) {
 // andamento: antes de iniciar o topo é do botão Iniciar, e depois de encerrar
 // o resumo já conta o que foi feito.
 function updateWorkoutProgress() {
+  // O "Finalizar treino" do modo foco depende do mesmo estado
+  const emFoco = focusedCard();
+  if (emFoco) updateFocusNav(emFoco);
   const box = document.getElementById('workoutProgress');
   if (!box) return;
   const dayKey = planMode === 'cyclic' ? currentTabDay : getToday();
@@ -3091,7 +3098,7 @@ function renderExerciseCard(day, exIdx, ex) {
   // Rodapé de navegação do foco (o CSS joga ele para o fim do card)
   html += `<div class="focus-nav">`
     + `<button type="button" class="focus-nav-btn focus-prev" onclick="moveCardFocus(-1)">&lt; Anterior</button>`
-    + `<button type="button" class="focus-nav-btn focus-next" onclick="moveCardFocus(1)">Próximo &gt;</button>`
+    + `<button type="button" class="focus-nav-btn focus-next" onclick="focusNextOrFinish(this)">Próximo &gt;</button>`
     + `</div>`;
   // Header
   html += `<div class="exercise-header">`;
@@ -3980,11 +3987,34 @@ function updateFocusNav(card) {
   if (!nav) return;
   const lista = focusSiblings(card);
   const i = lista.indexOf(card);
-  // Exercício único no dia: nada para navegar; só o "Sair do foco" fica.
-  nav.style.visibility = lista.length > 1 ? '' : 'hidden';
+  const ultimo = i >= lista.length - 1;
+  const finalizar = ultimo && canFinishFromFocus(card);
+  // Exercício único no dia: nada para navegar; só o "Sair do foco" fica
+  // (ou o "Finalizar treino", quando tudo já foi feito).
+  nav.style.visibility = lista.length > 1 || finalizar ? '' : 'hidden';
   nav.querySelector('.focus-prev').hidden = i <= 0;
-  nav.querySelector('.focus-next').hidden = i >= lista.length - 1;
+  const next = nav.querySelector('.focus-next');
+  next.hidden = ultimo && !finalizar;
+  next.classList.toggle('focus-finish', finalizar);
+  next.textContent = finalizar ? 'Finalizar treino' : 'Próximo >';
   card.querySelector('.focus-nav-pos').textContent = lista.length > 1 ? `${i + 1} / ${lista.length}` : '';
+}
+
+// Treino em andamento, dia de hoje e todas as séries do dia concluídas:
+// no último exercício o foco já oferece encerrar e parar o cronômetro.
+function canFinishFromFocus(card) {
+  if (!currentSessionId || document.querySelector('.session-ended')) return false;
+  const day = card.dataset.day;
+  if (!isDayToday(day)) return false;
+  const rows = executionRows(day);
+  return rows.length > 0
+    && rows.every(r => r.querySelector('.check-icon')?.classList.contains('done'));
+}
+
+function focusNextOrFinish(btn) {
+  if (!btn.classList.contains('focus-finish')) { moveCardFocus(1); return; }
+  exitCardFocus();
+  stopWorkoutSession();
 }
 
 // Troca de exercício sem sair do foco nem da tela cheia. O blur fecha o
