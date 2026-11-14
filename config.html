@@ -152,6 +152,22 @@
     .pref-switch.on::after { transform: translateX(20px); background: var(--accent); }
     .pref-switch:active { opacity: 0.7; }
 
+    /* Notificações */
+    .pref-switch.disabled { opacity: 0.35; pointer-events: none; }
+    .pref-group { display: flex; flex-direction: column; gap: 10px; }
+    .pref-group.hidden { display: none; }
+    .pref-time {
+      margin-top: 8px; background: var(--bg-input); color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px;
+      font-size: var(--fs-base); padding: 6px 10px;
+    }
+    .pref-btn {
+      background: none; border: 1px solid var(--border); color: var(--text);
+      border-radius: 12px; padding: 12px 14px; font-size: var(--fs-base);
+      font-weight: 600; cursor: pointer;
+    }
+    .pref-btn:active { border-color: var(--accent); opacity: 0.75; }
+
     .toast {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
       background: var(--accent); color: var(--text-dark); padding: 10px 20px;
@@ -316,6 +332,36 @@
     </div>
   </div>
 
+  <div class="section-title">Notificações</div>
+
+  <div class="pref-list">
+    <div class="pref-row">
+      <div class="pref-text">
+        <div class="pref-name">Receber lembretes</div>
+        <div class="pref-desc" id="pushDesc">Avisos do treino neste celular, mesmo com o app fechado.</div>
+      </div>
+      <div class="pref-switch disabled" id="pushMaster" onclick="togglePush()"></div>
+    </div>
+    <div class="pref-group hidden" id="pushOptions">
+      <div class="pref-row">
+        <div class="pref-text">
+          <div class="pref-name">Lembrete do treino</div>
+          <div class="pref-desc">Nos dias de treino, com o treino do dia e a sua sequência. Não chega se você já treinou.</div>
+          <select class="pref-time" id="pushTime" onchange="savePushPref('reminder_time', this.value)" aria-label="Horário do lembrete"></select>
+        </div>
+        <div class="pref-switch" id="pushReminder" onclick="togglePushPref('reminder_on')"></div>
+      </div>
+      <div class="pref-row">
+        <div class="pref-text">
+          <div class="pref-name">Sequência em risco</div>
+          <div class="pref-desc">Às 20h, se você ainda não treinou e a sequência acabaria hoje.</div>
+        </div>
+        <div class="pref-switch" id="pushRisk" onclick="togglePushPref('risk_on')"></div>
+      </div>
+      <button class="pref-btn" id="pushTestBtn" onclick="sendTestPush()">Enviar notificação de teste</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -380,6 +426,156 @@ function togglePref(name) {
   showToast(ligado ? 'Ativado' : 'Desativado');
 }
 
+// === Notificações push ===
+// A inscrição é por APARELHO (push_subscriptions); o que receber e o horário
+// são por ALUNO (notification_prefs), para valer em qualquer celular dele.
+// Quem envia é a Edge Function send-push (sql/36 e sql/37).
+const VAPID_PUBLIC_KEY = 'BLi-saFv0ew5j4-KYqS1fF4h6BuPTz_bNvrGWQtabAm2ps5bQRG216kwdFam7qDRNfs8XN_FaSb7EWJ9X2e-RDY';
+let pushSub = null;
+let pushPrefs = null;
+
+function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+}
+
+function vapidKeyBytes(b64) {
+  const pad = '='.repeat((4 - b64.length % 4) % 4);
+  const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(raw, c => c.charCodeAt(0));
+}
+
+function fillTimeOptions() {
+  const sel = document.getElementById('pushTime');
+  for (let m = 5 * 60; m <= 22 * 60; m += 30) {
+    const v = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+    sel.add(new Option(v, v));
+  }
+}
+
+function renderPush() {
+  const master = document.getElementById('pushMaster');
+  const desc = document.getElementById('pushDesc');
+  const opts = document.getElementById('pushOptions');
+
+  if (!pushSupported()) {
+    const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    const instalado = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+    desc.textContent = ios && !instalado
+      ? 'No iPhone, os lembretes só funcionam com o app na Tela de Início: toque em Compartilhar e depois em Adicionar à Tela de Início.'
+      : 'Este navegador não aceita notificações.';
+    master.classList.add('disabled');
+    opts.classList.add('hidden');
+    return;
+  }
+  master.classList.remove('disabled');
+  if (Notification.permission === 'denied') {
+    desc.textContent = 'As notificações estão bloqueadas para este app. Libere nas configurações do celular.';
+  } else {
+    desc.textContent = 'Avisos do treino neste celular, mesmo com o app fechado.';
+  }
+  master.classList.toggle('on', !!pushSub);
+  opts.classList.toggle('hidden', !pushSub || !pushPrefs);
+  if (pushPrefs) {
+    document.getElementById('pushReminder').classList.toggle('on', pushPrefs.reminder_on);
+    document.getElementById('pushRisk').classList.toggle('on', pushPrefs.risk_on);
+    document.getElementById('pushTime').value = String(pushPrefs.reminder_time || '07:00').slice(0, 5);
+  }
+}
+
+// Grava o endereço deste aparelho. Se o endereço já pertence a outra conta
+// (alguém entrou neste celular antes e não saiu), o RLS barra o upsert: aí
+// cria um endereço novo, que passa a ser só deste aluno.
+async function saveSubscription(reg, sub) {
+  const row = (s) => {
+    const j = s.toJSON();
+    return { user_id: studentId, endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, user_agent: navigator.userAgent.slice(0, 200) };
+  };
+  let { error } = await _sb.from('push_subscriptions').upsert(row(sub), { onConflict: 'endpoint' });
+  if (error) {
+    await sub.unsubscribe();
+    sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyBytes(VAPID_PUBLIC_KEY) });
+    ({ error } = await _sb.from('push_subscriptions').insert(row(sub)));
+  }
+  if (error) throw error;
+  return sub;
+}
+
+async function loadPushPrefs() {
+  // Cria a linha com os padrões na primeira vez (lembrete 07:00, alerta ligado).
+  await _sb.from('notification_prefs').upsert({ student_id: studentId }, { onConflict: 'student_id', ignoreDuplicates: true });
+  const { data } = await _sb.from('notification_prefs')
+    .select('reminder_on, reminder_time, risk_on').eq('student_id', studentId).maybeSingle();
+  pushPrefs = data || null;
+}
+
+async function initPush() {
+  fillTimeOptions();
+  if (!pushSupported() || !studentId) { renderPush(); return; }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.getSubscription();
+    // Permissão retirada pelo sistema: a inscrição antiga não serve mais.
+    if (sub && Notification.permission === 'granted') {
+      pushSub = await saveSubscription(reg, sub);
+      await loadPushPrefs();
+    }
+  } catch (e) { console.warn('[push] init', e); }
+  renderPush();
+}
+
+async function togglePush() {
+  const master = document.getElementById('pushMaster');
+  master.classList.add('disabled');
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    if (pushSub) {
+      await _sb.from('push_subscriptions').delete().eq('endpoint', pushSub.endpoint);
+      await pushSub.unsubscribe();
+      pushSub = null;
+      showToast('Lembretes desligados');
+    } else {
+      // Precisa vir de um toque: o iPhone só mostra o pedido assim.
+      const perm = await Notification.requestPermission();
+      if (perm !== 'granted') { showToast('Permissão negada'); return; }
+      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: vapidKeyBytes(VAPID_PUBLIC_KEY) });
+      pushSub = await saveSubscription(reg, sub);
+      await loadPushPrefs();
+      showToast('Lembretes ligados');
+    }
+  } catch (e) {
+    console.error('[push] toggle', e);
+    showToast('Não deu para ativar agora');
+  } finally {
+    renderPush();
+  }
+}
+
+async function savePushPref(field, value) {
+  if (!pushPrefs) return;
+  pushPrefs[field] = value;
+  renderPush();
+  const { error } = await _sb.from('notification_prefs')
+    .update({ [field]: value, updated_at: new Date().toISOString() }).eq('student_id', studentId);
+  showToast(error ? 'Não salvou, tente de novo' : 'Salvo');
+}
+
+function togglePushPref(field) {
+  if (pushPrefs) savePushPref(field, !pushPrefs[field]);
+}
+
+async function sendTestPush() {
+  const btn = document.getElementById('pushTestBtn');
+  btn.disabled = true;
+  try {
+    const { data, error } = await _sb.functions.invoke('send-push', { body: { test: true } });
+    showToast(error || !data || !data.sent ? 'O teste não foi enviado' : 'Enviado. Confira a bandeja do celular.');
+  } catch (e) {
+    showToast('O teste não foi enviado');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', currentTheme);
   document.querySelectorAll('.theme-card').forEach(c => {
@@ -399,6 +595,7 @@ guard('student', {
 
     applyTheme();
     hideLoading();
+    initPush();
   },
   onBlocked: () => {
     applyTheme();

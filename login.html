@@ -206,9 +206,24 @@
       if (focus) el('code').focus();
     }
 
+    // Ao sair, este aparelho deixa de receber os lembretes desta conta. Sem
+    // isso, quem entrar depois no mesmo celular receberia os avisos do outro.
+    // Precisa rodar ANTES do signOut: o RLS só deixa apagar com a sessão viva.
+    async function dropPushSubscription() {
+      try {
+        if (!('serviceWorker' in navigator)) return;
+        const reg = await navigator.serviceWorker.getRegistration();
+        const sub = reg && reg.pushManager ? await reg.pushManager.getSubscription() : null;
+        if (!sub) return;
+        await sb.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
+        await sub.unsubscribe();
+      } catch (e) { /* sair nunca pode travar por causa do push */ }
+    }
+
     // Se já houver sessão, roteia direto (exceto se ?logout na URL)
     (async function boot() {
       if (new URLSearchParams(location.search).has('logout')) {
+        await dropPushSubscription();
         await sb.auth.signOut();
         clearPending();
         history.replaceState(null, '', 'login.html');
@@ -287,6 +302,7 @@
     });
 
     el('logoutBtn').addEventListener('click', async () => {
+      await dropPushSubscription();
       await sb.auth.signOut();
       clearPending();
       location.reload();

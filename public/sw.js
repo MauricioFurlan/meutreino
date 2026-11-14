@@ -1,7 +1,7 @@
-// v4: tema MuscleFit (preto + ciano) e a nova brand.css. Trocar o nome do
+// v5: notificações push (handlers no fim do arquivo). Trocar o nome do
 // cache é o que descarta a lista antiga no activate — sem isso o celular
-// continuaria servindo o CSS/HTML do tema antigo.
-const CACHE_NAME = 'meutreino-v4';
+// continuaria servindo o HTML antigo.
+const CACHE_NAME = 'meutreino-v5';
 const urlsToCache = [
   '/login.html',
   '/index.html',
@@ -74,5 +74,37 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => caches.match(event.request))
+  );
+});
+
+// === Notificações push ===
+// Quem manda é a Edge Function send-push. O payload é
+// { title, body, tag, url }. A tag faz o lembrete novo substituir o antigo na
+// bandeja em vez de empilhar.
+self.addEventListener('push', event => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (e) {}
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'MeuTreino', {
+      body: data.body || '',
+      tag: data.tag || 'meutreino',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { url: data.url || '/index.html' }
+    })
+  );
+});
+
+// Toque na notificação: volta para o app se ele já estiver aberto, senão abre.
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || '/index.html';
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(list => {
+      for (const c of list) {
+        if (c.url.includes(url) && 'focus' in c) return c.focus();
+      }
+      return self.clients.openWindow(url);
+    })
   );
 });
