@@ -91,7 +91,7 @@ async function runCron() {
     await sb.from('notification_prefs').update(mark).eq('student_id', prefs.student_id);
 
     const { data: profile } = await sb.from('profiles')
-      .select('role, status, access_expires_at').eq('id', prefs.student_id).maybeSingle();
+      .select('role, status, access_expires_at, full_name').eq('id', prefs.student_id).maybeSingle();
     if (!canReceive(profile, today)) continue;
 
     const { data: plans } = await sb.from('workout_plans')
@@ -104,7 +104,9 @@ async function runCron() {
     const state = analyze(Metrics, now, plan, await loadLogs(prefs.student_id, fromISO));
     // Se os dois estiverem na hora juntos, o alerta da sequência é o que vale.
     const kind = kinds.includes('risk') ? 'risk' : 'reminder';
-    const msg = buildMessage(kind, state) ?? (kind === 'risk' && kinds.includes('reminder') ? buildMessage('reminder', state) : null);
+    const opts = { name: profile?.full_name, seed: prefs.student_id };
+    const msg = buildMessage(kind, state, opts)
+      ?? (kind === 'risk' && kinds.includes('reminder') ? buildMessage('reminder', state, opts) : null);
     if (!msg) continue;
     sent += await sendToSubs(byUser.get(prefs.student_id) ?? [], msg, 'meutreino-' + kind);
   }

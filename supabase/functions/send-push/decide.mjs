@@ -112,35 +112,130 @@ export function analyze(M, now, plan, logs) {
   };
 }
 
+// ---------- textos ----------
+// Cada situação tem várias frases. A escolha gira pelo dia (dias seguidos nunca
+// repetem a mesma frase) com um deslocamento por aluno, para nem todo mundo
+// receber o mesmo texto no mesmo dia. Templates que pedem algo que não temos
+// (nome do aluno, nome do treino) devolvem null e saem da roda.
+
+function hashStr(str) {
+  let h = 0;
+  for (const c of String(str || '')) h = (h * 31 + c.codePointAt(0)) | 0;
+  return Math.abs(h);
+}
+
+function dayNumber(iso) {
+  return Math.round(new Date(iso + 'T12:00:00Z').getTime() / 86400000);
+}
+
+// slot separa título e corpo: com tamanhos de lista diferentes, as
+// combinações também variam.
+function pick(templates, ctx, slot) {
+  const ok = templates.map(t => t(ctx)).filter(Boolean);
+  if (!ok.length) return '';
+  return ok[(dayNumber(ctx.today) + hashStr(ctx.seed + slot)) % ok.length];
+}
+
+export function firstName(fullName) {
+  const n = String(fullName || '').trim().split(/\s+/)[0] || '';
+  return n ? n[0].toUpperCase() + n.slice(1).toLowerCase() : '';
+}
+
+// Nome do treino de hoje: o subtítulo cadastrado; no cíclico sem subtítulo, "Treino B".
+function workoutName(s) {
+  if (s.subtitle) return s.subtitle;
+  return s.mode === 'cyclic' && s.next ? `Treino ${s.next}` : '';
+}
+
+const T_REMINDER_NAMED = [
+  c => `Hoje é dia de ${c.treino}`,
+  c => `Treino de hoje: ${c.treino}`,
+  c => `Hoje tem ${c.treino}. Bora?`,
+  c => c.nome && `${c.nome}, hoje tem ${c.treino}`,
+  c => `${c.treino} te esperando`,
+  c => c.nome && `Bora, ${c.nome}? Hoje é ${c.treino}`,
+];
+const T_REMINDER_GENERIC = [
+  () => 'Hoje é dia de treino',
+  () => 'Seu treino de hoje está pronto',
+  () => 'Hora de treinar',
+  c => c.nome && `${c.nome}, bora treinar?`,
+  c => c.nome && `Bora, ${c.nome}! Dia de treino`,
+];
+const B_STREAK = [
+  c => `${plural(c.n, 'treino seguido', 'treinos seguidos')}. Não deixa a sequência parar agora!`,
+  c => `Mais um hoje e a sua sequência vai para ${c.n + 1}.`,
+  c => `Sequência de ${c.n} e contando. Hoje é o ${c.n + 1}º.`,
+  c => `Constância é o que dá resultado, e você já tem ${plural(c.n, 'treino seguido', 'treinos seguidos')}.`,
+  c => `Você está com ${plural(c.n, 'treino seguido', 'treinos seguidos')}. Bora manter o foguinho aceso!`,
+];
+const B_FRESH = [
+  () => 'O treino mais difícil é o que você não começa. Bora?',
+  () => 'Não precisa ser perfeito, só precisa ser feito.',
+  () => 'Seu eu de amanhã vai agradecer. Bora treinar?',
+  () => 'Hoje é um ótimo dia para começar uma sequência nova.',
+  () => 'Cada treino conta. Começa hoje e vê a sequência crescer.',
+  () => 'Uma hora de treino, o dia inteiro de disposição.',
+];
+const T_RISK = [
+  c => `Sua sequência de ${c.n} acaba hoje`,
+  c => `${plural(c.n, 'treino seguido', 'treinos seguidos')} em jogo`,
+  c => c.nome && `${c.nome}, não perde a sequência de ${c.n}!`,
+  c => `Não deixa a sequência de ${c.n} cair`,
+];
+const B_RISK = [
+  c => c.treino ? `Ainda dá tempo: ${c.treino} hoje mantém o foguinho aceso.` : 'Ainda dá tempo de treinar e manter o foguinho aceso.',
+  () => 'Mesmo um treino mais curto hoje já salva a sequência.',
+  c => `Foram ${c.n} treinos de esforço. Um hoje e a sequência continua.`,
+  () => 'Falta pouco para o dia acabar, mas ainda dá tempo de treinar.',
+];
+const B_CYCLIC_START = [
+  () => 'Primeiro treino da semana. Começa forte!',
+  () => 'Semana nova, meta nova. Bora abrir com o pé direito.',
+  () => 'O primeiro treino da semana puxa todos os outros.',
+];
+const T_CYCLIC_RISK = [
+  () => 'Sua meta da semana está em risco',
+  c => c.nome && `${c.nome}, a meta da semana depende de hoje`,
+  () => 'Hoje decide a sua meta da semana',
+];
+
 // Mensagem de um tipo, ou null se hoje não cabe mandar.
-export function buildMessage(kind, s) {
+//   opts.name: nome completo do aluno (opcional)
+//   opts.seed: identificador estável do aluno, para variar a frase entre alunos
+export function buildMessage(kind, s, opts = {}) {
   if (s.trainedToday) return null;
+  const ctx = { today: s.today, seed: (opts.seed || '') + kind, nome: firstName(opts.name), treino: workoutName(s) };
 
   if (s.mode === 'weekly') {
     if (!s.isWorkoutDay) return null;
+    ctx.n = s.streak;
     if (kind === 'reminder') {
       return {
-        title: s.subtitle ? `Treino de hoje: ${s.subtitle}` : 'Hoje é dia de treino',
-        body: s.streak > 0
-          ? `Você está com ${plural(s.streak, 'treino seguido', 'treinos seguidos')}. Bora manter a sequência!`
-          : 'Bora começar uma sequência nova hoje?'
+        title: pick(ctx.treino ? T_REMINDER_NAMED : T_REMINDER_GENERIC, ctx, 't'),
+        body: pick(s.streak > 0 ? B_STREAK : B_FRESH, ctx, 'b')
       };
     }
     // Sequência de 1 ainda não é algo que dê pena perder.
     if (s.streak < 2) return null;
-    return {
-      title: `Sua sequência de ${s.streak} acaba hoje`,
-      body: 'Ainda dá tempo de treinar e manter o foguinho aceso.'
-    };
+    return { title: pick(T_RISK, ctx, 't'), body: pick(B_RISK, ctx, 'b') };
   }
 
   // cíclico
   const metaBatida = s.daysPerWeek && s.weekCount >= s.daysPerWeek;
   if (kind === 'reminder') {
     if (!s.isWorkoutDay || metaBatida) return null;
-    let body = s.daysPerWeek ? `Esta semana: ${s.weekCount} de ${s.daysPerWeek} treinos.` : 'Bora treinar?';
+    let body;
+    if (!s.daysPerWeek) body = pick(B_FRESH, ctx, 'b');
+    else if (s.weekCount === 0) body = pick(B_CYCLIC_START, ctx, 'b');
+    else {
+      const faltam = s.daysPerWeek - s.weekCount;
+      body = faltam === 1
+        ? `Já são ${s.weekCount} de ${s.daysPerWeek} esta semana. Só falta 1 para bater a meta!`
+        : `Já são ${s.weekCount} de ${s.daysPerWeek} esta semana. Faltam ${faltam} para a meta.`;
+    }
     if (s.weeksStreak > 0) body += ` ${plural(s.weeksStreak, 'semana seguida', 'semanas seguidas')} na meta.`;
-    return { title: `Treino de hoje: ${s.next}${s.subtitle ? ' — ' + s.subtitle : ''}`, body };
+    return { title: pick(T_REMINDER_NAMED, ctx, 't'), body };
   }
   if (!s.daysPerWeek || metaBatida) return null;
   const faltam = s.daysPerWeek - s.weekCount;
@@ -148,8 +243,8 @@ export function buildMessage(kind, s) {
   // adianta cobrar.
   if (faltam !== s.daysLeftInWeek) return null;
   return {
-    title: 'Sua meta da semana está em risco',
-    body: `${faltam === 1 ? 'Falta 1 treino' : `Faltam ${faltam} treinos`} e ${plural(s.daysLeftInWeek, 'dia', 'dias')} na semana. Treinar hoje mantém a meta.`
+    title: pick(T_CYCLIC_RISK, ctx, 't'),
+    body: `${faltam === 1 ? 'Falta 1 treino' : `Faltam ${faltam} treinos`} e ${plural(s.daysLeftInWeek, 'dia', 'dias')} na semana. ${ctx.treino ? ctx.treino + ' hoje' : 'Treinar hoje'} mantém a meta.`
   };
 }
 

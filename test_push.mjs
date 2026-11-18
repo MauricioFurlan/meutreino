@@ -50,25 +50,35 @@ const tresSeguidos = [log('2026-11-09', 'Segunda'), log('2026-11-11', 'Quarta'),
 let s = analyze(M, seg7, semanal, tresSeguidos);
 eq('semanal: segunda é dia de treino', s.isWorkoutDay, true);
 eq('semanal: sequência sem contar hoje', s.streak, 3);
-eq('semanal: lembrete com subtítulo e sequência', buildMessage('reminder', s), {
-  title: 'Treino de hoje: Peito e tríceps',
-  body: 'Você está com 3 treinos seguidos. Bora manter a sequência!'
-});
-eq('semanal: alerta de sequência', buildMessage('risk', s), {
-  title: 'Sua sequência de 3 acaba hoje',
-  body: 'Ainda dá tempo de treinar e manter o foguinho aceso.'
-});
+let m = buildMessage('reminder', s, { name: 'joão silva', seed: 'aluno1' });
+eq('semanal: título traz o nome do treino', m.title.includes('Peito e tríceps'), true);
+eq('semanal: corpo fala da sequência', /3|4/.test(m.body), true);
+m = buildMessage('risk', s, { seed: 'aluno1' });
+eq('semanal: alerta cita a sequência', /3/.test(m.title + m.body), true);
+eq('semanal: sem nome, nenhum texto com "undefined"/"null"', /undefined|null/.test(m.title + m.body), false);
+// variação: dias seguidos não repetem a frase, e alunos diferentes variam
+const textos = [];
+for (let i = 0; i < 4; i++) {
+  const d = new Date(seg7); d.setDate(d.getDate() + 7 * i);
+  const st = analyze(M, d, semanal, []);
+  textos.push(buildMessage('reminder', { ...st, today: M.toLocalISO(br(2026, 11, 16 + i, 7)) }, { seed: 'aluno1' }).body);
+}
+eq('semanal: dias seguidos não repetem a mesma frase', textos.every((t, i) => i === 0 || t !== textos[i - 1]), true);
+const porAluno = new Set(['a', 'b', 'c', 'd', 'e', 'f'].map(seed => buildMessage('reminder', s, { seed }).title));
+eq('semanal: alunos diferentes recebem frases diferentes', porAluno.size > 1, true);
+const comNome = new Set([...Array(12)].map((_, i) =>
+  buildMessage('reminder', { ...s, today: M.toLocalISO(br(2026, 11, 1 + i, 7)) }, { name: 'MARIA souza', seed: 'x' }).title));
+eq('semanal: primeiro nome aparece em alguma variação', [...comNome].some(t => t.includes('Maria')), true);
 s = analyze(M, seg7, semanal, [...tresSeguidos, log('2026-11-16', 'Segunda')]);
 eq('semanal: já treinou hoje → nada', [buildMessage('reminder', s), buildMessage('risk', s)], [null, null]);
 s = analyze(M, br(2026, 11, 17, 7, 5), semanal, tresSeguidos);
 eq('semanal: terça é descanso → nada', buildMessage('reminder', s), null);
 s = analyze(M, br(2026, 11, 18, 7, 5), semanal, []);
-eq('semanal: quarta sem subtítulo nem sequência', buildMessage('reminder', s), {
-  title: 'Hoje é dia de treino', body: 'Bora começar uma sequência nova hoje?'
-});
+m = buildMessage('reminder', s);
+eq('semanal: quarta sem subtítulo nem sequência', [!!m.title, !!m.body, /undefined|null|NaN/.test(m.title + m.body)], [true, true, false]);
 s = analyze(M, seg7, semanal, [log('2026-11-13', 'Sexta')]);
 eq('semanal: sequência de 1 não gera alerta', buildMessage('risk', s), null);
-eq('semanal: lembrete no singular', buildMessage('reminder', s).body, 'Você está com 1 treino seguido. Bora manter a sequência!');
+eq('semanal: nada de "1 treinos"', /1 treinos/.test(buildMessage('reminder', s).body), false);
 
 // ---------- cíclico ----------
 const ciclico = {
@@ -78,7 +88,9 @@ const ciclico = {
 };
 s = analyze(M, seg7, ciclico, [log('2026-11-14', 'A', { plan_id: 'p2' })]);
 eq('cíclico: depois do A vem o B', s.next, 'B');
-eq('cíclico: lembrete com letra e subtítulo', buildMessage('reminder', s).title, 'Treino de hoje: B — Costas');
+eq('cíclico: lembrete com o nome do treino', buildMessage('reminder', s).title.includes('Costas'), true);
+s = analyze(M, br(2026, 11, 17, 7, 5), ciclico, [log('2026-11-15', 'B', { plan_id: 'p2' })]);
+eq('cíclico: sem subtítulo usa "Treino C"', buildMessage('reminder', s).title.includes('Treino C'), true);
 s = analyze(M, seg7, ciclico, [log('2026-11-15', 'B', { plan_id: 'p2' })]);
 eq('cíclico: dia seguinte ao B é descanso', [s.isWorkoutDay, buildMessage('reminder', s)], [false, null]);
 s = analyze(M, br(2026, 11, 17, 7, 5), ciclico, [log('2026-11-15', 'B', { plan_id: 'p2' })]);
@@ -95,10 +107,7 @@ const semana1 = [log('2026-11-16', 'A', { plan_id: 'p2' })];
 s = analyze(M, br(2026, 11, 20, 20, 0), ciclico, semana1);
 eq('cíclico: faltam 2 e restam 3 dias → sem alerta', buildMessage('risk', s), null);
 s = analyze(M, br(2026, 11, 21, 20, 0), ciclico, semana1);
-eq('cíclico: faltam 2 e restam 2 dias → alerta', buildMessage('risk', s), {
-  title: 'Sua meta da semana está em risco',
-  body: 'Faltam 2 treinos e 2 dias na semana. Treinar hoje mantém a meta.'
-});
+eq('cíclico: faltam 2 e restam 2 dias → alerta', buildMessage('risk', s).body.startsWith('Faltam 2 treinos e 2 dias na semana.'), true);
 s = analyze(M, br(2026, 11, 22, 20, 0), ciclico, semana1);
 eq('cíclico: já não dá mais → sem cobrança', buildMessage('risk', s), null);
 const metaBatida = ['2026-11-16', '2026-11-17', '2026-11-18'].map((d, i) => log(d, 'ABC'[i], { plan_id: 'p2' }));
