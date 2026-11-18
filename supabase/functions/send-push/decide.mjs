@@ -200,6 +200,9 @@ const T_CYCLIC_RISK = [
   () => 'Hoje decide a sua meta da semana',
 ];
 
+// O mesmo foguinho da sequência no app: aparece sempre que há sequência em jogo.
+const FIRE = '\u{1F525}';
+
 // Mensagem de um tipo, ou null se hoje não cabe mandar.
 //   opts.name: nome completo do aluno (opcional)
 //   opts.seed: identificador estável do aluno, para variar a frase entre alunos
@@ -213,12 +216,12 @@ export function buildMessage(kind, s, opts = {}) {
     if (kind === 'reminder') {
       return {
         title: pick(ctx.treino ? T_REMINDER_NAMED : T_REMINDER_GENERIC, ctx, 't'),
-        body: pick(s.streak > 0 ? B_STREAK : B_FRESH, ctx, 'b')
+        body: s.streak > 0 ? `${pick(B_STREAK, ctx, 'b')} ${FIRE}` : pick(B_FRESH, ctx, 'b')
       };
     }
     // Sequência de 1 ainda não é algo que dê pena perder.
     if (s.streak < 2) return null;
-    return { title: pick(T_RISK, ctx, 't'), body: pick(B_RISK, ctx, 'b') };
+    return { title: `${FIRE} ${pick(T_RISK, ctx, 't')}`, body: pick(B_RISK, ctx, 'b') };
   }
 
   // cíclico
@@ -234,7 +237,7 @@ export function buildMessage(kind, s, opts = {}) {
         ? `Já são ${s.weekCount} de ${s.daysPerWeek} esta semana. Só falta 1 para bater a meta!`
         : `Já são ${s.weekCount} de ${s.daysPerWeek} esta semana. Faltam ${faltam} para a meta.`;
     }
-    if (s.weeksStreak > 0) body += ` ${plural(s.weeksStreak, 'semana seguida', 'semanas seguidas')} na meta.`;
+    if (s.weeksStreak > 0) body += ` ${FIRE} ${plural(s.weeksStreak, 'semana seguida', 'semanas seguidas')} na meta.`;
     return { title: pick(T_REMINDER_NAMED, ctx, 't'), body };
   }
   if (!s.daysPerWeek || metaBatida) return null;
